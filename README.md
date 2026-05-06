@@ -53,7 +53,7 @@ That's it. Next time you start Claude Code, the `boil` skill and `/boil` slash c
 To deploy on a remote machine where you also use Claude Code:
 
 ```bash
-rsync -avz --delete -e ssh ~/.claude/skills/boil/ remote:.claude/skills/boil/
+rsync -avz --delete --exclude='.git' -e ssh ~/.claude/skills/boil/ remote:.claude/skills/boil/
 ```
 
 ## Layout
