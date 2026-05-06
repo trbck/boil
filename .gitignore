@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# A `.boil/` workspace is what the skill creates inside USER projects when it runs —
+# it should never live inside the skill repo itself. Belt-and-braces ignore.
+.boil/

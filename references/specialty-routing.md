@@ -1,0 +1,150 @@
+# Specialty → Subagent Routing
+
+The default routing table. Copy this into `.boil/routing.md` at bootstrap and adapt per-project (e.g., add language-specific routes if the project is Python-heavy or Rails-heavy).
+
+The orchestrator reads this table when dispatching tickets. `ticket.specialty` is the key; the value is the `subagent_type` to pass to the Agent tool.
+
+## Default routing table
+
+```yaml
+# .boil/routing.md (copy this YAML into a code block in that file)
+
+# Core development
+frontend:        voltagent-core-dev:frontend-developer
+backend:         voltagent-core-dev:backend-developer
+fullstack:       voltagent-core-dev:fullstack-developer
+api-design:      voltagent-core-dev:api-designer
+mobile:          voltagent-core-dev:mobile-developer
+ui-design:       voltagent-core-dev:ui-designer
+websocket:       voltagent-core-dev:websocket-engineer
+graphql:         voltagent-core-dev:graphql-architect
+microservices:   voltagent-core-dev:microservices-architect
+electron:        voltagent-core-dev:electron-pro
+
+# QA & security
+qa:              voltagent-qa-sec:qa-expert
+debugger:        voltagent-qa-sec:debugger
+code-review:     voltagent-qa-sec:code-reviewer
+test-automation: voltagent-qa-sec:test-automator
+performance:     voltagent-qa-sec:performance-engineer
+security:        voltagent-qa-sec:security-auditor
+penetration:     voltagent-qa-sec:penetration-tester
+accessibility:   voltagent-qa-sec:accessibility-tester
+architecture:    voltagent-qa-sec:architect-reviewer
+chaos:           voltagent-qa-sec:chaos-engineer
+error-detective: voltagent-qa-sec:error-detective
+compliance:      voltagent-qa-sec:compliance-auditor
+
+# Data & AI
+data-analysis:   voltagent-data-ai:data-analyst
+data-engineering: voltagent-data-ai:data-engineer
+data-science:    voltagent-data-ai:data-scientist
+ml:              voltagent-data-ai:ml-engineer
+ai:              voltagent-data-ai:ai-engineer
+mlops:           voltagent-data-ai:mlops-engineer
+nlp:             voltagent-data-ai:nlp-engineer
+llm:             voltagent-data-ai:llm-architect
+prompt:          voltagent-data-ai:prompt-engineer
+database:        voltagent-data-ai:database-optimizer
+postgres:        voltagent-data-ai:postgres-pro
+
+# Languages (use when work is language-specific in a polyglot repo)
+python:          voltagent-lang:python-pro
+javascript:      voltagent-lang:javascript-pro
+typescript:      voltagent-lang:typescript-pro
+go:              voltagent-lang:golang-pro
+rust:            voltagent-lang:rust-engineer
+java:            voltagent-lang:java-architect
+csharp:          voltagent-lang:csharp-developer
+cpp:             voltagent-lang:cpp-pro
+php:             voltagent-lang:php-pro
+ruby-rails:      voltagent-lang:rails-expert
+swift:           voltagent-lang:swift-expert
+kotlin:          voltagent-lang:kotlin-specialist
+elixir:          voltagent-lang:elixir-expert
+django:          voltagent-lang:django-developer
+nextjs:          voltagent-lang:nextjs-developer
+react:           voltagent-lang:react-specialist
+vue:             voltagent-lang:vue-expert
+angular:         voltagent-lang:angular-architect
+flutter:         voltagent-lang:flutter-expert
+laravel:         voltagent-lang:laravel-specialist
+spring:          voltagent-lang:spring-boot-engineer
+sql:             voltagent-lang:sql-pro
+powershell-7:    voltagent-lang:powershell-7-expert
+powershell-5:    voltagent-lang:powershell-5.1-expert
+dotnet:          voltagent-lang:dotnet-core-expert
+dotnet-fx:       voltagent-lang:dotnet-framework-4.8-expert
+
+# Developer experience
+build:           voltagent-dev-exp:build-engineer
+cli:             voltagent-dev-exp:cli-developer
+deps:            voltagent-dev-exp:dependency-manager
+docs:            voltagent-dev-exp:documentation-engineer
+dx:              voltagent-dev-exp:dx-optimizer
+git:             voltagent-dev-exp:git-workflow-manager
+legacy:          voltagent-dev-exp:legacy-modernizer
+mcp:             voltagent-dev-exp:mcp-developer
+refactor:        voltagent-dev-exp:refactoring-specialist
+slack:           voltagent-dev-exp:slack-expert
+tooling:         voltagent-dev-exp:tooling-engineer
+
+# Domains (use for vertical-specific work)
+api-docs:        voltagent-domains:api-documenter
+blockchain:      voltagent-domains:blockchain-developer
+embedded:        voltagent-domains:embedded-systems
+fintech:         voltagent-domains:fintech-engineer
+game:            voltagent-domains:game-developer
+iot:             voltagent-domains:iot-engineer
+m365:            voltagent-domains:m365-admin
+mobile-app:      voltagent-domains:mobile-app-developer
+payment:         voltagent-domains:payment-integration
+quant:           voltagent-domains:quant-analyst
+risk:            voltagent-domains:risk-manager
+seo:             voltagent-domains:seo-specialist
+wordpress:       voltagent-biz:wordpress-master
+
+# Research & analysis
+research:        voltagent-research:research-analyst
+data-research:   voltagent-research:data-researcher
+market:          voltagent-research:market-researcher
+competitive:     voltagent-research:competitive-analyst
+search:          voltagent-research:search-specialist
+trend:           voltagent-research:trend-analyst
+
+# Business / product (rarely needed inside a code loop, but available)
+product:         voltagent-biz:product-manager
+project:         voltagent-biz:project-manager
+business:        voltagent-biz:business-analyst
+content:         voltagent-biz:content-marketer
+technical-writer: voltagent-biz:technical-writer
+ux-research:     voltagent-biz:ux-researcher
+
+# Fallbacks
+plan:            Plan
+explore:         Explore
+general:         general-purpose
+```
+
+## How the orchestrator uses this
+
+1. Read `ticket.specialty` from the ticket file.
+2. Look up the value in `routing.md`.
+3. If found → dispatch with that `subagent_type`.
+4. If not found → log a TODO at the bottom of `routing.md` ("specialty `xyz` referenced by T-NNNN, not routed") and dispatch with `general-purpose`. Address the gap on next iteration.
+
+## Adapting to your project
+
+Edit `.boil/routing.md` after bootstrap:
+
+- **Polyglot repo** — keep the language-specific routes; they'll get used.
+- **Single-language repo** — collapse to the most relevant ones. E.g., a Next.js project might map `frontend` → `voltagent-lang:nextjs-developer` directly.
+- **Specialized stack** — add new specialty keys for things that don't fit the defaults. E.g., `wordpress`, `salesforce-apex`, `airflow-dag`. Add the route to whichever specialist comes closest.
+- **Custom subagent types** — if the user has their own subagent definitions (`.claude/agents/<name>.md`), use those names directly as the routing target.
+
+## Gotchas
+
+- **Don't over-route.** Three or four routes covering 90% of work beats fifty routes covering 100%. The fallback to `general-purpose` is fine for the long tail.
+- **Specialty ≠ language.** A `frontend` ticket in a TypeScript repo doesn't necessarily need the TypeScript specialist — `frontend-developer` already knows TS. Use language-specific routes only when the work is fundamentally about the language (e.g., a tricky type-system problem, a build-tool config, a perf-sensitive algorithm).
+- **`Plan` and `Explore` are special.** `Plan` is for design/architecture deliberation; `Explore` is for read-only code search. Route research-style tickets to these — they're fast and don't write code.
+- **Don't route `code-review` to the specialist mid-iteration unless asked.** Code review at the end of an iteration is fine, but routing every ticket through review doubles the loop length. Use `superpowers:requesting-code-review` at termination instead.

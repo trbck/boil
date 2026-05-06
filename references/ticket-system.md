@@ -1,0 +1,164 @@
+# Ticket System
+
+The ticket pool is how the firm coordinates. Agents write tickets to each other; the orchestrator routes them to the right specialist. This file defines the ticket schema, the dispatch prompt template, and the inter-agent handoff rules.
+
+## Why tickets (not just a TODO list)
+
+A flat TODO list collapses under parallel work. Tickets are durable, addressable units that carry their own context. Two properties matter:
+
+1. **Specialty + routing.** Each ticket declares what kind of expertise it needs (`frontend`, `backend`, `qa`, `debugger`, …). The orchestrator looks up the matching subagent type in `routing.md` and dispatches accordingly. An agent never picks its own work — that prevents specialty thrash.
+2. **Agent-to-agent handoff.** When an agent discovers work outside its specialty mid-task ("the test fails because the API returns 500"), it doesn't try to do it itself — it files a new ticket and returns. The orchestrator picks up the new ticket on the next iteration and routes it to the right specialist.
+
+## Ticket schema
+
+One file per ticket: `.boil/tickets/T-NNNN.md`. Use 4-digit zero-padded IDs.
+
+```markdown
+---
+id: T-0042
+title: Fix dashboard chart not refreshing on filter change
+type: bug | feature | test | research | refactor | demo-prep | docs
+specialty: frontend | backend | qa | debugger | code-review | design | devops | data | docs | general
+status: open | in-progress | blocked | done | wontfix
+priority: P0 | P1 | P2 | P3
+opened_by: orchestrator | T-0040 | agent:frontend
+opened_at: 2026-05-05T14:32:00Z
+blocked_by: []                       # list of ticket IDs that must be done first
+closes_goal_checkbox: ["criterion 2"]  # which goal.md checkbox(es) this closes (optional)
+demo: |
+  User opens http://localhost:3000/admin/metrics, changes the date filter,
+  chart re-renders within 200ms with new data.
+acceptance:
+  - Filter change triggers refetch within 100ms
+  - Chart re-renders without flicker
+  - No console errors
+  - Unit test covers the refetch logic
+  - Playwright test covers the user-visible flow
+---
+
+## Context
+<what's known, links to relevant files/lines, prior attempts if any>
+
+## Notes (append-only by agents)
+<empty until an agent picks it up>
+```
+
+### Field guidance
+
+- **`type`** — Use `demo-prep` when an iteration's work needs more user-visible polish before it can be demoed (a real, common situation). This keeps the demo requirement honest.
+- **`specialty`** — Match against `routing.md`. Use `general` only when nothing else fits.
+- **`priority`** — P0 = blocker (loop can't make progress without it). P1 = critical to goal. P2 = needed for goal but flexible. P3 = nice-to-have.
+- **`opened_by`** — Lets you trace agent-to-agent chains. Useful when the loop produces a chain of tickets and you want to debug the cascade.
+- **`closes_goal_checkbox`** — Optional but powerful. Lets the orchestrator pick tickets that move the needle on `goal.md`.
+- **`demo`** — How the user will see this specific ticket worked. The orchestrator uses this to assemble the iteration demo.
+- **`acceptance`** — Concrete, checkable. The implementing agent must satisfy these; the orchestrator verifies.
+
+## Dispatch prompt template
+
+When dispatching a ticket to a specialist, use a self-contained prompt. The agent has none of your conversation context — give them everything they need.
+
+```
+You are working on ticket T-NNNN inside a `boil` dev-firm loop.
+
+## The ticket
+<paste ticket file contents>
+
+## Goal context (relevant slice of .boil/goal.md)
+<paste the relevant lines from goal.md — the one-liner and the success-checklist items this ticket touches>
+
+## Codebase context (relevant slice of .boil/memory.md)
+<paste the relevant lines: stack, where the goal-relevant code lives, run/test commands>
+
+## Your job
+1. Implement what the ticket asks for. Satisfy every acceptance criterion.
+2. Test your work — run the project's tests and any new tests you add.
+3. If you discover work outside your specialty, DO NOT try to do it.
+   Instead, file a new ticket: write `.boil/tickets/T-XXXX.md` (use the next free ID
+   after T-NNNN) with a clear description and the right `specialty`. Reference
+   yourself in `opened_by: T-NNNN`.
+4. If you hit a blocker that needs the user, set the ticket status to `blocked`
+   and clearly describe what input you need.
+
+## Constraints
+- Only modify files needed for this ticket.
+- Don't refactor unrelated code, even if you see something messy — file a refactor ticket instead.
+- Don't change test infrastructure unless the ticket asks you to.
+- If the demo target requires running a dev server or producing a screenshot, leave
+  the server running (note the port) so the orchestrator can demo it.
+
+## Return
+Return a structured report:
+
+### Changed files
+- <path> — <one-line>
+- <path> — <one-line>
+
+### Tests
+- Added: <test names + file:line>
+- Ran: <command + result>
+- Status: <green | N failures (list)>
+
+### New tickets filed
+- T-XXXX — <title> — specialty: <…>  (or "none")
+
+### Blockers
+- <description>  (or "none")
+
+### Demo notes
+- <how to see this works — URL, command, file:line of the diff, etc.>
+
+### Acceptance criteria
+- [ ] <criterion 1> — <met / not met / how to verify>
+- [ ] <criterion 2> — <met / not met / how to verify>
+```
+
+Adjust the language to the agent type — a `qa-expert` and a `frontend-developer` care about different things, but the structure stays the same.
+
+## Routing in code
+
+Each iteration, after picking the batch:
+
+```
+For each ticket in batch:
+    specialty = ticket.specialty
+    subagent_type = routing[specialty]   # from .boil/routing.md
+    Dispatch via Agent tool with subagent_type=<that>, prompt=<filled template above>
+
+ALL dispatches go in ONE assistant message (multiple Agent tool blocks)
+so they execute concurrently.
+```
+
+If `routing.md` has no entry for the ticket's specialty, fall back to `general-purpose` and log a TODO to add the routing entry.
+
+## Inter-agent handoff rules
+
+These rules keep the firm from devolving into chaos.
+
+1. **Agents don't pick their own next work.** When an agent finishes, it returns and waits. The orchestrator picks the next batch.
+2. **Agents file tickets, they don't dispatch them.** Filing = writing a `.md` file. Dispatching = invoking another subagent. Only the orchestrator dispatches.
+3. **Agents don't edit other agents' tickets.** They can append to the `## Notes` section of their own ticket, and they file new tickets — but they don't modify the metadata or notes of other tickets.
+4. **Status changes are the orchestrator's job.** When an agent returns, the orchestrator (you) reads the report, verifies, and sets `status: done` (or `blocked`). Agents themselves only ever leave their ticket in `in-progress` or note a blocker.
+5. **No two agents on the same ticket.** Before dispatching, mark `status: in-progress` so a future cycle's pick logic can't double-book.
+6. **Bug-discovery → ticket.** If an agent's verification reveals a bug elsewhere, file it as a ticket AND append it to `bugs.md`. Both: the bug log is for human review, the ticket is for the loop.
+
+## Worked example
+
+Iteration 3 picks `T-0007 (frontend, P1)` — "Make filter change refetch chart data".
+
+Orchestrator dispatches to `voltagent-core-dev:frontend-developer` with the prompt template.
+
+Agent returns:
+- Implemented the refetch hook, added a unit test (green)
+- BUT: discovered the API endpoint at `/api/metrics?range=...` returns 500 on the new query param shape
+- Files `T-0011 (backend, P0)` — "Fix /api/metrics 500 on date-range param" — `opened_by: T-0007`
+- Sets own ticket `status: blocked`, `blocked_by: [T-0011]`
+- Returns its report
+
+Orchestrator:
+- Verifies the changed files via `git diff`
+- Updates `T-0007` status to `blocked` (matches what agent reported)
+- Adds `T-0011` to the pool
+- Iteration 3's demo shows: the refetch hook works in the unit test, but the user-visible flow blocks on T-0011 (which is now P0 and will be picked in iteration 4)
+- Iteration 4 picks T-0011, routes to backend specialist; once T-0011 closes, T-0007 unblocks
+
+This pattern — file a ticket, mark blocked, return — is the firm's coordination mechanism. It scales.
