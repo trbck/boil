@@ -85,6 +85,8 @@ If any of those are missing or fuzzy, **invoke the brainstorming question set** 
 
 Confirm `goal.md` with the user in 3–5 lines before moving on. **Do not start work on a goal you haven't read back.**
 
+**Rubrics for semantic checklist items.** If any checklist item is semantic — pass/fail depends on intent, behavior over time, or subjective quality (e.g., "agent honors the user's constraint across turns", "dashboard is readable to a first-time user") — author a rubric for it now, before Phase 1. Deterministic items (exit codes, latency thresholds, schema checks) do **not** need rubrics. See `references/rubrics.md` for the rubric shape, the inline-vs-separate-file decision, and how rubrics get evaluated in Step 2d Pass 3.
+
 ---
 
 ## Phase 1 — Bootstrap state
@@ -169,6 +171,8 @@ Two passes, both required:
 
 If Pass 2 reveals new problems, file new tickets and continue the loop — don't try to fix everything in one iteration. The whole point of looping is that you don't have to.
 
+**Pass 3 — semantic judgment (only if rubrics apply).** For every goal checkbox this iteration moved or closed that has a rubric attached (inline or in `.boil/rubrics/`), dispatch a `judge` subagent in parallel with the others, context-isolated, given only the rubric + the artifacts it names + the iteration diff. Each judge writes a Chain-of-Thought verdict to `.boil/iterations/iter-NNN/judges/R-NNN.md`. Pass → check the box. Fail → leave the box, file one ticket per failed rubric using the judge's "actionable next step" sentence as the ticket title. Indeterminate → file a `demo-prep` ticket (the work might be done, you just couldn't see it). Skip rubrics whose artifacts didn't change this iteration unless they're marked `standing: true`. **Do not route the judge to the specialty that did the implementation work** — that's the bias the rubric layer exists to avoid. Full protocol in `references/rubrics.md`.
+
 ### Step 2e — DEMO (the most important step)
 
 Produce one user-visible artifact for this iteration. **Never skip this.** If you find yourself unable to produce one, that's a signal the work isn't actually done from the user's point of view — file a `demo-prep` ticket and continue.
@@ -223,7 +227,7 @@ Continue, refine the goal, pivot, or stop?
 
 Stop when **any** of these are true:
 
-1. Every checkbox in `goal.md` is checked, AND the most recent direct + adversarial verification both pass, AND the user accepted the most recent demo (explicit "looks good" or equivalent).
+1. Every checkbox in `goal.md` is checked, AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
 2. The user says stop / good enough / ship it.
 3. You've hit a hard blocker that no specialist can resolve without user input (e.g., needs a credential, needs a product decision). Surface the blocker clearly and stop.
 
@@ -260,6 +264,7 @@ Read these as you need them:
 - `references/ticket-system.md` — ticket schema, dispatch prompt template, agent-to-agent handoff rules.
 - `references/specialty-routing.md` — the specialty → `subagent_type` registry. Copy this into `.boil/routing.md` at bootstrap and adapt per-project.
 - `references/demo-formats.md` — recipes for producing a user-visible demo for each work type.
+- `references/rubrics.md` — semantic LLM-as-judge layer: when to write a rubric, the rubric shape, how the judge subagent is dispatched (context-isolated, CoT-required), and how verdicts feed back into tickets and termination.
 
 ---
 

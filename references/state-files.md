@@ -21,6 +21,13 @@ The contract. Written in Phase 0, edited only when the user explicitly refines s
 - [ ] <criterion 2, observable>
 - [ ] <criterion 3, observable>
 
+<!--
+  Semantic criteria (behavior, intent, subjective quality) should carry an
+  inline rubric block right under the checkbox — see references/rubrics.md
+  for the YAML shape and the judge dispatch protocol. Deterministic criteria
+  (exit codes, latency, schema checks) do NOT need a rubric — Pass 1 covers them.
+-->
+
 ## How the user will see this works (demo target)
 
 <concrete: which page, which command, which test, which screenshot. This is what every iteration's demo points toward.>

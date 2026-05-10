@@ -25,6 +25,8 @@ electron:        voltagent-core-dev:electron-pro
 qa:              voltagent-qa-sec:qa-expert
 debugger:        voltagent-qa-sec:debugger
 code-review:     voltagent-qa-sec:code-reviewer
+judge:           voltagent-research:research-analyst   # semantic rubric evaluator (see references/rubrics.md)
+evaluator:       voltagent-research:research-analyst   # alias for `judge`
 test-automation: voltagent-qa-sec:test-automator
 performance:     voltagent-qa-sec:performance-engineer
 security:        voltagent-qa-sec:security-auditor
@@ -148,3 +150,4 @@ Edit `.boil/routing.md` after bootstrap:
 - **Specialty ≠ language.** A `frontend` ticket in a TypeScript repo doesn't necessarily need the TypeScript specialist — `frontend-developer` already knows TS. Use language-specific routes only when the work is fundamentally about the language (e.g., a tricky type-system problem, a build-tool config, a perf-sensitive algorithm).
 - **`Plan` and `Explore` are special.** `Plan` is for design/architecture deliberation; `Explore` is for read-only code search. Route research-style tickets to these — they're fast and don't write code.
 - **Don't route `code-review` to the specialist mid-iteration unless asked.** Code review at the end of an iteration is fine, but routing every ticket through review doubles the loop length. Use `superpowers:requesting-code-review` at termination instead.
+- **`judge` is context-isolated on purpose.** Route semantic rubric evaluation to `judge` (or `evaluator`) only — never to the specialty that implemented the work. Sharing priors with the implementer is the bias `references/rubrics.md` is built to avoid. The default mapping is to a research-style agent for this reason; if you swap it for a different subagent, keep that property.
