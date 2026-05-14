@@ -19,6 +19,7 @@ boil a better dashboard till the conversion chart loads under 200ms
    - Dispatches them in parallel to **specialist subagents** (frontend, backend, qa, debugger, …) based on a routing table covering ~60 specialties
    - Verifies with the project's real test/lint/build commands
    - Re-tests **from a different angle** than the implementer used (adversarial pass)
+   - **Cross-LLM review** via [`roborev`](https://roborev.io) when installed — a different LLM (codex by default) critiques the iteration's code; findings become next-iteration tickets
    - Produces a **30-second demo** the user can verify (URL, screenshot, curl + response, terminal output, diff snippet, green test)
    - Posts a 10-line summary and asks: continue / refine / pivot / stop
 4. **Terminates** when the goal checklist is fully green AND the user accepts the demo, OR when the user says stop.
@@ -95,6 +96,7 @@ These are non-negotiable inside the loop:
 
 - **[`superpowers`](https://github.com/obra/superpowers)** — `brainstorming`, `verification-before-completion`, `dispatching-parallel-agents`, `systematic-debugging`, `test-driven-development` are all referenced from inside the loop.
 - **[`ralph-wiggum`](https://github.com/obra/ralph-wiggum)** — `boil` does the iteration internally rather than relying on a stop-hook loop, but you can wrap it with `/loop` for unattended runs.
+- **[`roborev`](https://roborev.io)** — Step 2d Pass 4 enqueues a `roborev review --agent codex` per iteration when roborev is installed in the repo, so a second LLM critiques each iteration's code. Findings become next-iteration tickets, never silently dismissed. Outside boil, `/milestone-review` is the self-driven Claude-side equivalent.
 - **`/loop` and `/schedule`** — wrap `boil` invocations for hands-off recurring runs.
 
 ## Subagent routing

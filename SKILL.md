@@ -173,6 +173,23 @@ If Pass 2 reveals new problems, file new tickets and continue the loop — don't
 
 **Pass 3 — semantic judgment (only if rubrics apply).** For every goal checkbox this iteration moved or closed that has a rubric attached (inline or in `.boil/rubrics/`), dispatch a `judge` subagent in parallel with the others, context-isolated, given only the rubric + the artifacts it names + the iteration diff. Each judge writes a Chain-of-Thought verdict to `.boil/iterations/iter-NNN/judges/R-NNN.md`. Pass → check the box. Fail → leave the box, file one ticket per failed rubric using the judge's "actionable next step" sentence as the ticket title. Indeterminate → file a `demo-prep` ticket (the work might be done, you just couldn't see it). Skip rubrics whose artifacts didn't change this iteration unless they're marked `standing: true`. **Do not route the judge to the specialty that did the implementation work** — that's the bias the rubric layer exists to avoid. Full protocol in `references/rubrics.md`.
 
+**Pass 4 — cross-LLM review (roborev + codex).** If `roborev` is installed and the repo is initialized for it (skip silently otherwise), enqueue a code review on the iteration's commits using a **different LLM than the one doing implementation**. This catches the bias the implementer cannot see in its own work.
+
+Run after Pass 1–3 have settled and the iteration's commits exist:
+
+```bash
+roborev review --agent codex --fast --wait
+```
+
+Use `--since <commit>` if the iteration produced multiple commits (where `<commit>` is the SHA before this iteration's first commit). Use `--branch` if iterating on a branch from the start.
+
+Handling the verdict:
+- **Pass** → record one line in the iteration summary ("codex review: clean") and move on.
+- **Fail with findings** → file one ticket per finding under the implementing specialty's specialist (e.g., a frontend finding becomes a ticket routed to `frontend`), priority derived from severity: Critical/High → P0, Medium → P1, Low → P2. Add a `roborev_job: <id>` field to the ticket so the next-iteration agent can comment + close the review when the fix lands. Do **not** try to fix roborev findings in the same iteration — that defeats the cross-LLM layer; let the loop handle them next cycle, exactly like Pass 2 findings.
+- **Agent unavailable** (`codex` fails or unhealthy) → log "roborev: codex unavailable, skipped" in the iteration summary; don't block the loop. If it's persistently broken, file a `tooling` ticket.
+
+The post-commit hook (if installed) may already enqueue per-commit reviews automatically — in that case `roborev wait` first to consume the hook-fired job, then run the explicit per-iteration scope review above. Close the hook-fired job after the explicit one completes.
+
 ### Step 2e — DEMO (the most important step)
 
 Produce one user-visible artifact for this iteration. **Never skip this.** If you find yourself unable to produce one, that's a signal the work isn't actually done from the user's point of view — file a `demo-prep` ticket and continue.
@@ -252,6 +269,7 @@ These exist because each one corresponds to a known failure mode of looped agent
 5. **Agents can file tickets but the orchestrator (you) routes them.** Agents propose, the orchestrator decides specialty + priority before dispatch. This prevents specialty thrash.
 6. **Goal.md is sacred.** If the user wants to change scope mid-loop, edit `goal.md` first, confirm with the user, then continue. Don't silently re-interpret the goal because an agent suggested it.
 7. **Honesty over progress theater.** If a cycle made no real progress (or regressed), say so plainly in the summary. The user trusts the loop only as long as the loop tells the truth.
+8. **Cross-LLM review every iteration that ships code.** Step 2d Pass 4 enqueues a roborev review with a different LLM (codex by default). Findings become next-iteration tickets, never silently dismissed. If `roborev` isn't installed in this repo, skip cleanly — do not invent the pass. If it IS installed but you skip the review pass, you broke a hard rule.
 
 ---
 
@@ -277,6 +295,7 @@ Read these as you need them:
 - **Dispatching parallel agents** (`superpowers:dispatching-parallel-agents`) — the mechanics for Step 2b are exactly this; read it if your dispatches feel off.
 - **Systematic debugging** (`superpowers:systematic-debugging`) — when an iteration's verification reveals a non-obvious failure, route a ticket to a debugger agent who follows that skill.
 - **TDD** (`superpowers:test-driven-development`) — when a ticket adds new behavior, prefer red-green-refactor; the adversarial re-test (Step 2d) is the green-side check.
+- **roborev cross-LLM review** — Step 2d Pass 4 calls `roborev review --agent codex --fast --wait` to have a different LLM critique the iteration's code. Findings become tickets, not in-place edits. Outside of boil, the equivalent self-driven loop is `/milestone-review`; the user-driven version is `/roborev-refine`.
 - **Loop / schedule** — `/loop` can wrap `boil` for unattended runs; `/schedule` can run `boil` on a recurring basis (e.g., nightly maintenance loops).
 
 ---
