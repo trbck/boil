@@ -87,6 +87,8 @@ Confirm `goal.md` with the user in 3–5 lines before moving on. **Do not start 
 
 **Rubrics for semantic checklist items.** If any checklist item is semantic — pass/fail depends on intent, behavior over time, or subjective quality (e.g., "agent honors the user's constraint across turns", "dashboard is readable to a first-time user") — author a rubric for it now, before Phase 1. Deterministic items (exit codes, latency thresholds, schema checks) do **not** need rubrics. See `references/rubrics.md` for the rubric shape, the inline-vs-separate-file decision, and how rubrics get evaluated in Step 2d Pass 3.
 
+**Stories for user-perceivable checklist items.** For every goal checkbox a non-engineer (operator, PM, end-user) could read aloud — "operator promotes a strategy", "user sees per-symbol fills", "weekly digest lands in Slack" — author a story in `.boil/stories/STORY-NNN.md` before Phase 1. The story is the user-experience contract: functional + quant + UX assertions in one file, replayed by `scripts/story-run.sh`, no human in the inner loop. Internal refactors and infra-only work do not need stories. See `references/stories.md` for the story shape, the runner contract, and how stories slot into Step 2d as Pass 0.
+
 ---
 
 ## Phase 1 — Bootstrap state
@@ -102,11 +104,18 @@ Create `.boil/` in the repo root (or working dir). Layout:
 ├── tickets/                   # one .md per ticket (see references/ticket-system.md)
 │   ├── T-0001.md
 │   └── T-0002.md
+├── stories/                   # user-experience contracts (see references/stories.md)
+│   ├── STORY-001.md
+│   ├── MATRIX.md              # auto-generated status table
+│   ├── baselines/             # screenshot baselines (committed)
+│   └── adapters/              # optional project-specific runner bridges
 ├── routing.md                 # specialty → subagent_type registry (start from references/specialty-routing.md)
 └── iterations/
     └── iter-001/
         ├── summary.md         # what changed, vs goal %, tests added
         ├── demo.md            # THE user-visible artifact (or links to it)
+        ├── stories/           # per-iteration story replay records
+        │   └── STORY-001.json
         └── artifacts/         # screenshots, diffs, output captures
 ```
 
@@ -116,9 +125,13 @@ Create `.boil/` in the repo root (or working dir). Layout:
 - `memory.md` — current state. Tech stack, where the goal-relevant code lives, how to run/test it, any gotchas. ~30–60 lines.
 - `implementation.md` — ordered slices of work, each small enough that one specialist can finish it in one iteration. Each slice maps to one or more tickets.
 - `bugs.md` — anything obviously broken you noticed in the scan. Empty is fine.
-- `tickets/T-0001.md`, `T-0002.md`, … — initial tickets. Keep the first batch small (3–6 tickets); more will be filed by agents during the loop.
+- `tickets/T-0001.md`, `T-0002.md`, … — initial tickets. Keep the first batch small (3–6 tickets); more will be filed by agents during the loop. Tickets that touch user-perceivable code must list `closes_stories: [STORY-NNN, …]`.
 
-**See `references/state-files.md` for templates.**
+**Write the stories** (only if Phase 0 identified user-perceivable checklist items):
+- `stories/STORY-001.md`, `STORY-002.md`, … — one story per user-perceivable goal checkbox. The story is the spec the tickets implement. Stories are written **before** the tickets that close them.
+- `stories/adapters/{functional,quant,ux}.sh` — only if the default runner needs project-specific bridges (DB driver, gate evaluator, custom dev-server boot). Skip until needed; a greenfield project starts with none.
+
+**See `references/state-files.md` for state-file templates and `references/stories.md` for the story shape + runner contract.**
 
 ---
 
@@ -159,7 +172,9 @@ When agents return:
 
 ### Step 2d — Verify, then re-test from a different angle
 
-Two passes, both required:
+Five passes total. Pass 0 is the user-experience contract; Passes 1–2 are required for every iteration that ships code; Passes 3–4 are conditional.
+
+**Pass 0 — Story replay (only if stories exist and tickets reference them).** For every story listed in any completed ticket's `closes_stories` field this iteration, run `scripts/story-run.sh STORY-NNN`. The runner replays the story end-to-end across four lanes (functional, quant, UX-mechanical, UX-rubric) and updates `.boil/stories/MATRIX.md` + the story's frontmatter. If a story is still red after the iteration's code lands, the iteration is **not** done — file a `demo-prep` ticket and loop. A story that was green before and is red now is a regression — file a `regression` ticket and loop. UNCERTAIN rubric verdicts are treated as FAIL. Full protocol in `references/stories.md`. If the project has no stories (refactor-only iteration, or stories layer not adopted), skip cleanly.
 
 **Pass 1 — direct verification.** Run the project's own test suite, lint, type-check, build. Whatever the project actually uses. Capture exit codes and output. **No "should pass" claims.**
 
@@ -194,7 +209,9 @@ The post-commit hook (if installed) may already enqueue per-commit reviews autom
 
 Produce one user-visible artifact for this iteration. **Never skip this.** If you find yourself unable to produce one, that's a signal the work isn't actually done from the user's point of view — file a `demo-prep` ticket and continue.
 
-Pick the demo format that fits the work — see `references/demo-formats.md` for full recipes. Quick guide:
+**If stories cover this iteration's work, the demo IS the green story runner output.** `iterations/iter-NNN/demo.md` is generated from the MATRIX.md diff (red→green), the per-story JSON summaries, and the screenshot artifacts each green story produced. A demo without an underlying green story is forbidden for user-perceivable work — if you can't replay it via the runner, you can't claim it works.
+
+If no story applies (internal refactor, infra-only), fall back to the format guide below. Pick the demo format that fits the work — see `references/demo-formats.md` for full recipes. Quick guide:
 
 | Work type | Demo |
 |-----------|------|
@@ -270,6 +287,7 @@ These exist because each one corresponds to a known failure mode of looped agent
 6. **Goal.md is sacred.** If the user wants to change scope mid-loop, edit `goal.md` first, confirm with the user, then continue. Don't silently re-interpret the goal because an agent suggested it.
 7. **Honesty over progress theater.** If a cycle made no real progress (or regressed), say so plainly in the summary. The user trusts the loop only as long as the loop tells the truth.
 8. **Cross-LLM review every iteration that ships code.** Step 2d Pass 4 enqueues a roborev review with a different LLM (codex by default). Findings become next-iteration tickets, never silently dismissed. If `roborev` isn't installed in this repo, skip cleanly — do not invent the pass. If it IS installed but you skip the review pass, you broke a hard rule.
+9. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close. The story is the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature. If the project has stories and you ship user-perceivable code without one, you broke a hard rule. (Refactor / dependency / infra work without a user surface is exempt — the ticket body must say so.)
 
 ---
 
@@ -283,6 +301,7 @@ Read these as you need them:
 - `references/specialty-routing.md` — the specialty → `subagent_type` registry. Copy this into `.boil/routing.md` at bootstrap and adapt per-project.
 - `references/demo-formats.md` — recipes for producing a user-visible demo for each work type.
 - `references/rubrics.md` — semantic LLM-as-judge layer: when to write a rubric, the rubric shape, how the judge subagent is dispatched (context-isolated, CoT-required), and how verdicts feed back into tickets and termination.
+- `references/stories.md` — user-experience contracts (BPM-style): one file per user-perceivable behavior, replayed end-to-end by `scripts/story-run.sh` across four lanes (functional, quant, UX-mechanical, UX-rubric). No human in the inner loop; rubric-judge handles the "feels right" check.
 
 ---
 

@@ -63,13 +63,22 @@ rsync -avz --delete --exclude='.git' -e ssh ~/.claude/skills/boil/ remote:.claud
 boil/
 ├── SKILL.md                          Main entry — phases, hard rules, integration
 ├── commands/boil.md                  /boil slash command
-└── references/
-    ├── brainstorm-questions.md       Phase 0 question pool for fuzzy goals
-    ├── state-files.md                Templates for goal/memory/implementation/bugs/iter
-    ├── ticket-system.md              Ticket schema + dispatch prompt + handoff rules
-    ├── specialty-routing.md          ~60 specialties → subagent_type registry
-    └── demo-formats.md               9 recipes: web UI, API, CLI, library, bug fix,
-                                      test-only, performance, docs, refactor
+├── references/
+│   ├── brainstorm-questions.md       Phase 0 question pool for fuzzy goals
+│   ├── state-files.md                Templates for goal/memory/implementation/bugs/iter
+│   ├── ticket-system.md              Ticket schema + dispatch prompt + handoff rules
+│   ├── specialty-routing.md          ~60 specialties → subagent_type registry
+│   ├── demo-formats.md               9 recipes: web UI, API, CLI, library, bug fix,
+│   │                                 test-only, performance, docs, refactor
+│   ├── rubrics.md                    Semantic LLM-as-judge layer for non-deterministic
+│   │                                 checklist items
+│   └── stories.md                    User-experience contracts (BPM-style): functional +
+│                                     quant + UX assertions in one file, replayed by
+│                                     scripts/story-run.py
+└── scripts/
+    ├── story-run.py                  v0 runner — HTTP lane fully implemented,
+    │                                 SQL/Redis/UX/rubric require project adapters
+    └── story-run.sh                  thin wrapper for the .sh-style invocation
 ```
 
 `SKILL.md` is loaded into context whenever the skill triggers. The `references/` files are loaded on demand by the orchestrator as needed.
@@ -89,6 +98,8 @@ These are non-negotiable inside the loop:
 5. **Agents file tickets, the orchestrator dispatches them.** Specialists never recruit each other directly.
 6. **`goal.md` is sacred.** Scope changes go through an explicit edit + re-confirm with the user.
 7. **Honesty over progress theater.** If a cycle made no real progress, say so.
+8. **Cross-LLM review every iteration that ships code.** Step 2d Pass 4 (roborev + codex) — findings become next-iteration tickets, never silently dismissed.
+9. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close via `scripts/story-run.py`. Stories are the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature.
 
 ## Integration with other skills
 
