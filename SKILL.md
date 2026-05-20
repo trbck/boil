@@ -336,6 +336,7 @@ Read these as you need them:
 - `references/demo-formats.md` — recipes for producing a user-visible demo for each work type.
 - `references/rubrics.md` — semantic LLM-as-judge layer: when to write a rubric, the rubric shape, how the judge subagent is dispatched (context-isolated, CoT-required), and how verdicts feed back into tickets and termination.
 - `references/stories.md` — user-experience contracts (BPM-style): one file per user-perceivable behavior, replayed end-to-end by `scripts/story-run.sh` across four lanes (functional, quant, UX-mechanical, UX-rubric). No human in the inner loop; rubric-judge handles the "feels right" check.
+- `references/lsdf-codebase-index.md` — when and how to use [L-SDF](https://github.com/ec1980/lsdf-core) (`lsdf-core` on PyPI) to maintain a compact `INDEX.lsdf` of the repo so subagent dispatch contexts navigate the codebase by index rather than full file reads (~13× cheaper on Python repos). Read this if dispatch context is the cost driver of your loop.
 
 ---
 
@@ -350,6 +351,7 @@ Read these as you need them:
 - **TDD** (`superpowers:test-driven-development`) — when a ticket adds new behavior, prefer red-green-refactor; the adversarial re-test (Step 2d) is the green-side check.
 - **roborev cross-LLM review** — Step 2d Pass 4 calls `roborev review --agent codex --fast --wait` to have a different LLM critique the iteration's code. Findings become tickets, not in-place edits. Outside of boil, the equivalent self-driven loop is `/milestone-review`; the user-driven version is `/roborev-refine`.
 - **Loop / schedule** — `/loop` can wrap `boil` for unattended runs; `/schedule` can run `boil` on a recurring basis (e.g., nightly maintenance loops).
+- **L-SDF codebase index** ([`lsdf-core`](https://pypi.org/project/lsdf-core/)) — when present, boil uses `lsdf gen . --recursive` at bootstrap and `lsdf sync --check` per iteration to keep a compact index alongside source. Subagent dispatch contexts then point at the index rather than asking each agent to grep / read source from scratch. ~13× compression on Python repos; non-Python repos currently skip. Full protocol in `references/lsdf-codebase-index.md`.
 
 ---
 

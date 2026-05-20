@@ -51,6 +51,25 @@ git clone https://github.com/trbck/boil.git ~/.claude/skills/boil
 
 That's it. Next time you start Claude Code, the `boil` skill and `/boil` slash command are available.
 
+### Optional: install `lsdf-core` for cheap codebase navigation
+
+`boil` will use [L-SDF](https://github.com/ec1980/lsdf-core) when
+present to maintain a compact index of the source tree (`INDEX.lsdf`
++ `INDEX.detail.lsdf`) so subagent dispatch contexts navigate by
+index instead of full file reads. Typical compression on a Python
+repo: ~13× source → index tokens.
+
+```bash
+pipx install lsdf-core      # preferred
+# or, if pipx isn't installed:
+pip install --user lsdf-core
+```
+
+Skill behavior is feature-detected: if `lsdf` isn't on PATH, boil
+runs unchanged. Full protocol in `references/lsdf-codebase-index.md`.
+Currently Python-first; TS / Go / Rust generators are on the
+upstream roadmap.
+
 To deploy on a remote machine where you also use Claude Code:
 
 ```bash
