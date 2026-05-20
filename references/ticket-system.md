@@ -25,6 +25,12 @@ opened_by: orchestrator | T-0040 | agent:frontend
 opened_at: 2026-05-05T14:32:00Z
 blocked_by: []                       # list of ticket IDs that must be done first
 closes_goal_checkbox: ["criterion 2"]  # which goal.md checkbox(es) this closes (optional)
+working_on: ""                       # ONE line: what the LLM is actively doing
+                                     # (orchestrator sets on dispatch, agent updates
+                                     # on return). E.g. "writing failing tests for
+                                     # refetch hook" / "fixing 500 on date param"
+                                     # / "done — closed by commit a4b5c6d". Empty
+                                     # when ticket is `open` and not yet picked.
 demo: |
   User opens http://localhost:3000/admin/metrics, changes the date filter,
   chart re-renders within 200ms with new data.
@@ -39,9 +45,36 @@ acceptance:
 ## Context
 <what's known, links to relevant files/lines, prior attempts if any>
 
-## Notes (append-only by agents)
-<empty until an agent picks it up>
+## Working notes (append-only by agents — short status updates)
+<empty until an agent picks it up. Append a one-paragraph "what I'm
+doing right now / blockers / next step" so the operator can answer
+"what is the LLM working on?" by reading this section.>
+
+## Notes (append-only by agents — final reports)
+<empty until an agent finishes>
 ```
+
+### `working_on` field — purpose and contract
+
+The `working_on` field is the operator's at-a-glance answer to "what
+is the LLM working on right now?". One line, kept current.
+
+**State transitions:**
+- `open`, never picked → `working_on: ""` (empty).
+- Orchestrator dispatches → orchestrator sets `working_on` to a tight
+  one-liner describing the dispatch (e.g. "implementing T-0042
+  refetch hook"). Status flips to `in-progress`.
+- Agent makes meaningful progress → agent updates `working_on` (e.g.
+  "writing failing tests" → "implementing fix" → "running test suite").
+- Agent returns → agent sets `working_on` to a one-line summary of
+  the return state (e.g. "done — tests green, awaiting orchestrator
+  verify" or "blocked on T-0XXXX").
+- Orchestrator closes → orchestrator sets `working_on` to e.g.
+  "done — closed by commit <sha> on <date>".
+
+A ticket file should answer "what is happening with this work?" by
+reading the first 12 lines — `status`, `priority`, `working_on`,
+`opened_at`. Detailed history goes in `## Working notes`.
 
 ### Field guidance
 
@@ -69,15 +102,38 @@ You are working on ticket T-NNNN inside a `boil` dev-firm loop.
 ## Codebase context (relevant slice of .boil/memory.md)
 <paste the relevant lines: stack, where the goal-relevant code lives, run/test commands>
 
-## Your job
-1. Implement what the ticket asks for. Satisfy every acceptance criterion.
-2. Test your work — run the project's tests and any new tests you add.
-3. If you discover work outside your specialty, DO NOT try to do it.
-   Instead, file a new ticket: write `.boil/tickets/T-XXXX.md` (use the next free ID
-   after T-NNNN) with a clear description and the right `specialty`. Reference
-   yourself in `opened_by: T-NNNN`.
-4. If you hit a blocker that needs the user, set the ticket status to `blocked`
-   and clearly describe what input you need.
+## Your job — strict TDD order
+
+Work in this order. Do not skip steps. Do not interleave them.
+
+1. **Write the failing test(s) FIRST.** For every acceptance
+   criterion, write the test that would prove it. Run them; confirm
+   they fail with a clear "feature not yet implemented" message (not
+   import errors / syntax errors — those are tooling bugs you fix
+   before counting the test as "failing"). Update `working_on:` to
+   "writing failing tests for <area>".
+2. **Implement the change** to make the failing tests pass. Update
+   `working_on:` to "implementing <thing>".
+3. **Run the project's full test suite** (not just your new tests).
+   Update `working_on:` to "running test suite".
+4. **Fix any failures until ALL tests pass — yours AND the regression
+   set.** If a regression appears, you broke something — fix or
+   revert. Do not commit / stage code with red tests.
+5. **Re-run + capture the test output line** (e.g. `47 passed in
+   2.3s`). Set `working_on:` to "done — N tests green, awaiting
+   orchestrator verify".
+6. If you discover work outside your specialty, DO NOT try to do it.
+   File a new ticket at `.boil/tickets/T-XXXX.md` (next free ID after
+   T-NNNN) with `specialty:` set and `opened_by: T-NNNN`. Append to
+   `## Working notes` of your own ticket. Continue with what you
+   CAN do.
+7. If you hit a blocker that needs operator input, set
+   `status: blocked` + `working_on: "blocked on <reason>"` and
+   describe the blocker in `## Working notes`.
+
+**`working_on:` field is mandatory.** Update it at every state
+transition. The operator reads it to answer "what is the LLM working
+on right now?" without diving into the iteration log.
 
 ## Constraints
 - Only modify files needed for this ticket.
@@ -85,6 +141,9 @@ You are working on ticket T-NNNN inside a `boil` dev-firm loop.
 - Don't change test infrastructure unless the ticket asks you to.
 - If the demo target requires running a dev server or producing a screenshot, leave
   the server running (note the port) so the orchestrator can demo it.
+- **No completion claim without paste-the-test-output evidence.** The
+  Return section's `Tests:` line must contain the actual stdout (e.g.
+  `47 passed in 2.3s`, not "should be green").
 
 ## Return
 Return a structured report:

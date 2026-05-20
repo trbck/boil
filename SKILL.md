@@ -232,21 +232,52 @@ Write `.boil/iterations/iter-NNN/demo.md` with:
 
 ### Step 2f — Iteration summary
 
-In the chat, give the user a tight summary (~10 lines max):
+Every iteration ends with TWO things in the chat: a tight **machine
+summary** AND a **human-readable narrative** of what moved toward
+the goal. The narrative is NOT optional — it is how the operator
+stays oriented across a long auto-loop and the only thing a returning
+human reads to catch up.
+
+**Machine summary (~10 lines):**
 
 ```
 ## Iteration N
 
 **Done this cycle:** <2-3 bullets, file-level>
 **Goal progress:** <X / Y checkboxes green> — <which one(s) just turned green>
-**Tests:** <added N, all green | added N, M failing — see bugs.md>
+**Tests:** <added N, all green | added N, M failing — see bugs.md>. Paste the actual test stdout one-liner (e.g. `47 passed in 2.3s`), not "should be green".
 **New tickets filed:** <T-00XX (frontend), T-00YY (qa)> — or "none"
 
 **Demo (30 seconds to verify):**
 → <the single concrete action: open http://..., run `cmd`, view artifacts/iter-N/screenshot.png>
 
 **Next focus:** <which ticket(s) next iteration will pick>
+```
 
+**Human-readable goal-progress narrative (3-6 sentences):**
+
+```
+## What changed toward the goal
+
+<plain English, written for an outside reader (PM / risk officer /
+returning dev who skipped this iter):>
+
+- One sentence: what user-perceivable behaviour now works that didn't
+  before — OR — "infrastructure-only iter, no user-visible change".
+- One sentence: what fraction of the goal is now done, and which
+  named checkbox(es) moved (cite by goal.md identifier).
+- One sentence: what the next 1-2 iters are about and why.
+- (optional) One sentence: any honest setback — codex finding, story
+  regression, broken dependency. If there's nothing to flag, omit;
+  don't manufacture concern.
+```
+
+Both blocks ship together. The machine summary is for grepping later;
+the narrative is for human attention. Never skip the narrative even
+in an auto-loop — that's the operator's only window into "where are
+we, and is this still on track?".
+
+```
 Continue, refine the goal, pivot, or stop?
 ```
 
@@ -288,6 +319,9 @@ These exist because each one corresponds to a known failure mode of looped agent
 7. **Honesty over progress theater.** If a cycle made no real progress (or regressed), say so plainly in the summary. The user trusts the loop only as long as the loop tells the truth.
 8. **Cross-LLM review every iteration that ships code.** Step 2d Pass 4 enqueues a roborev review with a different LLM (codex by default). Findings become next-iteration tickets, never silently dismissed. If `roborev` isn't installed in this repo, skip cleanly — do not invent the pass. If it IS installed but you skip the review pass, you broke a hard rule.
 9. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close. The story is the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature. If the project has stories and you ship user-perceivable code without one, you broke a hard rule. (Refactor / dependency / infra work without a user surface is exempt — the ticket body must say so.)
+10. **Strict TDD order on every ticket.** Tests are written FIRST and confirmed RED before any implementation. Implementation comes second. Then the full test suite runs (not just new tests). Then fixes loop until every test — yours AND the regression set — is GREEN. No code ships with red tests; no completion claim without paste-the-test-output evidence in the ticket's `Tests:` field. The dispatch prompt template in `references/ticket-system.md` enforces this order — agents that interleave or skip steps must be re-dispatched.
+11. **`working_on` is the operator's window.** Every ticket carries a `working_on:` frontmatter field that's one line and kept current at every state transition (dispatch, mid-implementation, return, close). The operator reads `working_on` across the ticket pool to answer "what is the LLM working on right now?" without diving into the iteration log. If `working_on` is stale or empty mid-`in-progress`, the orchestrator must surface the gap.
+12. **Iteration summary always includes a human narrative.** Step 2f ships two blocks: the machine summary and the plain-English "What changed toward the goal" narrative (3-6 sentences). The narrative is for a returning operator catching up after an auto-loop — never skip it, even in unattended runs.
 
 ---
 
