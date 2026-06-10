@@ -17,14 +17,22 @@ One file per ticket: `.boil/tickets/T-NNNN.md`. Use 4-digit zero-padded IDs.
 ---
 id: T-0042
 title: Fix dashboard chart not refreshing on filter change
-type: bug | feature | test | research | refactor | demo-prep | docs
-specialty: frontend | backend | qa | debugger | code-review | design | devops | data | docs | general
+type: bug | feature | test | research | refactor | demo-prep | docs | human-action
+specialty: frontend | backend | qa | debugger | code-review | design | devops | data | docs | general | brainstorm | verification | review | parallel-dispatch | orchestrator | ticket-triage | error-detective
 status: open | in-progress | blocked | done | wontfix
 priority: P0 | P1 | P2 | P3
+proof_strategy: red-green | characterization | verification-only | rendered-doc | research-artifact | perf-baseline
 opened_by: orchestrator | T-0040 | agent:frontend
 opened_at: 2026-05-05T14:32:00Z
 blocked_by: []                       # list of ticket IDs that must be done first
+human_action:
+  required: false                     # true only when progress needs the user/operator
+  reason: ""                          # e.g. "provide Stripe API key"
+  safe_summary: ""                    # secret-free wording safe for external tools
+  susi_task_id: ""                    # filled by local/private Susi bridge if available
+  susi_sync_status: ""                # pending | created | failed | skipped
 closes_goal_checkbox: ["criterion 2"]  # which goal.md checkbox(es) this closes (optional)
+closes_stories: [STORY-001]          # required for user-perceivable behavior
 working_on: ""                       # ONE line: what the LLM is actively doing
                                      # (orchestrator sets on dispatch, agent updates
                                      # on return). E.g. "writing failing tests for
@@ -84,14 +92,97 @@ reading the first 12 lines — `status`, `priority`, `working_on`,
 
 ### Field guidance
 
-- **`type`** — Use `demo-prep` when an iteration's work needs more user-visible polish before it can be demoed (a real, common situation). This keeps the demo requirement honest.
-- **`specialty`** — Match against `routing.md`. Use `general` only when nothing else fits.
+- **`type`** — Use `demo-prep` when an iteration's work needs more user-visible polish before it can be demoed (a real, common situation). Use `human-action` when the only next step is outside the agent's control: the user must provide a credential, approve an account, make a product decision, grant access, run hardware, or do some other project-specific action.
+- **`specialty`** — Match against `routing.md`. Use `general` only when nothing else fits. If using the superpowers-compatible routing profile, prefer `verification` for independent proof checks, `debugger` or `error-detective` for root-cause work, `parallel-dispatch` or `orchestrator` for coordination/tooling tickets, `brainstorm` for goal shaping, and `review` or `code-review` for review work.
 - **`priority`** — P0 = blocker (loop can't make progress without it). P1 = critical to goal. P2 = needed for goal but flexible. P3 = nice-to-have.
+- **`proof_strategy`** — Pick the proof shape before dispatch. Use `red-green` for behavior/bug tickets, `characterization` for refactors that preserve behavior, `verification-only` for dependency/tooling changes, `rendered-doc` for documentation, `research-artifact` for spikes, and `perf-baseline` for performance work.
 - **`opened_by`** — Lets you trace agent-to-agent chains. Useful when the loop produces a chain of tickets and you want to debug the cascade.
 - **`closes_goal_checkbox`** — Optional but powerful. Lets the orchestrator pick tickets that move the needle on `goal.md`.
+- **`closes_stories`** — Required when the ticket changes a user-perceivable surface (UI, endpoint response, CLI output, stream/event contract, generated artifact). Internal-only tickets may omit it, but the ticket body must state why no story applies.
 - **`demo`** — How the user will see this specific ticket worked. The orchestrator uses this to assemble the iteration demo.
-- **`proof`** — The TDD proof map. Fill `red_test` before implementation. Fill `green_test`, `full_suite`, and `demo_artifact` after verification. For frontend/user-visible tickets, `playwright` is mandatory; if the repo lacks Playwright, this ticket should either add it or depend on a setup ticket.
+- **`proof`** — The strategy-specific proof map. For `red-green`, fill `red_test` before implementation. For other strategies, capture the relevant baseline/artifact first. Fill `green_test`, `full_suite`, and `demo_artifact` (or their strategy-specific equivalents) after verification. For frontend/user-visible tickets, `playwright` is mandatory; if the repo lacks Playwright, this ticket should either add it or depend on a setup ticket.
 - **`acceptance`** — Concrete, checkable. The implementing agent must satisfy these; the orchestrator verifies.
+- **`human_action`** — Required for blocked human-action tickets. Keep `safe_summary` secret-free and GitHub-safe. Never write API keys, account IDs, personal tokens, private URLs, or copied `.env` values into ticket files. The optional Susi sync writes only the safe summary and local project label.
+
+### Human-action blockers and Susi sync
+
+When a ticket is blocked because the user must act, convert or file a dedicated `human-action` ticket instead of burying the need in notes. This gives the operator one canonical blocker and lets local tooling turn it into a Susi/Microsoft To Do task.
+
+Use this flow:
+
+1. Set `status: blocked`, `type: human-action`, `priority: P0` when the loop cannot continue without it, and `working_on: "blocked on user action: <safe summary>"`.
+2. Fill `human_action.required: true`, `reason`, and `safe_summary`. The `reason` can be more specific but still must not contain secrets. The `safe_summary` is what external tools may see.
+3. If the ignored local bridge exists at `<boil-skill-repo>/.susi-human-blockers/add_blocker.py`, run it from the project repo to add the Susi task. Record the returned task id in `human_action.susi_task_id` and `human_action.susi_sync_status: created`.
+4. If the bridge is absent or fails, set `human_action.susi_sync_status: skipped` or `failed`, keep the ticket blocked, and surface the action in the iteration summary.
+5. Do not commit, paste, or push the bridge, its config, cookies, endpoint URL, or generated sync logs. `.gitignore` in the boil skill repo ignores `.susi-human-blockers/` for this reason.
+
+Example:
+
+```markdown
+---
+id: T-0043
+title: Provide OpenAI API key for embeddings smoke test
+type: human-action
+specialty: general
+status: blocked
+priority: P0
+proof_strategy: verification-only
+opened_by: T-0042
+opened_at: 2026-06-10T09:30:00Z
+blocked_by: []
+human_action:
+  required: true
+  reason: "User needs to add the OpenAI API key to the project environment."
+  safe_summary: "Add the missing OpenAI API key to the project environment, then ask boil to continue."
+  susi_task_id: ""
+  susi_sync_status: pending
+working_on: "blocked on user action: add missing OpenAI API key"
+demo: |
+  After the key is available, run the smoke test named in the parent ticket.
+proof:
+  verification: "env check plus parent smoke test"
+acceptance:
+  - Required key is available to the local project process.
+  - Parent ticket's smoke test runs without auth/config failure.
+---
+
+## Context
+The implementation is ready, but verification cannot run until the operator supplies the credential locally.
+```
+
+## Ticket ID allocation
+
+Canonical ticket IDs (`T-NNNN`) are owned by the orchestrator only. Parallel agents must not scan for "the next free ID" and create `.boil/tickets/T-XXXX.md` themselves; two agents can race and pick the same ID.
+
+When an agent discovers new work, it writes a proposal instead:
+
+```text
+.boil/tickets/proposals/<source-ticket>-<short-slug>.md
+```
+
+Proposal files use this shape:
+
+```markdown
+---
+title: <one-line>
+type: bug | feature | test | research | refactor | demo-prep | docs
+specialty: <suggested specialty>
+priority: P0 | P1 | P2 | P3
+opened_by: T-NNNN
+blocked_by: []
+closes_goal_checkbox: []
+closes_stories: []
+proof_strategy: <suggested proof strategy>
+---
+
+## Context
+<what was found, with repro/artifacts>
+
+## Suggested acceptance
+- <checkable criterion>
+```
+
+After agents return, the orchestrator reads every proposal, assigns the next canonical `T-NNNN`, resolves priority/specialty, writes the real ticket, and either deletes or moves the proposal to `.boil/tickets/proposals/accepted/`.
 
 ## Dispatch prompt template
 
@@ -109,35 +200,47 @@ You are working on ticket T-NNNN inside a `boil` dev-firm loop.
 ## Codebase context (relevant slice of .boil/memory.md)
 <paste the relevant lines: stack, where the goal-relevant code lives, run/test commands>
 
-## Your job — strict TDD order
+## Your job — proof strategy order
 
 Work in this order. Do not skip steps. Do not interleave them.
 
-1. **Write the failing test(s) FIRST.** For every acceptance
-   criterion, write the test that would prove it. Run them; confirm
-   they fail with a clear "feature not yet implemented" message (not
-   import errors / syntax errors — those are tooling bugs you fix
-   before counting the test as "failing"). Update `proof.red_test`
-   with the test name + command + failing stdout line. Update
-   `working_on:` to "writing failing tests for <area>".
-2. **Implement the change** to make the failing tests pass. Update
+1. **Read `proof_strategy` and produce the pre-change proof first.**
+   - `red-green`: write the failing test(s) first. Run them; confirm
+     they fail with a clear "feature not yet implemented" message (not
+     import errors / syntax errors). Update `proof.red_test` with the
+     test name + command + failing stdout line.
+   - `characterization`: add or identify behavior-preservation tests
+     before the refactor. Run them on the current code and capture the
+     passing baseline.
+   - `verification-only`: name the existing command or smoke check that
+     proves the tooling/dependency change after implementation.
+   - `rendered-doc`: identify the rendered preview/build command and
+     the doc section that must appear.
+   - `research-artifact`: create the findings artifact path and the
+     questions it must answer.
+   - `perf-baseline`: run the baseline workload first and capture the
+     before numbers.
+   Update `working_on:` to "building proof for <area>".
+2. **Implement the change** to satisfy the ticket. Update
    `working_on:` to "implementing <thing>".
 3. **For frontend/user-visible behavior, add or update the Playwright
    test before claiming UI correctness.** The Playwright test must
    exercise the actual user flow, not just assert that a component
    rendered. Update `proof.playwright` with the spec path and command.
-4. **Run the project's full test suite** (not just your new tests).
-   Update `working_on:` to "running test suite".
-5. **Fix any failures until ALL tests pass — yours AND the regression
-   set.** If a regression appears, you broke something — fix or
+4. **Run the ticket's proof command(s), then the project's full test
+   suite** where a suite exists. Update `working_on:` to "running
+   verification".
+5. **Fix any failures until the ticket proof and regression set are
+   green.** If a regression appears, you broke something — fix or
    revert. Do not commit / stage code with red tests.
-6. **Re-run + capture the test output line** (e.g. `47 passed in
-   2.3s`). Fill `proof.green_test` and `proof.full_suite`. Set
-   `working_on:` to "done — N tests green, awaiting orchestrator
-   verify".
+6. **Re-run + capture the final output line** (e.g. `47 passed in
+   2.3s`, docs build success, perf before/after table). Fill
+   `proof.green_test` and `proof.full_suite` or the strategy-specific
+   equivalent. Set `working_on:` to "done — proof green, awaiting
+   orchestrator verify".
 7. If you discover work outside your specialty, DO NOT try to do it.
-   File a new ticket at `.boil/tickets/T-XXXX.md` (next free ID after
-   T-NNNN) with `specialty:` set and `opened_by: T-NNNN`. Append to
+   File a proposal at `.boil/tickets/proposals/T-NNNN-<short-slug>.md`
+   with `specialty:` set and `opened_by: T-NNNN`. Append to
    `## Working notes` of your own ticket. Continue with what you
    CAN do.
 8. If you hit a blocker that needs operator input, set
@@ -167,16 +270,17 @@ Return a structured report:
 - <path> — <one-line>
 - <path> — <one-line>
 
-### Tests
-- Added: <test names + file:line>
-- RED first: <command + failing output line>
-- GREEN: <command + passing output line>
-- Full suite: <command + passing output line>
+### Proof / tests
+- Strategy: <proof_strategy>
+- Added: <test names + file:line, or "not applicable">
+- Pre-change proof: <RED test, characterization baseline, rendered-doc target, perf baseline, etc.>
+- Final proof: <command + passing output line / artifact path / before-after numbers>
+- Full suite: <command + passing output line, or "not applicable">
 - Playwright/browser: <spec + command + result, or "not applicable — non-UI">
 - Status: <green | N failures (list)>
 
-### New tickets filed
-- T-XXXX — <title> — specialty: <…>  (or "none")
+### New ticket proposals filed
+- `.boil/tickets/proposals/T-NNNN-<slug>.md` — <title> — specialty: <…>  (or "none")
 
 ### Blockers
 - <description>  (or "none")
@@ -198,43 +302,45 @@ Each iteration, after picking the batch:
 ```
 For each ticket in batch:
     specialty = ticket.specialty
-    subagent_type = routing[specialty]   # from .boil/routing.md
-    Dispatch via Agent tool with subagent_type=<that>, prompt=<filled template above>
+    dispatch_field = routing.dispatch_field
+    dispatch_target = routing.routes[specialty]
+    Dispatch via the platform subagent tool with <dispatch_field>=<dispatch_target>,
+    prompt=<filled template above>
 
-ALL dispatches go in ONE assistant message (multiple Agent tool blocks)
+ALL dispatches go in ONE assistant message (multiple subagent tool blocks)
 so they execute concurrently.
 ```
 
-If `routing.md` has no entry for the ticket's specialty, fall back to `general-purpose` and log a TODO to add the routing entry.
+If `routing.md` has no entry for the ticket's specialty, fall back to the platform default (`worker` on Codex, `general-purpose` on Claude-style rich-agent installs) and log a TODO to add the routing entry.
 
 ## Inter-agent handoff rules
 
 These rules keep the firm from devolving into chaos.
 
 1. **Agents don't pick their own next work.** When an agent finishes, it returns and waits. The orchestrator picks the next batch.
-2. **Agents file tickets, they don't dispatch them.** Filing = writing a `.md` file. Dispatching = invoking another subagent. Only the orchestrator dispatches.
-3. **Agents don't edit other agents' tickets.** They can append to the `## Notes` section of their own ticket, and they file new tickets — but they don't modify the metadata or notes of other tickets.
-4. **Status changes are the orchestrator's job.** When an agent returns, the orchestrator (you) reads the report, verifies, and sets `status: done` (or `blocked`). Agents themselves only ever leave their ticket in `in-progress` or note a blocker.
+2. **Agents file ticket proposals, they don't dispatch or assign canonical IDs.** Filing = writing a proposal `.md` file in `.boil/tickets/proposals/`. Dispatching = invoking another subagent. Only the orchestrator dispatches and assigns `T-NNNN`.
+3. **Agents don't edit other agents' tickets.** They can append to the `## Notes` section of their own ticket, and they file proposals — but they don't modify the metadata or notes of other tickets.
+4. **Closure is the orchestrator's job.** When an agent returns, the orchestrator (you) reads the report, verifies, and sets `status: done` or canonicalizes blockers. Agents may set their own ticket to `blocked` only when they hit a real blocker and explain it in `working_on` + `## Working notes`.
 5. **No two agents on the same ticket.** Before dispatching, mark `status: in-progress` so a future cycle's pick logic can't double-book.
-6. **Bug-discovery → ticket.** If an agent's verification reveals a bug elsewhere, file it as a ticket AND append it to `bugs.md`. Both: the bug log is for human review, the ticket is for the loop.
+6. **Bug-discovery → proposal + bug log.** If an agent's verification reveals a bug elsewhere, file it as a ticket proposal AND append it to `bugs.md`. Both: the bug log is for human review, the canonical ticket is for the loop after orchestrator acceptance.
 
 ## Worked example
 
 Iteration 3 picks `T-0007 (frontend, P1)` — "Make filter change refetch chart data".
 
-Orchestrator dispatches to `voltagent-core-dev:frontend-developer` with the prompt template.
+Orchestrator dispatches to the `frontend` route from `.boil/routing.md` with the prompt template.
 
 Agent returns:
 - Implemented the refetch hook, added a unit test (green)
 - BUT: discovered the API endpoint at `/api/metrics?range=...` returns 500 on the new query param shape
-- Files `T-0011 (backend, P0)` — "Fix /api/metrics 500 on date-range param" — `opened_by: T-0007`
+- Files proposal `.boil/tickets/proposals/T-0007-metrics-date-range-500.md` — "Fix /api/metrics 500 on date-range param" — suggested `backend`, P0
 - Sets own ticket `status: blocked`, `blocked_by: [T-0011]`
 - Returns its report
 
 Orchestrator:
 - Verifies the changed files via `git diff`
 - Updates `T-0007` status to `blocked` (matches what agent reported)
-- Adds `T-0011` to the pool
+- Assigns canonical `T-0011 (backend, P0)` from the proposal and adds it to the pool
 - Iteration 3's demo shows: the refetch hook works in the unit test, but the user-visible flow blocks on T-0011 (which is now P0 and will be picked in iteration 4)
 - Iteration 4 picks T-0011, routes to backend specialist; once T-0011 closes, T-0007 unblocks
 

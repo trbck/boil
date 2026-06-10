@@ -10,3 +10,9 @@
 # A `.boil/` workspace is what the skill creates inside USER projects when it runs —
 # it should never live inside the skill repo itself. Belt-and-braces ignore.
 .boil/
+
+# Local/private integrations. The Susi blocker bridge can contain session
+# cookies, private project names, endpoint URLs, and human-action tasks.
+# Keep the whole function out of git and remote GitHub.
+.susi-human-blockers/
+.susi-human-blockers/**

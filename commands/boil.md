@@ -31,6 +31,8 @@ won't ask everything — only the gaps). Otherwise it goes straight to writing
 - A 10-line summary (what changed, goal progress, tests, next focus)
 - A 30-second demo: an URL to open, a command to run, a screenshot to view, a diff to read,
   or a green test where there was a red one
+- Suggested next steps: concrete actions ordered by priority, with the unblock action first
+  when user input is needed
 - An open question: continue, refine the goal, pivot, or stop
 
 **Stops when:** all `goal.md` checkboxes are green AND the latest demo passes user check, OR

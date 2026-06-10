@@ -1,6 +1,35 @@
 # State Files — Templates
 
-The four core files in `.boil/`. Treat these as living state — agents read and update them, the orchestrator (you) curates them.
+The core files in `.boil/`. Treat these as living state — agents read and update them, the orchestrator (you) curates them.
+
+## `.boil/run.md`
+
+Loop metadata. Written in Phase 1 and updated at each iteration boundary.
+
+```markdown
+# Boil Run State
+
+**Started:** <ISO timestamp>
+**Start SHA:** <short git SHA | (not-a-git-repo)>
+**Current iteration:** iter-001
+**Iteration start SHA:** <short git SHA | (not-a-git-repo)>
+
+## Commit Policy
+
+<checkpoint-commits | user-managed-commits | no-git>
+
+- `checkpoint-commits`: after an iteration verifies green, create one checkpoint commit so roborev can review `--since <iteration_start_sha>`.
+- `user-managed-commits`: do not commit automatically; use diff artifacts for demos and run roborev only if the repo/client supports reviewing an uncommitted diff.
+- `no-git`: skip commit-scoped review and record why in the iteration summary.
+
+## Review Policy
+
+- Implementation agent/model: <codex | claude | mixed | unknown>
+- Preferred roborev reviewer: <agent name different from implementation agent/model>
+- Fallback if no different reviewer is available: log as skipped, file/keep a P2 tooling ticket, and do not claim cross-LLM review ran.
+```
+
+At the start of each iteration, set `Iteration start SHA` before dispatch. If the iteration creates a checkpoint commit, Pass 4 reviews the range from that SHA to HEAD. If no commit exists and no working-tree review mode exists, the summary must say review was unavailable rather than pretending Pass 4 ran.
 
 ## `.boil/goal.md`
 
@@ -24,10 +53,10 @@ The contract. Written in Phase 0, edited only when the user explicitly refines s
 ## Proof map
 <fill before Phase 1 dispatch; every checkbox needs a proof path>
 
-| Goal checkbox | RED test first | GREEN proof | Playwright/browser proof | Story/rubric |
-|---|---|---|---|---|
-| <criterion 1> | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
-| <criterion 2> | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
+| Goal checkbox | Proof strategy | Pre-change proof | GREEN proof | Playwright/browser proof | Story/rubric |
+|---|---|---|---|---|---|
+| <criterion 1> | `red-green` | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
+| <criterion 2> | `rendered-doc` | `<section/build target>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
 
 <!--
   Semantic criteria (behavior, intent, subjective quality) should carry an
@@ -145,6 +174,19 @@ When a bug becomes a ticket, link them. When a ticket fixes a bug, move it to Fi
 
 ---
 
+## Human-action blocker state
+
+Human-action blockers live as normal tickets, not as a separate public state file. Use `type: human-action`, `status: blocked`, and the `human_action` frontmatter block defined in `references/ticket-system.md`.
+
+Keep tracked state safe:
+
+- Store only secret-free wording in `.boil/tickets/T-NNNN.md`.
+- Do not copy credentials, cookies, `.env` values, personal account IDs, or private URLs into `.boil/`.
+- If the optional Susi sync runs, write back only the resulting task id/status.
+- The Susi bridge and its config live under the boil skill repo's ignored `.susi-human-blockers/` directory, not in a user project and not in Git.
+
+---
+
 ## `.boil/iterations/iter-NNN/` layout
 
 Every iteration produces a directory:
@@ -155,6 +197,8 @@ iter-NNN/
 ├── demo.md         # THE user-visible demo (links + paste-able commands)
 ├── verify.log      # full output of the direct-verification commands (Pass 1)
 ├── retest.log      # full output of the adversarial re-test (Pass 2)
+├── stories/        # story-run JSON records for Pass 0
+├── judges/         # rubric verdicts consumed by stories and Pass 3
 └── artifacts/      # screenshots, captured outputs, generated files
 ```
 
@@ -170,9 +214,10 @@ iter-NNN/
 **Goal progress:** <X / Y checkboxes green> — <which one(s) just turned green>
 
 **Tests:** <e.g., "added 4, all 53 passing">
+- Proof strategy: <red-green | characterization | rendered-doc | research-artifact | perf-baseline | verification-only>
 - New: <test names>
-- RED first: <test command + failing output line>
-- GREEN proof: <test command + passing output line>
+- Pre-change proof: <RED test output | characterization baseline | rendered target | perf baseline | research questions>
+- Final proof: <test command + passing output line | artifact path | before/after numbers>
 - Playwright/browser: <spec + result, or "not applicable">
 
 **Tickets touched:** <T-00XX done, T-00YY in-progress>
@@ -181,6 +226,12 @@ iter-NNN/
 **Bugs surfaced:** <B-XXX, B-YYY>  — or "none"
 
 **Next focus:** <which ticket(s) next iteration will pick>
+
+## Suggested next steps
+
+1. <best next action for the user/operator, concrete>
+2. <best next ticket or verification action if continuing>
+3. <optional choice: refine/pivot/stop when relevant>
 ```
 
 ### `demo.md` template
@@ -204,8 +255,8 @@ iter-NNN/
 - ⬜ Untouched: <checkboxes for future iterations>
 
 ## Tests added / run
-- RED first: `<test name>` — <what it asserts> — `<cmd>` — <failing output line>
-- GREEN proof: `<test name>` — `<cmd>` — <passing output line>
+- Pre-change proof: `<test name or artifact>` — <what it asserts/proves> — `<cmd>` — <failing output line, baseline, or artifact path>
+- Final proof: `<test name or artifact>` — `<cmd>` — <passing output line or artifact path>
 - Full suite: `<cmd>` — <passing output line>
 - Playwright/browser: `<spec>` — `<cmd>` — <passing output line, or "not applicable">
 
@@ -251,4 +302,9 @@ iter-NNN/
 - Files changed: N
 - Lines added: N
 - Lines removed: N
+
+## Suggested next steps
+
+1. <single handoff/confirmation action if complete, or the exact unblock action if blocked>
+2. <optional follow-up verification/review action>
 ```
