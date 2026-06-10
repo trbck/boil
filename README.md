@@ -59,6 +59,22 @@ python3 -m pip install --user -r ~/.claude/skills/boil/requirements.txt
 
 That's it. Next time you start Codex or Claude Code, the `boil` skill is available. The `/boil` slash command is available in clients that load `commands/boil.md`.
 
+### Updating an installed local skill
+
+If you develop `boil` in a separate checkout and want Codex to use that exact
+version, install from the committed checkout:
+
+```bash
+tmp="$(mktemp -d)"
+git -C /path/to/boil archive HEAD | tar -x -C "$tmp"
+rsync -a --delete --exclude='.git' --exclude='.susi-human-blockers' \
+  "$tmp/" ~/.codex/skills/boil/
+rm -rf "$tmp"
+```
+
+Restart Codex after updating the installed skill so the refreshed `SKILL.md`
+is loaded into new sessions.
+
 ### Optional: install `lsdf-core` for cheap codebase navigation
 
 `boil` will use [L-SDF](https://github.com/ec1980/lsdf-core) when
@@ -169,6 +185,32 @@ python3 -m unittest discover -s tests
 
 The minimal fixture in `examples/minimal-loop/` shows the expected state shape
 without committing a real `.boil/` workspace to this skill repo.
+
+## Human blockers, Susi To Do, and Pushover
+
+When a boil loop is blocked by something only the user can do — API keys,
+OAuth approval, billing setup, DNS, hardware access, or a product decision —
+the loop creates a `human-action` ticket instead of burying the blocker in
+chat. The ticket stores only a secret-free `safe_summary`.
+
+If the local ignored bridge exists at `.susi-human-blockers/add_blocker.py`,
+boil can create a Susi/Microsoft To Do task for the blocked project and send a
+Pushover notification after the To Do item is created. The bridge returns a
+normalized contract:
+
+```json
+{
+  "ok": true,
+  "susi_sync_status": "created",
+  "susi_task_id": "<task id>",
+  "pushover_status": "sent",
+  "errors": []
+}
+```
+
+The bridge directory is intentionally ignored by Git because it may contain
+local URLs, session cookies, Pushover tokens, and logs. Do not commit bridge
+config or generated payloads.
 
 ## When to use
 
