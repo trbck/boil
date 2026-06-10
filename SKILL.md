@@ -103,6 +103,13 @@ If any of those are missing or fuzzy, **invoke the brainstorming question set** 
 - [ ] <criterion 2, observable>
 - [ ] <criterion 3, observable>
 
+## Requirements understanding
+**Confidence target:** >=99/100 before implementation starts.
+
+| Requirement | Interpretation | Acceptance signal | Confidence | Open uncertainty |
+|---|---|---|---:|---|
+| <user requirement> | <what boil will build/change> | <how this is observed> | <0-100> | <none or question> |
+
 ## How the user will see this works (demo target)
 <concrete: which page, which command, which test, which screenshot>
 
@@ -116,7 +123,7 @@ If any of those are missing or fuzzy, **invoke the brainstorming question set** 
 - <time/iteration budget if any>
 ```
 
-Confirm `goal.md` with the user in 3–5 lines before moving on. **Do not start work on a goal you haven't read back.**
+Confirm `goal.md` with the user in 3–5 lines before moving on. **Do not start work on a goal you haven't read back.** If any requirement is below 99/100 understanding confidence or has open uncertainty, ask the user or file a `human-action`/`brainstorm` ticket instead of implementing.
 
 **Rubrics for semantic checklist items.** If any checklist item is semantic — pass/fail depends on intent, behavior over time, or subjective quality (e.g., "agent honors the user's constraint across turns", "dashboard is readable to a first-time user") — author a rubric for it now, before Phase 1. Deterministic items (exit codes, latency thresholds, schema checks) do **not** need rubrics. See `references/rubrics.md` for the rubric shape, the inline-vs-separate-file decision, and how rubrics get evaluated in Step 2d Pass 3.
 
@@ -172,6 +179,13 @@ Create `.boil/` in the repo root (or working dir). Layout:
 - For every non-UI checkbox, name the unit/integration/contract test that fails first and turns green later.
 - For refactor/docs/research/tooling/performance work, name the equivalent proof (`characterization`, `rendered-doc`, `research-artifact`, `verification-only`, or `perf-baseline`).
 - If a checkbox cannot be expressed as deterministic proof, attach a story and/or rubric before any code changes.
+
+**Confidence gate map (write this before dispatch):**
+- For every goal checkbox and initial ticket, name the evidence that would make the orchestrator at least 99/100 confident that:
+  1. the user requirement is understood,
+  2. the implementation satisfies that requirement,
+  3. the implementation is verified working with no known bug in the covered scope.
+- If the evidence cannot be named up front, the work is not ready for implementation. Ask for clarification, write a story/rubric, or file a `research`/`brainstorm` ticket.
 
 **Write the stories** (only if Phase 0 identified user-perceivable checklist items):
 - `stories/STORY-001.md`, `STORY-002.md`, … — one story per user-perceivable goal checkbox. The story is the spec the tickets implement. Stories are written **before** the tickets that close them.
@@ -247,6 +261,8 @@ Five passes total. Pass 0 is the user-experience contract; Passes 1–2 are requ
 **Pass 0 — Story replay (only if stories exist and tickets reference them).** For every story listed in any completed ticket's `closes_stories` field this iteration, first scan the story for `kind: rubric` assertions. If any exist, dispatch the story-rubric judges now and write their verdict files to `.boil/iterations/iter-NNN/judges/R-*.md`; missing or unparseable judge files are infra errors, not passes. Then run `scripts/story-run.sh STORY-NNN --iteration iter-NNN`. The runner replays the story end-to-end across four lanes (functional, quant, UX-mechanical, UX-rubric), folds in the judge verdicts, and updates `.boil/stories/MATRIX.md` + the story's frontmatter. If a story is still red after the iteration's code lands, the iteration is **not** done — file a `demo-prep` ticket and loop. A story that was green before and is red now is a regression — file a `regression` ticket and loop. UNCERTAIN/INDETERMINATE rubric verdicts are treated as FAIL. Full protocol in `references/stories.md`. If the project has no stories (refactor-only iteration, or stories layer not adopted), skip cleanly.
 
 **Pass 1 — direct verification.** Run the project's own test suite, lint, type-check, build. Whatever the project actually uses. Capture exit codes and output. **No "should pass" claims.** For each completed ticket, confirm its `proof_strategy` evidence is present: RED→GREEN for behavior/bug tickets, characterization baseline for refactors, rendered output for docs, research artifact for spikes, before/after workload for performance, or verification command for tooling/deps. For frontend or browser-visible work, run the Playwright/browser-level test that maps to the goal checkbox; unit tests alone cannot close a user-visible frontend checkbox.
+
+**Confidence audit.** For every ticket an agent returned as done, inspect its `confidence` block before closing it. `requirements_understood`, `implementation_matches`, and `verification_working` must each be `>=99`, `confidence.evidence` must list concrete artifacts/commands, and `confidence.uncertainty` must be empty. If any part fails, leave the ticket open/in-progress, file the missing-proof or clarification ticket, and do not count the goal checkbox as green.
 
 **Pass 2 — adversarial re-test.** Pick a different angle than what the implementing agent tested. Examples:
 - They wrote a unit test → you write an integration test (or vice versa).
@@ -402,7 +418,7 @@ Then append the orientation footer from "Operator orientation contract" after th
 
 Stop when **any** of these are true:
 
-1. Every checkbox in `goal.md` is checked, AND every checkbox has proof mapped to it (RED→GREEN TDD evidence, Playwright/browser proof for frontend behavior, story/rubric verdict where applicable), AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
+1. Every checkbox in `goal.md` is checked, AND every checkbox has proof mapped to it (RED→GREEN TDD evidence, Playwright/browser proof for frontend behavior, story/rubric verdict where applicable), AND every closing ticket has `confidence.requirements_understood >=99`, `confidence.implementation_matches >=99`, `confidence.verification_working >=99`, concrete evidence, and no uncertainty, AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
 2. The user says stop / good enough / ship it.
 3. You've hit a hard blocker that no specialist can resolve without user input (e.g., needs a credential, needs a product decision). File/update a `human-action` ticket, sync it to Susi if the ignored local bridge is available, surface the blocker clearly, and stop.
 
@@ -436,6 +452,7 @@ These exist because each one corresponds to a known failure mode of looped agent
 14. **Frontend claims need Playwright or browser-level proof.** If the goal touches a visible UI, at least one Playwright/browser test must prove the user flow before the checkbox can be checked. Manual screenshots are demos; they are not substitutes for the automated browser proof.
 15. **Confirm-and-loop until proven.** Do not stop at "implemented." Loop until the proof map is green, the demo is visible, and the user accepts or explicitly stops. If proof is missing, file a ticket and continue.
 16. **Human blockers become safe tasks, not leaked secrets.** If progress waits on the user, create a `human-action` ticket and sync only the safe summary to Susi through the ignored local bridge when available. Never place private credentials, tokens, session cookies, account IDs, or local-only Susi config in tracked boil files.
+17. **99% confidence is an evidence gate, not a vibe.** Before a ticket or goal checkbox can be called done, the loop must be at least 99/100 confident that the requirement is understood, implemented, and verified working. That confidence must be backed by `goal.md` interpretation, ticket acceptance criteria, tests/proof output, adversarial retest, and an empty uncertainty list. If confidence is lower, continue the loop or ask the user; never round uncertainty up to done.
 
 ---
 

@@ -25,6 +25,12 @@ proof_strategy: red-green | characterization | verification-only | rendered-doc 
 opened_by: orchestrator | T-0040 | agent:frontend
 opened_at: 2026-05-05T14:32:00Z
 blocked_by: []                       # list of ticket IDs that must be done first
+confidence:
+  requirements_understood: 0          # 0-100; done tickets must be >=99
+  implementation_matches: 0           # 0-100; done tickets must be >=99
+  verification_working: 0             # 0-100; done tickets must be >=99
+  evidence: []                        # concrete proof artifacts/commands/links
+  uncertainty: []                     # must be empty for `done`
 human_action:
   required: false                     # true only when progress needs the user/operator
   reason: ""                          # e.g. "provide Stripe API key"
@@ -97,6 +103,7 @@ reading the first 12 lines — `status`, `priority`, `working_on`,
 - **`specialty`** — Match against `routing.md`. Use `general` only when nothing else fits. If using the superpowers-compatible routing profile, prefer `verification` for independent proof checks, `debugger` or `error-detective` for root-cause work, `parallel-dispatch` or `orchestrator` for coordination/tooling tickets, `brainstorm` for goal shaping, and `review` or `code-review` for review work.
 - **`priority`** — P0 = blocker (loop can't make progress without it). P1 = critical to goal. P2 = needed for goal but flexible. P3 = nice-to-have.
 - **`proof_strategy`** — Pick the proof shape before dispatch. Use `red-green` for behavior/bug tickets, `characterization` for refactors that preserve behavior, `verification-only` for dependency/tooling changes, `rendered-doc` for documentation, `research-artifact` for spikes, and `perf-baseline` for performance work.
+- **`confidence`** — Evidence-backed confidence, not vibes. A ticket may only be marked `done` when `requirements_understood`, `implementation_matches`, and `verification_working` are all `>=99`, `evidence` lists concrete artifacts/commands, and `uncertainty` is empty. If any score is below 99 or uncertainty remains, keep the ticket `in-progress` or `blocked` and file the next ticket needed to close the gap.
 - **`opened_by`** — Lets you trace agent-to-agent chains. Useful when the loop produces a chain of tickets and you want to debug the cascade.
 - **`closes_goal_checkbox`** — Optional but powerful. Lets the orchestrator pick tickets that move the needle on `goal.md`.
 - **`closes_stories`** — Required when the ticket changes a user-perceivable surface (UI, endpoint response, CLI output, stream/event contract, generated artifact). Internal-only tickets may omit it, but the ticket body must state why no story applies.
@@ -207,6 +214,7 @@ You are working on ticket T-NNNN inside a `boil` dev-firm loop.
 
 Work in this order. Do not skip steps. Do not interleave them.
 
+0. **Confirm requirements before implementation.** Restate the ticket's user requirement, acceptance criteria, and out-of-scope boundaries in `## Working notes`. If anything is ambiguous enough that you cannot be at least 99% confident you understand what the user wants, stop and file a `human-action`, `product`, or `brainstorm` proposal instead of coding.
 1. **Read `proof_strategy` and produce the pre-change proof first.**
    - `red-green`: write the failing test(s) first. Run them; confirm
      they fail with a clear "feature not yet implemented" message (not
@@ -241,12 +249,18 @@ Work in this order. Do not skip steps. Do not interleave them.
    `proof.green_test` and `proof.full_suite` or the strategy-specific
    equivalent. Set `working_on:` to "done — proof green, awaiting
    orchestrator verify".
-7. If you discover work outside your specialty, DO NOT try to do it.
+7. **Fill the confidence gate.** Before returning green, update
+   `confidence.requirements_understood`, `confidence.implementation_matches`,
+   and `confidence.verification_working`. Use `99` or `100` only when backed
+   by concrete evidence listed in `confidence.evidence`. If any score is
+   below 99 or `confidence.uncertainty` is non-empty, do not mark the ticket
+   done; file the next ticket/blocker that would raise confidence.
+8. If you discover work outside your specialty, DO NOT try to do it.
    File a proposal at `.boil/tickets/proposals/T-NNNN-<short-slug>.md`
    with `specialty:` set and `opened_by: T-NNNN`. Append to
    `## Working notes` of your own ticket. Continue with what you
    CAN do.
-8. If you hit a blocker that needs operator input, set
+9. If you hit a blocker that needs operator input, set
    `status: blocked` + `working_on: "blocked on <reason>"` and
    describe the blocker in `## Working notes`.
 
@@ -281,6 +295,12 @@ Return a structured report:
 - Full suite: <command + passing output line, or "not applicable">
 - Playwright/browser: <spec + command + result, or "not applicable — non-UI">
 - Status: <green | N failures (list)>
+
+### Confidence gate
+- Requirements understood: <0-100> — <evidence/why>
+- Implementation matches: <0-100> — <evidence/why>
+- Verification working: <0-100> — <evidence/why>
+- Remaining uncertainty: <none | list concrete uncertainty/blockers>
 
 ### New ticket proposals filed
 - `.boil/tickets/proposals/T-NNNN-<slug>.md` — <title> — specialty: <…>  (or "none")

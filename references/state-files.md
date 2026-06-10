@@ -50,6 +50,14 @@ The contract. Written in Phase 0, edited only when the user explicitly refines s
 - [ ] <criterion 2, observable>
 - [ ] <criterion 3, observable>
 
+## Requirements understanding
+
+**Confidence target:** >=99/100 before implementation starts.
+
+| Requirement | Interpretation | Acceptance signal | Confidence | Open uncertainty |
+|---|---|---|---:|---|
+| <user requirement> | <what boil will build/change> | <how this is observed> | <0-100> | <none or question> |
+
 ## Proof map
 <fill before Phase 1 dispatch; every checkbox needs a proof path>
 
@@ -219,6 +227,7 @@ iter-NNN/
 - Pre-change proof: <RED test output | characterization baseline | rendered target | perf baseline | research questions>
 - Final proof: <test command + passing output line | artifact path | before/after numbers>
 - Playwright/browser: <spec + result, or "not applicable">
+- Confidence: requirements <0-100>, implementation <0-100>, verification <0-100>; uncertainty <none | list>
 
 **Tickets touched:** <T-00XX done, T-00YY in-progress>
 **New tickets filed:** <T-00ZZ (frontend), T-00AA (qa)>  — or "none"

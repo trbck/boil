@@ -88,6 +88,44 @@ api_key = "abcdefghijklmnopqrstuvwx"
             self.assertEqual(proc.returncode, 1)
             self.assertIn("possible-secret", proc.stdout)
 
+    def test_ticket_lint_rejects_done_ticket_without_confidence_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            tickets = root / ".boil" / "tickets"
+            tickets.mkdir(parents=True)
+            (tickets / "T-0001.md").write_text(
+                """---
+id: T-0001
+title: Done without enough proof
+type: feature
+specialty: backend
+status: done
+priority: P1
+proof_strategy: red-green
+opened_by: orchestrator
+opened_at: 2026-06-10T09:30:00Z
+blocked_by: []
+confidence:
+  requirements_understood: 99
+  implementation_matches: 80
+  verification_working: 99
+  evidence: []
+  uncertainty:
+    - "No adversarial retest yet."
+working_on: "done"
+---
+
+## Context
+This should fail the confidence gate.
+""",
+                encoding="utf-8",
+            )
+            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--json")
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("low-confidence", proc.stdout)
+            self.assertIn("missing-confidence-evidence", proc.stdout)
+            self.assertIn("remaining-uncertainty", proc.stdout)
+
     def test_vibe_check_flags_summary_without_demo_or_next_steps(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             summary = Path(td) / "summary.md"

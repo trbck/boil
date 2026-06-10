@@ -46,6 +46,11 @@ SECRET_PATTERNS = [
     re.compile(r"xox[baprs]-[A-Za-z0-9-]{20,}"),
     re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
 ]
+CONFIDENCE_FIELDS = (
+    "requirements_understood",
+    "implementation_matches",
+    "verification_working",
+)
 
 
 def _frontmatter(path: Path) -> tuple[dict[str, Any], str]:
@@ -91,6 +96,24 @@ def lint_ticket(path: Path) -> list[dict[str, str]]:
         issues.append(_issue(path, "error", "bad-proof", f"unknown proof_strategy `{meta['proof_strategy']}`"))
 
     status = meta.get("status")
+    confidence = meta.get("confidence")
+    if status == "done":
+        if not isinstance(confidence, dict):
+            issues.append(_issue(path, "error", "missing-confidence", "`confidence` mapping required for done tickets"))
+        else:
+            for key in CONFIDENCE_FIELDS:
+                value = confidence.get(key)
+                if not isinstance(value, (int, float)) or value < 99:
+                    issues.append(_issue(path, "error", "low-confidence", f"`confidence.{key}` must be >=99 for done tickets"))
+            evidence = confidence.get("evidence")
+            if not isinstance(evidence, list) or not evidence:
+                issues.append(_issue(path, "error", "missing-confidence-evidence", "`confidence.evidence` required for done tickets"))
+            uncertainty = confidence.get("uncertainty")
+            if uncertainty not in ([], None):
+                issues.append(_issue(path, "error", "remaining-uncertainty", "`confidence.uncertainty` must be empty for done tickets"))
+    elif confidence is not None and not isinstance(confidence, dict):
+        issues.append(_issue(path, "error", "bad-confidence", "`confidence` must be a mapping"))
+
     working_on = str(meta.get("working_on") or "").strip()
     if status in {"in-progress", "blocked"} and not working_on:
         issues.append(_issue(path, "error", "missing-working-on", "`working_on` required when active/blocked"))
