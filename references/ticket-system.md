@@ -34,6 +34,12 @@ working_on: ""                       # ONE line: what the LLM is actively doing
 demo: |
   User opens http://localhost:3000/admin/metrics, changes the date filter,
   chart re-renders within 200ms with new data.
+proof:
+  red_test: "tests/dashboard/filter-refresh.test.ts::refetches on date change"
+  green_test: ""                      # filled after implementation
+  full_suite: ""                      # command + final stdout line
+  playwright: "tests/e2e/filter-refresh.spec.ts"
+  demo_artifact: ".boil/iterations/iter-NNN/artifacts/filter-refresh.png"
 acceptance:
   - Filter change triggers refetch within 100ms
   - Chart re-renders without flicker
@@ -84,6 +90,7 @@ reading the first 12 lines — `status`, `priority`, `working_on`,
 - **`opened_by`** — Lets you trace agent-to-agent chains. Useful when the loop produces a chain of tickets and you want to debug the cascade.
 - **`closes_goal_checkbox`** — Optional but powerful. Lets the orchestrator pick tickets that move the needle on `goal.md`.
 - **`demo`** — How the user will see this specific ticket worked. The orchestrator uses this to assemble the iteration demo.
+- **`proof`** — The TDD proof map. Fill `red_test` before implementation. Fill `green_test`, `full_suite`, and `demo_artifact` after verification. For frontend/user-visible tickets, `playwright` is mandatory; if the repo lacks Playwright, this ticket should either add it or depend on a setup ticket.
 - **`acceptance`** — Concrete, checkable. The implementing agent must satisfy these; the orchestrator verifies.
 
 ## Dispatch prompt template
@@ -110,24 +117,30 @@ Work in this order. Do not skip steps. Do not interleave them.
    criterion, write the test that would prove it. Run them; confirm
    they fail with a clear "feature not yet implemented" message (not
    import errors / syntax errors — those are tooling bugs you fix
-   before counting the test as "failing"). Update `working_on:` to
-   "writing failing tests for <area>".
+   before counting the test as "failing"). Update `proof.red_test`
+   with the test name + command + failing stdout line. Update
+   `working_on:` to "writing failing tests for <area>".
 2. **Implement the change** to make the failing tests pass. Update
    `working_on:` to "implementing <thing>".
-3. **Run the project's full test suite** (not just your new tests).
+3. **For frontend/user-visible behavior, add or update the Playwright
+   test before claiming UI correctness.** The Playwright test must
+   exercise the actual user flow, not just assert that a component
+   rendered. Update `proof.playwright` with the spec path and command.
+4. **Run the project's full test suite** (not just your new tests).
    Update `working_on:` to "running test suite".
-4. **Fix any failures until ALL tests pass — yours AND the regression
+5. **Fix any failures until ALL tests pass — yours AND the regression
    set.** If a regression appears, you broke something — fix or
    revert. Do not commit / stage code with red tests.
-5. **Re-run + capture the test output line** (e.g. `47 passed in
-   2.3s`). Set `working_on:` to "done — N tests green, awaiting
-   orchestrator verify".
-6. If you discover work outside your specialty, DO NOT try to do it.
+6. **Re-run + capture the test output line** (e.g. `47 passed in
+   2.3s`). Fill `proof.green_test` and `proof.full_suite`. Set
+   `working_on:` to "done — N tests green, awaiting orchestrator
+   verify".
+7. If you discover work outside your specialty, DO NOT try to do it.
    File a new ticket at `.boil/tickets/T-XXXX.md` (next free ID after
    T-NNNN) with `specialty:` set and `opened_by: T-NNNN`. Append to
    `## Working notes` of your own ticket. Continue with what you
    CAN do.
-7. If you hit a blocker that needs operator input, set
+8. If you hit a blocker that needs operator input, set
    `status: blocked` + `working_on: "blocked on <reason>"` and
    describe the blocker in `## Working notes`.
 
@@ -141,6 +154,8 @@ on right now?" without diving into the iteration log.
 - Don't change test infrastructure unless the ticket asks you to.
 - If the demo target requires running a dev server or producing a screenshot, leave
   the server running (note the port) so the orchestrator can demo it.
+- If this is frontend work and no Playwright/browser harness exists, file a
+  P0/P1 setup ticket instead of pretending unit tests prove the user flow.
 - **No completion claim without paste-the-test-output evidence.** The
   Return section's `Tests:` line must contain the actual stdout (e.g.
   `47 passed in 2.3s`, not "should be green").
@@ -154,7 +169,10 @@ Return a structured report:
 
 ### Tests
 - Added: <test names + file:line>
-- Ran: <command + result>
+- RED first: <command + failing output line>
+- GREEN: <command + passing output line>
+- Full suite: <command + passing output line>
+- Playwright/browser: <spec + command + result, or "not applicable — non-UI">
 - Status: <green | N failures (list)>
 
 ### New tickets filed

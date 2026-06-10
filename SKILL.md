@@ -19,6 +19,27 @@ The skill ends only when the goal's checklist is fully green AND the user accept
 
 **Announce at start:** "I'm using the boil skill — looped dev-firm with demos every cycle. Setting up `.boil/` state."
 
+## Operator orientation contract
+
+Every assistant response while this skill is active must end with an orientation footer separated from the main answer by this exact line:
+
+```text
+----------
+```
+
+Use this footer after every user prompt, iteration update, blocker report, and final answer. Keep it short and action-shaped:
+
+```markdown
+----------
+Done:
+- <1-3 bullets: what is now true, concrete and visible>
+
+Next:
+- <1-5 bullets: recommended next steps, ordered by priority>
+```
+
+If no implementation work happened yet, `Done:` says what was clarified, read, or verified. If the goal is complete, `Next:` says the single confirmation or handoff action. This is an ADHD-friendly orientation layer: lead with concrete state, suppress tangents, cap lists at five, and make progress visible without burying it in prose.
+
 ---
 
 ## Why this design
@@ -127,6 +148,12 @@ Create `.boil/` in the repo root (or working dir). Layout:
 - `bugs.md` — anything obviously broken you noticed in the scan. Empty is fine.
 - `tickets/T-0001.md`, `T-0002.md`, … — initial tickets. Keep the first batch small (3–6 tickets); more will be filed by agents during the loop. Tickets that touch user-perceivable code must list `closes_stories: [STORY-NNN, …]`.
 
+**TDD proof map (write this before dispatch):**
+- For every goal checkbox, name the failing test that should prove it before implementation starts.
+- For every frontend/user-flow checkbox, name the Playwright or browser-level test that proves the visible workflow.
+- For every non-UI checkbox, name the unit/integration/contract test that fails first and turns green later.
+- If a checkbox cannot be expressed as a deterministic test, attach a story and/or rubric before any code changes.
+
 **Write the stories** (only if Phase 0 identified user-perceivable checklist items):
 - `stories/STORY-001.md`, `STORY-002.md`, … — one story per user-perceivable goal checkbox. The story is the spec the tickets implement. Stories are written **before** the tickets that close them.
 - `stories/adapters/{functional,quant,ux}.sh` — only if the default runner needs project-specific bridges (DB driver, gate evaluator, custom dev-server boot). Skip until needed; a greenfield project starts with none.
@@ -176,7 +203,7 @@ Five passes total. Pass 0 is the user-experience contract; Passes 1–2 are requ
 
 **Pass 0 — Story replay (only if stories exist and tickets reference them).** For every story listed in any completed ticket's `closes_stories` field this iteration, run `scripts/story-run.sh STORY-NNN`. The runner replays the story end-to-end across four lanes (functional, quant, UX-mechanical, UX-rubric) and updates `.boil/stories/MATRIX.md` + the story's frontmatter. If a story is still red after the iteration's code lands, the iteration is **not** done — file a `demo-prep` ticket and loop. A story that was green before and is red now is a regression — file a `regression` ticket and loop. UNCERTAIN rubric verdicts are treated as FAIL. Full protocol in `references/stories.md`. If the project has no stories (refactor-only iteration, or stories layer not adopted), skip cleanly.
 
-**Pass 1 — direct verification.** Run the project's own test suite, lint, type-check, build. Whatever the project actually uses. Capture exit codes and output. **No "should pass" claims.**
+**Pass 1 — direct verification.** Run the project's own test suite, lint, type-check, build. Whatever the project actually uses. Capture exit codes and output. **No "should pass" claims.** For behavior tickets, confirm the TDD sequence in the ticket notes: RED test before implementation, GREEN after implementation, full suite GREEN after regression pass. For frontend or browser-visible work, run the Playwright/browser-level test that maps to the goal checkbox; unit tests alone cannot close a user-visible frontend checkbox.
 
 **Pass 2 — adversarial re-test.** Pick a different angle than what the implementing agent tested. Examples:
 - They wrote a unit test → you write an integration test (or vice versa).
@@ -210,6 +237,8 @@ The post-commit hook (if installed) may already enqueue per-commit reviews autom
 Produce one user-visible artifact for this iteration. **Never skip this.** If you find yourself unable to produce one, that's a signal the work isn't actually done from the user's point of view — file a `demo-prep` ticket and continue.
 
 **If stories cover this iteration's work, the demo IS the green story runner output.** `iterations/iter-NNN/demo.md` is generated from the MATRIX.md diff (red→green), the per-story JSON summaries, and the screenshot artifacts each green story produced. A demo without an underlying green story is forbidden for user-perceivable work — if you can't replay it via the runner, you can't claim it works.
+
+**If frontend behavior changed, the demo must include Playwright proof.** Prefer a named Playwright test plus a screenshot/video artifact. If the repo has no Playwright setup and the work is user-visible frontend work, file the setup/test ticket before claiming the checkbox closed.
 
 If no story applies (internal refactor, infra-only), fall back to the format guide below. Pick the demo format that fits the work — see `references/demo-formats.md` for full recipes. Quick guide:
 
@@ -281,6 +310,8 @@ we, and is this still on track?".
 Continue, refine the goal, pivot, or stop?
 ```
 
+Then append the orientation footer from "Operator orientation contract" after the summary/narrative. The footer is not a substitute for the machine summary; it is the short attention reset for the next prompt.
+
 ### Step 2g — Wait for user, or auto-loop
 
 - If you're invoked via `/boil` or run inside a `/loop` wrapper, you can auto-continue when the user is silent and `goal.md` isn't done — but **always still emit the summary + demo and pause briefly** so the user can interrupt. The demo is the user's interrupt window.
@@ -292,7 +323,7 @@ Continue, refine the goal, pivot, or stop?
 
 Stop when **any** of these are true:
 
-1. Every checkbox in `goal.md` is checked, AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
+1. Every checkbox in `goal.md` is checked, AND every checkbox has proof mapped to it (RED→GREEN TDD evidence, Playwright/browser proof for frontend behavior, story/rubric verdict where applicable), AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
 2. The user says stop / good enough / ship it.
 3. You've hit a hard blocker that no specialist can resolve without user input (e.g., needs a credential, needs a product decision). Surface the blocker clearly and stop.
 
@@ -322,6 +353,9 @@ These exist because each one corresponds to a known failure mode of looped agent
 10. **Strict TDD order on every ticket.** Tests are written FIRST and confirmed RED before any implementation. Implementation comes second. Then the full test suite runs (not just new tests). Then fixes loop until every test — yours AND the regression set — is GREEN. No code ships with red tests; no completion claim without paste-the-test-output evidence in the ticket's `Tests:` field. The dispatch prompt template in `references/ticket-system.md` enforces this order — agents that interleave or skip steps must be re-dispatched.
 11. **`working_on` is the operator's window.** Every ticket carries a `working_on:` frontmatter field that's one line and kept current at every state transition (dispatch, mid-implementation, return, close). The operator reads `working_on` across the ticket pool to answer "what is the LLM working on right now?" without diving into the iteration log. If `working_on` is stale or empty mid-`in-progress`, the orchestrator must surface the gap.
 12. **Iteration summary always includes a human narrative.** Step 2f ships two blocks: the machine summary and the plain-English "What changed toward the goal" narrative (3-6 sentences). The narrative is for a returning operator catching up after an auto-loop — never skip it, even in unattended runs.
+13. **Every response ends with the orientation footer.** The `----------` footer is mandatory after every prompt while boil is active. It separates "what just happened" from "what to do next" so the operator can re-enter the loop quickly.
+14. **Frontend claims need Playwright or browser-level proof.** If the goal touches a visible UI, at least one Playwright/browser test must prove the user flow before the checkbox can be checked. Manual screenshots are demos; they are not substitutes for the automated browser proof.
+15. **Confirm-and-loop until proven.** Do not stop at "implemented." Loop until the proof map is green, the demo is visible, and the user accepts or explicitly stops. If proof is missing, file a ticket and continue.
 
 ---
 
@@ -349,6 +383,7 @@ Read these as you need them:
 - **Dispatching parallel agents** (`superpowers:dispatching-parallel-agents`) — the mechanics for Step 2b are exactly this; read it if your dispatches feel off.
 - **Systematic debugging** (`superpowers:systematic-debugging`) — when an iteration's verification reveals a non-obvious failure, route a ticket to a debugger agent who follows that skill.
 - **TDD** (`superpowers:test-driven-development`) — when a ticket adds new behavior, prefer red-green-refactor; the adversarial re-test (Step 2d) is the green-side check.
+- **ADHD-friendly orientation** (inspired by `ayghri/i-have-adhd`) — action-first updates, visible state, short next-step bullets, and no tangents. Boil encodes this as the mandatory `----------` footer after every response.
 - **roborev cross-LLM review** — Step 2d Pass 4 calls `roborev review --agent codex --fast --wait` to have a different LLM critique the iteration's code. Findings become tickets, not in-place edits. Outside of boil, the equivalent self-driven loop is `/milestone-review`; the user-driven version is `/roborev-refine`.
 - **Loop / schedule** — `/loop` can wrap `boil` for unattended runs; `/schedule` can run `boil` on a recurring basis (e.g., nightly maintenance loops).
 - **L-SDF codebase index** ([`lsdf-core`](https://pypi.org/project/lsdf-core/)) — when present, boil uses `lsdf gen . --recursive` at bootstrap and `lsdf sync --check` per iteration to keep a compact index alongside source. Subagent dispatch contexts then point at the index rather than asking each agent to grep / read source from scratch. ~13× compression on Python repos; non-Python repos currently skip. Full protocol in `references/lsdf-codebase-index.md`.

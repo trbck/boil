@@ -21,6 +21,14 @@ The contract. Written in Phase 0, edited only when the user explicitly refines s
 - [ ] <criterion 2, observable>
 - [ ] <criterion 3, observable>
 
+## Proof map
+<fill before Phase 1 dispatch; every checkbox needs a proof path>
+
+| Goal checkbox | RED test first | GREEN proof | Playwright/browser proof | Story/rubric |
+|---|---|---|---|---|
+| <criterion 1> | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
+| <criterion 2> | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
+
 <!--
   Semantic criteria (behavior, intent, subjective quality) should carry an
   inline rubric block right under the checkbox — see references/rubrics.md
@@ -163,6 +171,9 @@ iter-NNN/
 
 **Tests:** <e.g., "added 4, all 53 passing">
 - New: <test names>
+- RED first: <test command + failing output line>
+- GREEN proof: <test command + passing output line>
+- Playwright/browser: <spec + result, or "not applicable">
 
 **Tickets touched:** <T-00XX done, T-00YY in-progress>
 **New tickets filed:** <T-00ZZ (frontend), T-00AA (qa)>  — or "none"
@@ -193,8 +204,10 @@ iter-NNN/
 - ⬜ Untouched: <checkboxes for future iterations>
 
 ## Tests added / run
-- `<test name>` — <what it asserts> — verify with `<cmd>` — <pass/fail>
-- `<test name>` — <what it asserts> — verify with `<cmd>` — <pass/fail>
+- RED first: `<test name>` — <what it asserts> — `<cmd>` — <failing output line>
+- GREEN proof: `<test name>` — `<cmd>` — <passing output line>
+- Full suite: `<cmd>` — <passing output line>
+- Playwright/browser: `<spec>` — `<cmd>` — <passing output line, or "not applicable">
 
 ## Adversarial angle (Pass 2)
 **Angle:** <what the implementer DIDN'T test that you did>
