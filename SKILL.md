@@ -288,9 +288,10 @@ Protocol:
 1. Mark the blocker ticket `type: human-action`, `status: blocked`, `priority: P0` if it blocks the loop, and set `working_on: "blocked on user action: <safe summary>"`.
 2. Fill the ticket's `human_action` block from `references/ticket-system.md`. Keep it secret-free. Never write actual keys, tokens, private account IDs, `.env` values, session cookies, or private URLs into `.boil/` state.
 3. If the local ignored Susi bridge exists at `<boil-skill-repo>/.susi-human-blockers/add_blocker.py`, run it with the project root, ticket path, and safe summary so the user gets a Susi/Microsoft To Do task for the respective project.
-4. Write the bridge result back into `human_action.susi_task_id` and `human_action.susi_sync_status` (`created`, `failed`, or `skipped`).
-5. Surface the human action in the iteration summary and termination blocker report. Do not claim the loop is done; it is blocked until the user completes the action.
-6. In the orientation footer, make the first `Next:` bullet the same safe human action from `human_action.safe_summary`, rewritten as an imperative. Example: "Add the missing OpenAI API key to the project environment, then say continue."
+4. When the bridge creates the To Do item and Pushover is configured locally, it also sends a Pushover notification that names the project, ticket, created To Do, and safe action summary.
+5. Write the bridge result back into `human_action.susi_task_id`, `human_action.susi_sync_status` (`created`, `failed`, or `skipped`), and `human_action.pushover_status` (`sent`, `not_configured`, `failed`, or `skipped`) when available.
+6. Surface the human action in the iteration summary and termination blocker report, including whether the Susi To Do and Pushover notification were created. Do not claim the loop is done; it is blocked until the user completes the action.
+7. In the orientation footer, make the first `Next:` bullet the same safe human action from `human_action.safe_summary`, rewritten as an imperative. Example: "Add the missing OpenAI API key to the project environment, then say continue."
 
 The Susi bridge itself is intentionally local and ignored by Git (`.susi-human-blockers/`). It may contain a Susi dashboard URL, session cookie, local project labels, and generated sync logs, so it must never be committed or exposed on remote GitHub.
 

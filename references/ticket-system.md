@@ -31,6 +31,7 @@ human_action:
   safe_summary: ""                    # secret-free wording safe for external tools
   susi_task_id: ""                    # filled by local/private Susi bridge if available
   susi_sync_status: ""                # pending | created | failed | skipped
+  pushover_status: ""                 # sent | not_configured | failed | skipped
 closes_goal_checkbox: ["criterion 2"]  # which goal.md checkbox(es) this closes (optional)
 closes_stories: [STORY-001]          # required for user-perceivable behavior
 working_on: ""                       # ONE line: what the LLM is actively doing
@@ -113,8 +114,9 @@ Use this flow:
 1. Set `status: blocked`, `type: human-action`, `priority: P0` when the loop cannot continue without it, and `working_on: "blocked on user action: <safe summary>"`.
 2. Fill `human_action.required: true`, `reason`, and `safe_summary`. The `reason` can be more specific but still must not contain secrets. The `safe_summary` is what external tools may see.
 3. If the ignored local bridge exists at `<boil-skill-repo>/.susi-human-blockers/add_blocker.py`, run it from the project repo to add the Susi task. Record the returned task id in `human_action.susi_task_id` and `human_action.susi_sync_status: created`.
-4. If the bridge is absent or fails, set `human_action.susi_sync_status: skipped` or `failed`, keep the ticket blocked, and surface the action in the iteration summary.
-5. Do not commit, paste, or push the bridge, its config, cookies, endpoint URL, or generated sync logs. `.gitignore` in the boil skill repo ignores `.susi-human-blockers/` for this reason.
+4. If the bridge reports a Pushover result, record it in `human_action.pushover_status`. Pushover sends only after the To Do item is created, and its message must use the same secret-free safe summary.
+5. If the bridge is absent or fails, set `human_action.susi_sync_status: skipped` or `failed`, set `human_action.pushover_status: skipped` or `failed` as appropriate, keep the ticket blocked, and surface the action in the iteration summary.
+6. Do not commit, paste, or push the bridge, its config, cookies, Pushover tokens, endpoint URL, or generated sync logs. `.gitignore` in the boil skill repo ignores `.susi-human-blockers/` for this reason.
 
 Example:
 
@@ -136,6 +138,7 @@ human_action:
   safe_summary: "Add the missing OpenAI API key to the project environment, then ask boil to continue."
   susi_task_id: ""
   susi_sync_status: pending
+  pushover_status: pending
 working_on: "blocked on user action: add missing OpenAI API key"
 demo: |
   After the key is available, run the smoke test named in the parent ticket.

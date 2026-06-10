@@ -182,7 +182,7 @@ Keep tracked state safe:
 
 - Store only secret-free wording in `.boil/tickets/T-NNNN.md`.
 - Do not copy credentials, cookies, `.env` values, personal account IDs, or private URLs into `.boil/`.
-- If the optional Susi sync runs, write back only the resulting task id/status.
+- If the optional Susi sync runs, write back only the resulting task id/status and Pushover delivery status.
 - The Susi bridge and its config live under the boil skill repo's ignored `.susi-human-blockers/` directory, not in a user project and not in Git.
 
 ---
