@@ -111,6 +111,15 @@ def lint_ticket(path: Path) -> list[dict[str, str]]:
             uncertainty = confidence.get("uncertainty")
             if uncertainty not in ([], None):
                 issues.append(_issue(path, "error", "remaining-uncertainty", "`confidence.uncertainty` must be empty for done tickets"))
+        proof = meta.get("proof")
+        if meta.get("proof_strategy") == "red-green":
+            if not isinstance(proof, dict):
+                issues.append(_issue(path, "error", "missing-proof-map", "`proof` mapping required for done red-green tickets"))
+            else:
+                if not str(proof.get("red_test") or "").strip():
+                    issues.append(_issue(path, "error", "missing-red-proof", "`proof.red_test` required for done red-green tickets"))
+                if not str(proof.get("green_test") or "").strip():
+                    issues.append(_issue(path, "error", "missing-green-proof", "`proof.green_test` required for done red-green tickets"))
     elif confidence is not None and not isinstance(confidence, dict):
         issues.append(_issue(path, "error", "bad-confidence", "`confidence` must be a mapping"))
 

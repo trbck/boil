@@ -19,6 +19,17 @@ def _run(cmd: list[str], cwd: Path) -> tuple[int, str]:
     return proc.returncode, proc.stdout.strip()
 
 
+def _goal_contract_ok(path: Path) -> tuple[bool, str]:
+    if not path.exists():
+        return False, "missing goal.md"
+    text = path.read_text(encoding="utf-8", errors="replace")
+    required = ("## Requirements understanding", "Confidence", "Acceptance signal")
+    missing = [item for item in required if item not in text]
+    if missing:
+        return False, "goal.md missing requirements contract: " + ", ".join(missing)
+    return True, "goal.md requirements contract present"
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".", help="project root")
@@ -35,6 +46,8 @@ def main(argv: list[str]) -> int:
     for rel in ("goal.md", "memory.md", "implementation.md", "bugs.md", "routing.md"):
         p = boil / rel
         checks.append(_check(p, p.exists(), f"state-{rel}", f".boil/{rel} exists"))
+    goal_ok, goal_msg = _goal_contract_ok(boil / "goal.md")
+    checks.append(_check(boil / "goal.md", goal_ok, "goal-requirements-contract", goal_msg))
     checks.append(_check(boil / "tickets", (boil / "tickets").is_dir(), "tickets-dir", ".boil/tickets exists"))
 
     gitignore = skill_root / ".gitignore"
@@ -44,7 +57,8 @@ def main(argv: list[str]) -> int:
     checks.append(_check(gitignore, ignored_bridge, "bridge-ignored", ".susi-human-blockers is ignored"))
 
     bridge = skill_root / ".susi-human-blockers" / "add_blocker.py"
-    checks.append(_check(bridge, bridge.exists(), "bridge-present", "local Susi blocker bridge exists"))
+    bridge_msg = "local Susi blocker bridge exists" if bridge.exists() else "optional local Susi blocker bridge absent"
+    checks.append(_check(bridge, True, "bridge-present", bridge_msg))
 
     linter = skill_root / "scripts" / "ticket-lint.py"
     if (boil / "tickets").is_dir():

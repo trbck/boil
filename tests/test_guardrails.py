@@ -139,9 +139,12 @@ This should fail the confidence gate.
             self.assertIn("speculative-language", codes)
 
     def test_susi_bridge_dry_run_has_normalized_contract(self) -> None:
+        bridge = ROOT / ".susi-human-blockers" / "add_blocker.py"
+        if not bridge.exists():
+            self.skipTest("local ignored Susi bridge is not installed")
         proc = run_cmd(
             sys.executable,
-            str(ROOT / ".susi-human-blockers" / "add_blocker.py"),
+            str(bridge),
             "--project-root",
             "/tmp/example-project",
             "--ticket",
@@ -193,7 +196,18 @@ This should fail the confidence gate.
             root = Path(td)
             boil = root / ".boil"
             (boil / "tickets").mkdir(parents=True)
-            for name in ("goal.md", "memory.md", "implementation.md", "bugs.md", "routing.md"):
+            (boil / "goal.md").write_text(
+                """# Goal
+
+## Requirements understanding
+
+| Requirement | Interpretation | Acceptance signal | Confidence | Open uncertainty |
+|---|---|---|---:|---|
+| Test doctor | Validate a minimal workspace | doctor exits 0 | 99 | none |
+""",
+                encoding="utf-8",
+            )
+            for name in ("memory.md", "implementation.md", "bugs.md", "routing.md"):
                 (boil / name).write_text(f"# {name}\n", encoding="utf-8")
             (boil / "tickets" / "T-0001.md").write_text(
                 """---
@@ -226,6 +240,94 @@ Minimal valid ticket.
             )
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             self.assertTrue(json.loads(proc.stdout)["ok"])
+
+    def test_sync_agents_and_dispatch_packet(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            boil = root / ".boil"
+            tickets = boil / "tickets"
+            tickets.mkdir(parents=True)
+            (boil / "goal.md").write_text("# Goal\n\n## Requirements understanding\n\nAcceptance signal\nConfidence\n", encoding="utf-8")
+            (boil / "memory.md").write_text("# Memory\n", encoding="utf-8")
+            (tickets / "T-0001.md").write_text(
+                """---
+id: T-0001
+title: Packet ticket
+type: test
+specialty: verification
+status: open
+priority: P1
+proof_strategy: verification-only
+opened_by: orchestrator
+opened_at: 2026-06-10T09:30:00Z
+blocked_by: []
+working_on: ""
+---
+
+## Context
+Packet test.
+""",
+                encoding="utf-8",
+            )
+            sync = run_cmd(sys.executable, str(ROOT / "scripts" / "boil-sync-agents.py"), "--root", str(root), "--skill-root", str(ROOT))
+            self.assertEqual(sync.returncode, 0, sync.stdout + sync.stderr)
+            self.assertTrue((root / "AGENTS.md").exists())
+            self.assertTrue((root / ".cursor" / "rules" / "boil.mdc").exists())
+            packet = run_cmd(sys.executable, str(ROOT / "scripts" / "boil-dispatch-packet.py"), "T-0001", "--root", str(root))
+            self.assertEqual(packet.returncode, 0, packet.stdout + packet.stderr)
+            self.assertTrue((boil / "dispatch" / "T-0001.md").exists())
+
+    def test_debug_mode_and_pr_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            iter_dir = root / ".boil" / "iterations" / "iter-001"
+            iter_dir.mkdir(parents=True)
+            (root / ".boil" / "goal.md").write_text("# Goal\n\nDemo goal.\n", encoding="utf-8")
+            (iter_dir / "summary.md").write_text("# Iteration 1\n\nImplemented.\n", encoding="utf-8")
+            debug = run_cmd(
+                sys.executable,
+                str(ROOT / "scripts" / "boil-debug-mode.py"),
+                "--root",
+                str(root),
+                "--iteration",
+                "iter-001",
+                "--ticket",
+                "T-0001",
+                "--failure",
+                "test failed",
+            )
+            self.assertEqual(debug.returncode, 0, debug.stdout + debug.stderr)
+            self.assertTrue((root / ".boil" / "debug" / "iter-001" / "T-0001-debug.md").exists())
+            pr = run_cmd(sys.executable, str(ROOT / "scripts" / "boil-pr-summary.py"), "--root", str(root))
+            self.assertEqual(pr.returncode, 0, pr.stdout + pr.stderr)
+            self.assertIn("PR Summary", pr.stdout)
+
+    def test_run_iteration_script_accepts_minimal_fixture(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            shutil.copytree(ROOT / "examples" / "minimal-loop" / "project", root, dirs_exist_ok=True)
+            shutil.copytree(ROOT / "examples" / "minimal-loop" / "boil-state", root / ".boil")
+            proc = run_cmd("bash", str(ROOT / "scripts" / "boil-run-iteration.sh"), "iter-001", str(root))
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_doctor_rejects_goal_without_requirements_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            boil = root / ".boil"
+            (boil / "tickets").mkdir(parents=True)
+            for name in ("goal.md", "memory.md", "implementation.md", "bugs.md", "routing.md"):
+                (boil / name).write_text(f"# {name}\n", encoding="utf-8")
+            proc = run_cmd(
+                sys.executable,
+                str(ROOT / "scripts" / "boil-doctor.py"),
+                "--root",
+                str(root),
+                "--skill-root",
+                str(ROOT),
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 1)
+            self.assertIn("goal-requirements-contract", proc.stdout)
 
     def test_iteration_verifier_accepts_summary_with_proof_demo_next(self) -> None:
         with tempfile.TemporaryDirectory() as td:

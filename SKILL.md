@@ -202,6 +202,11 @@ development tickets route through roles like `superpowers:test-driven-developmen
 `superpowers:requesting-code-review`. If those exact agents are not available,
 use the Codex or rich-agent profile and keep the same specialty names.
 
+**Sync project agent instructions:** When the project should be usable across
+Codex/Cursor/other agents, run `scripts/boil-sync-agents.py --root <project>`.
+This writes `AGENTS.md`, `.cursor/rules/boil.mdc`, and `.boil/routing.md`
+without overwriting existing files unless `--force` is passed.
+
 ---
 
 ## Phase 2 — The loop
@@ -235,6 +240,16 @@ superpower route as the agent's operating role:
 If a named superpower route is unavailable in the current runtime, record the
 fallback in `.boil/routing.md` and dispatch to the nearest available platform
 agent. Do not serialize the work just because the ideal role is missing.
+
+For each picked ticket, prefer generating a compact handoff packet first:
+
+```bash
+python3 <boil-skill-repo>/scripts/boil-dispatch-packet.py T-0001 --root <project>
+```
+
+The packet in `.boil/dispatch/` is what should be pasted or attached to a
+subagent prompt. It contains only the goal slice, memory slice, ticket, proof
+requirements, and return contract.
 
 Each agent prompt must be self-contained — see `references/ticket-system.md` for the dispatch template. Critically, each agent gets:
 - The ticket file path and contents
@@ -271,6 +286,16 @@ Five passes total. Pass 0 is the user-experience contract; Passes 1–2 are requ
 - They fixed a bug → you reproduce the original symptom on the prior commit, then on HEAD, and confirm the difference.
 
 If Pass 2 reveals new problems, file new ticket proposals and continue the loop — don't try to fix everything in one iteration. The whole point of looping is that you don't have to.
+
+If direct verification or adversarial retest fails twice for the same ticket,
+enter debugging mode before another implementation attempt:
+
+```bash
+python3 <boil-skill-repo>/scripts/boil-debug-mode.py --root <project> --iteration iter-NNN --ticket T-0001 --failure "<symptom>"
+```
+
+Route the resulting `.boil/debug/iter-NNN/T-0001-debug.md` worksheet to a
+debugger/systematic-debugging specialist.
 
 **Pass 3 — semantic judgment (only if rubrics apply).** For every goal checkbox this iteration moved or closed that has a rubric attached (inline or in `.boil/rubrics/`), dispatch a `judge` subagent in parallel with the others, context-isolated, given only the rubric + the artifacts it names + the iteration diff. Each judge writes an evidence-backed verdict to `.boil/iterations/iter-NNN/judges/R-NNN.md`. Pass → check the box. Fail → leave the box, file one ticket per failed rubric using the judge's "actionable next step" sentence as the ticket title. Indeterminate → file a `demo-prep` ticket (the work might be done, you just couldn't see it). Skip rubrics whose artifacts didn't change this iteration unless they're marked `standing: true`. **Do not route the judge to the specialty that did the implementation work** — that's the bias the rubric layer exists to avoid. Full protocol in `references/rubrics.md`.
 
@@ -407,6 +432,15 @@ Continue, refine the goal, pivot, or stop?
 
 Then append the orientation footer from "Operator orientation contract" after the summary/narrative. The footer is not a substitute for the machine summary; it is the short attention reset for the next prompt.
 
+For mechanical gates, run:
+
+```bash
+bash <boil-skill-repo>/scripts/boil-run-iteration.sh iter-NNN <project> --test-cmd "<project test command>"
+```
+
+This runs doctor, ticket lint, story replay when stories exist, user-supplied
+test commands, and iteration verification.
+
 ### Step 2g — Wait for user, or auto-loop
 
 - If you're invoked via `/boil` or run inside a `/loop` wrapper, you can auto-continue when the user is silent and `goal.md` isn't done — but **always still emit the summary + demo and pause briefly** so the user can interrupt. The demo is the user's interrupt window.
@@ -429,6 +463,10 @@ On termination, write `.boil/iterations/FINAL.md` with:
 - Test totals (added, passing)
 - All open tickets (and why they're being left open)
 - The git diff stats vs where you started
+
+For production work, prefer PR-first handoff: create a branch/PR and generate
+the PR body with `scripts/boil-pr-summary.py`. Do not push directly to `main`
+unless the user explicitly chose that mode.
 
 ---
 
@@ -453,6 +491,7 @@ These exist because each one corresponds to a known failure mode of looped agent
 15. **Confirm-and-loop until proven.** Do not stop at "implemented." Loop until the proof map is green, the demo is visible, and the user accepts or explicitly stops. If proof is missing, file a ticket and continue.
 16. **Human blockers become safe tasks, not leaked secrets.** If progress waits on the user, create a `human-action` ticket and sync only the safe summary to Susi through the ignored local bridge when available. Never place private credentials, tokens, session cookies, account IDs, or local-only Susi config in tracked boil files.
 17. **99% confidence is an evidence gate, not a vibe.** Before a ticket or goal checkbox can be called done, the loop must be at least 99/100 confident that the requirement is understood, implemented, and verified working. That confidence must be backed by `goal.md` interpretation, ticket acceptance criteria, tests/proof output, adversarial retest, and an empty uncertainty list. If confidence is lower, continue the loop or ask the user; never round uncertainty up to done.
+18. **Prefer PR-first production changes.** For production or shared repos, boil should work on a branch and produce a PR body from `.boil/` state. Direct pushes to `main` are opt-in, not the default.
 
 ---
 

@@ -131,7 +131,12 @@ boil/
     ├── boil-doctor.py                validates a `.boil/` workspace
     ├── ticket-lint.py                lints ticket schema, blockers, and secrets
     ├── vibe-check.py                 flags summaries without proof/demo/next steps
-    └── boil-verify-iteration.sh      gates one iteration directory
+    ├── boil-verify-iteration.sh      gates one iteration directory
+    ├── boil-run-iteration.sh         runs doctor/lint/story/test/iteration gates
+    ├── boil-sync-agents.py           writes AGENTS.md, Cursor rules, routing
+    ├── boil-dispatch-packet.py       writes compact per-ticket agent packets
+    ├── boil-debug-mode.py            creates systematic-debugging worksheets
+    └── boil-pr-summary.py            generates a PR body from boil state
 ```
 
 `SKILL.md` is loaded into context whenever the skill triggers. The `references/` files are loaded on demand by the orchestrator as needed.
@@ -180,11 +185,27 @@ python3 scripts/boil-doctor.py --root /path/to/project
 python3 scripts/ticket-lint.py --root /path/to/project
 python3 scripts/vibe-check.py /path/to/project/.boil/iterations/iter-001/summary.md
 bash scripts/boil-verify-iteration.sh iter-001 /path/to/project
+bash scripts/boil-run-iteration.sh iter-001 /path/to/project --test-cmd "pytest -q"
+python3 scripts/boil-sync-agents.py --root /path/to/project
+python3 scripts/boil-dispatch-packet.py T-0001 --root /path/to/project
+python3 scripts/boil-debug-mode.py --root /path/to/project --iteration iter-001 --ticket T-0001
+python3 scripts/boil-pr-summary.py --root /path/to/project --out /tmp/pr.md
 python3 -m unittest discover -s tests
 ```
 
 The minimal fixture in `examples/minimal-loop/` shows the expected state shape
 without committing a real `.boil/` workspace to this skill repo.
+
+The repository also ships `.github/workflows/boil-guardrails.yml`, which runs
+syntax checks, unit tests, and the minimal fixture guardrails on pushes and PRs.
+
+## PR-first mode
+
+For production repositories, boil works best when iterations land on a branch
+and the final handoff is a PR. Use `scripts/boil-pr-summary.py` to turn
+`.boil/goal.md`, iteration summaries, verification checkboxes, and diff stats
+into a reviewable PR body. This keeps agent work reviewable instead of quietly
+mutating `main`.
 
 ## Human blockers, Susi To Do, and Pushover
 

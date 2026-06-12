@@ -1,0 +1,27 @@
+name: boil guardrails
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: python -m pip install -r requirements.txt
+      - run: python -m py_compile scripts/*.py tests/*.py
+      - run: bash -n scripts/*.sh
+      - run: python -m unittest discover -s tests
+      - name: example fixture guardrails
+        run: |
+          tmp="$(mktemp -d)"
+          cp -R examples/minimal-loop/project/. "$tmp/"
+          cp -R examples/minimal-loop/boil-state "$tmp/.boil"
+          python scripts/boil-doctor.py --root "$tmp"
+          python scripts/ticket-lint.py --root "$tmp"
+          bash scripts/boil-verify-iteration.sh iter-001 "$tmp"
