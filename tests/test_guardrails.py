@@ -277,6 +277,36 @@ Packet test.
             self.assertEqual(packet.returncode, 0, packet.stdout + packet.stderr)
             self.assertTrue((boil / "dispatch" / "T-0001.md").exists())
 
+    def test_install_codex_skill_syncs_and_preserves_local_bridge(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            codex_home = Path(td) / "codex"
+            dest = codex_home / "skills" / "boil"
+            bridge = dest / ".susi-human-blockers"
+            bridge.mkdir(parents=True)
+            (bridge / "add_blocker.py").write_text("# local private bridge\n", encoding="utf-8")
+            (dest / "stale.txt").write_text("remove me\n", encoding="utf-8")
+
+            proc = run_cmd(
+                sys.executable,
+                str(ROOT / "scripts" / "install-codex-skill.py"),
+                "--source",
+                str(ROOT),
+                "--codex-home",
+                str(codex_home),
+                "--skip-dependency-check",
+                "--json",
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            data = json.loads(proc.stdout)
+            self.assertTrue(data["ok"])
+            self.assertTrue((dest / "SKILL.md").exists())
+            self.assertTrue((dest / "commands" / "boil.md").exists())
+            self.assertFalse((dest / ".git").exists())
+            self.assertFalse((dest / "stale.txt").exists())
+            self.assertEqual((bridge / "add_blocker.py").read_text(encoding="utf-8"), "# local private bridge\n")
+            self.assertTrue(Path(data["backup"]).exists())
+            self.assertEqual(data["parity"], {"missing": [], "extra": [], "changed": []})
+
     def test_debug_mode_and_pr_summary(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

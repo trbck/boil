@@ -46,8 +46,9 @@ You can also invoke `/boil <goal>` explicitly.
 User-wide for Codex:
 
 ```bash
-git clone https://github.com/trbck/boil.git ~/.codex/skills/boil
-python3 -m pip install --user -r ~/.codex/skills/boil/requirements.txt
+git clone https://github.com/trbck/boil.git
+cd boil
+python3 scripts/install-codex-skill.py
 ```
 
 User-wide for Claude Code:
@@ -62,18 +63,17 @@ That's it. Next time you start Codex or Claude Code, the `boil` skill is availab
 ### Updating an installed local skill
 
 If you develop `boil` in a separate checkout and want Codex to use that exact
-version, install from the committed checkout:
+working tree, run the installer from the checkout:
 
 ```bash
-tmp="$(mktemp -d)"
-git -C /path/to/boil archive HEAD | tar -x -C "$tmp"
-rsync -a --delete --exclude='.git' --exclude='.susi-human-blockers' \
-  "$tmp/" ~/.codex/skills/boil/
-rm -rf "$tmp"
+python3 scripts/install-codex-skill.py
 ```
 
-Restart Codex after updating the installed skill so the refreshed `SKILL.md`
-is loaded into new sessions.
+The installer detects `$CODEX_HOME` or falls back to `~/.codex`, backs up the
+previous install under `skills/.backups/`, syncs the checkout into
+`skills/boil`, excludes `.git`, and preserves the local ignored
+`.susi-human-blockers/` bridge. Restart Codex after updating the installed
+skill so the refreshed `SKILL.md` is loaded into new sessions.
 
 ### Optional: install `lsdf-core` for cheap codebase navigation
 
@@ -136,7 +136,8 @@ boil/
     ├── boil-sync-agents.py           writes AGENTS.md, Cursor rules, routing
     ├── boil-dispatch-packet.py       writes compact per-ticket agent packets
     ├── boil-debug-mode.py            creates systematic-debugging worksheets
-    └── boil-pr-summary.py            generates a PR body from boil state
+    ├── boil-pr-summary.py            generates a PR body from boil state
+    └── install-codex-skill.py        installs/updates this checkout in Codex
 ```
 
 `SKILL.md` is loaded into context whenever the skill triggers. The `references/` files are loaded on demand by the orchestrator as needed.
@@ -190,6 +191,7 @@ python3 scripts/boil-sync-agents.py --root /path/to/project
 python3 scripts/boil-dispatch-packet.py T-0001 --root /path/to/project
 python3 scripts/boil-debug-mode.py --root /path/to/project --iteration iter-001 --ticket T-0001
 python3 scripts/boil-pr-summary.py --root /path/to/project --out /tmp/pr.md
+python3 scripts/install-codex-skill.py
 python3 -m unittest discover -s tests
 ```
 
