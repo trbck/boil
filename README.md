@@ -12,7 +12,7 @@ boil a better dashboard till the conversion chart loads under 200ms
 
 `boil` then:
 
-1. **Crystallizes the goal.** If the request is fuzzy, it asks 2–5 targeted brainstorming questions and writes a `.boil/goal.md` you confirm before any work starts.
+1. **Crystallizes the goal.** If the request is fuzzy, it inspects the workspace first, then asks targeted questions until the goal, constraints, tradeoffs, and success criteria are clear before writing a `.boil/goal.md` you confirm.
 2. **Bootstraps a workspace** — `.boil/` with `goal.md`, `memory.md`, `implementation.md`, `bugs.md`, a `tickets/` pool, and a `routing.md` mapping specialties to subagent types.
 3. **Loops** — each iteration:
    - Picks ready tickets from the pool
@@ -150,16 +150,17 @@ The skill treats the session as a small software firm. The orchestrator (the mai
 
 These are non-negotiable inside the loop:
 
-1. **No iteration without a demo.** If you can't demo, you can't claim progress.
-2. **No completion claims without fresh verification output.** Run the command, paste the line, then claim — see the [`superpowers:verification-before-completion`](https://github.com/obra/superpowers) skill.
-3. **Always re-test from a different angle.** The implementer's own tests don't count as adversarial.
-4. **Parallel dispatch goes in one assistant message.** Multiple `Agent` tool calls in a single turn so they actually run concurrently.
-5. **Agents file ticket proposals, the orchestrator assigns IDs and dispatches them.** Specialists never recruit each other directly.
-6. **`goal.md` is sacred.** Scope changes go through an explicit edit + re-confirm with the user.
-7. **Honesty over progress theater.** If a cycle made no real progress, say so.
-8. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 (roborev + a non-implementer reviewer) — findings become next-iteration tickets, never silently dismissed.
-9. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close via `scripts/story-run.py`. Stories are the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature.
-10. **TDD plus 99% evidence confidence.** New behavior starts with RED proof, implementation follows, and a ticket cannot be `done` unless requirements understood, implementation match, and verification working are each `>=99/100` with concrete evidence and no remaining uncertainty.
+1. **Clarity before plan or code.** Inspect available context, then interview until the goal, constraints, tradeoffs, decision dependencies, and observable success criteria are clear. Do not guess or execute while the plan still depends on unresolved ambiguity.
+2. **No iteration without a demo.** If you can't demo, you can't claim progress.
+3. **No completion claims without fresh verification output.** Run the command, paste the line, then claim — see the [`superpowers:verification-before-completion`](https://github.com/obra/superpowers) skill.
+4. **Always re-test from a different angle.** The implementer's own tests don't count as adversarial.
+5. **Parallel dispatch goes in one assistant message.** Multiple `Agent` tool calls in a single turn so they actually run concurrently.
+6. **Agents file ticket proposals, the orchestrator assigns IDs and dispatches them.** Specialists never recruit each other directly.
+7. **`goal.md` is sacred.** Scope changes go through an explicit edit + re-confirm with the user.
+8. **Honesty over progress theater.** If a cycle made no real progress, say so.
+9. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 (roborev + a non-implementer reviewer) — findings become next-iteration tickets, never silently dismissed.
+10. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close via `scripts/story-run.py`. Stories are the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature.
+11. **TDD plus 99% evidence confidence.** New behavior starts with RED proof, implementation follows, and a ticket cannot be `done` unless requirements understood, implementation match, and verification working are each `>=99/100` with concrete evidence and no remaining uncertainty.
 
 ## Integration with other skills
 

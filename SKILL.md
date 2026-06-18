@@ -19,6 +19,20 @@ The skill ends only when the goal's checklist is fully green AND the user accept
 
 **Announce at start:** "I'm using the boil skill — looped dev-firm with demos every cycle. Setting up `.boil/` state."
 
+## Overarching clarity gate
+
+Before implementing, coding, dispatching agents, or producing a final plan, interview the user until the goal, constraints, tradeoffs, and success criteria are clear. This gate applies before writing the first executable plan, before Phase 1 bootstrapping, and before any mid-loop scope change.
+
+Do read-only discovery before asking: inspect the existing codebase, files, docs, logs, tests, prior `.boil/` state, and conversation context for any answer that can be found locally. Ask the user only for decisions or facts that cannot be recovered from those sources.
+
+Walk the design tree branch by branch:
+- Identify dependencies between decisions.
+- Challenge assumptions.
+- Ask targeted questions.
+- Resolve ambiguities one by one.
+
+Do not guess. Do not start execution until you and the user share a clear understanding of the plan.
+
 ## Operator orientation contract
 
 Every assistant response while this skill is active must end with an orientation footer separated from the main answer by this exact line:
@@ -82,6 +96,8 @@ PHASE 3  Termination               → final demo + index of all changes
 
 The user's `boil` request always names a target ("a better dashboard") and usually a stop condition ("till the chart loads under 200ms"). Both halves matter — the target tells you *what*, the stop condition tells you *how the user will see it's done*.
 
+Start with read-only discovery. If the goal points at an existing project, inspect the relevant README, manifests, top-level structure, logs/docs/tests, prior `.boil/` state, and any named files before questioning the user. Do not ask for facts the workspace can answer.
+
 **Decide if the goal is workable as stated:**
 
 A workable goal has all of:
@@ -89,7 +105,7 @@ A workable goal has all of:
 - A stop condition that is **observable** — something you can demo, not just feel
 - No ambiguity about scope (which dashboard, which command, which endpoint)
 
-If any of those are missing or fuzzy, **invoke the brainstorming question set** in `references/brainstorm-questions.md` and ask the user 2–5 targeted questions. Don't ask everything — only what's missing. If the goal IS clear, skip straight to writing `goal.md` and confirm it back in one short paragraph.
+If any of those are missing or fuzzy, **invoke the brainstorming question set** in `references/brainstorm-questions.md` and interview the user with targeted questions until the missing branches are resolved. Prefer 1-3 high-leverage questions per turn, but do not cap the interview while implementation would still depend on guessing. If the goal IS clear, skip straight to writing `goal.md` and confirm it back in one short paragraph.
 
 **Then write `.boil/goal.md`:**
 
@@ -474,24 +490,25 @@ unless the user explicitly chose that mode.
 
 These exist because each one corresponds to a known failure mode of looped agentic dev work.
 
-1. **No iteration without a demo.** If you can't demo, you can't claim progress. File a `demo-prep` ticket and loop again.
-2. **No completion claims without fresh verification output in the same message.** See `superpowers:verification-before-completion`. Run the command, paste the relevant output line, then claim.
-3. **Always re-test from a different angle.** A test the implementer wrote and ran is not adversarial. You must add an angle the implementer didn't.
-4. **Parallel dispatch goes in one message.** Multiple subagent tool calls in a single assistant turn so they actually run concurrently. Use the current platform's dispatch API (`spawn_agent`, `Agent`, or equivalent). Sequential dispatch defeats the firm metaphor.
-5. **Agents can file tickets but the orchestrator (you) routes them.** Agents propose, the orchestrator decides specialty + priority before dispatch. This prevents specialty thrash.
-6. **Goal.md is sacred.** If the user wants to change scope mid-loop, edit `goal.md` first, confirm with the user, then continue. Don't silently re-interpret the goal because an agent suggested it.
-7. **Honesty over progress theater.** If a cycle made no real progress (or regressed), say so plainly in the summary. The user trusts the loop only as long as the loop tells the truth.
-8. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 enqueues a roborev review with a different LLM than the implementation model. Findings become next-iteration tickets, never silently dismissed. If `roborev` isn't installed, the repo has no reviewable diff, or no different reviewer is available, skip cleanly, log the exact reason, and file/keep a `tooling` ticket when the gap is persistent. Do not claim the pass ran unless it did.
-9. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close. The story is the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature. If the project has stories and you ship user-perceivable code without one, you broke a hard rule. (Refactor / dependency / infra work without a user surface is exempt — the ticket body must say so.)
-10. **Proof-first order on every ticket.** Every ticket declares `proof_strategy` before dispatch. Behavior and bug tickets use strict RED→GREEN TDD. Refactors use characterization proof, docs use rendered-output proof, research uses an artifact, performance uses before/after numbers, and tooling/deps use an explicit verification command. Implementation comes after the pre-change proof. Then the full test suite or relevant regression set runs where it exists. No code ships with red tests; no completion claim without fresh proof output in the ticket's `Proof / tests:` field. Agents that interleave or skip their proof strategy must be re-dispatched.
-11. **`working_on` is the operator's window.** Every ticket carries a `working_on:` frontmatter field that's one line and kept current at every state transition (dispatch, mid-implementation, return, close). The operator reads `working_on` across the ticket pool to answer "what is the LLM working on right now?" without diving into the iteration log. If `working_on` is stale or empty mid-`in-progress`, the orchestrator must surface the gap.
-12. **Iteration summary always includes a human narrative.** Step 2f ships two blocks: the machine summary and the plain-English "What changed toward the goal" narrative (3-6 sentences). The narrative is for a returning operator catching up after an auto-loop — never skip it, even in unattended runs.
-13. **Every response ends with the orientation footer and concrete next steps.** The `----------` footer is mandatory after every prompt while boil is active. Its `Next:` block must contain 1-5 concrete suggested actions, ordered by priority, and the first item must be the unblock action when a human-action ticket exists. It separates "what just happened" from "what to do next" so the operator can re-enter the loop quickly.
-14. **Frontend claims need Playwright or browser-level proof.** If the goal touches a visible UI, at least one Playwright/browser test must prove the user flow before the checkbox can be checked. Manual screenshots are demos; they are not substitutes for the automated browser proof.
-15. **Confirm-and-loop until proven.** Do not stop at "implemented." Loop until the proof map is green, the demo is visible, and the user accepts or explicitly stops. If proof is missing, file a ticket and continue.
-16. **Human blockers become safe tasks, not leaked secrets.** If progress waits on the user, create a `human-action` ticket and sync only the safe summary to Susi through the ignored local bridge when available. Never place private credentials, tokens, session cookies, account IDs, or local-only Susi config in tracked boil files.
-17. **99% confidence is an evidence gate, not a vibe.** Before a ticket or goal checkbox can be called done, the loop must be at least 99/100 confident that the requirement is understood, implemented, and verified working. That confidence must be backed by `goal.md` interpretation, ticket acceptance criteria, tests/proof output, adversarial retest, and an empty uncertainty list. If confidence is lower, continue the loop or ask the user; never round uncertainty up to done.
-18. **Prefer PR-first production changes.** For production or shared repos, boil should work on a branch and produce a PR body from `.boil/` state. Direct pushes to `main` are opt-in, not the default.
+1. **Clarity before plan or code.** Before implementing, coding, dispatching agents, or producing a final plan, inspect available context and interview the user until the goal, constraints, tradeoffs, decision dependencies, and observable success criteria are clear. Do not guess; do not execute while the plan still depends on unresolved ambiguity.
+2. **No iteration without a demo.** If you can't demo, you can't claim progress. File a `demo-prep` ticket and loop again.
+3. **No completion claims without fresh verification output in the same message.** See `superpowers:verification-before-completion`. Run the command, paste the relevant output line, then claim.
+4. **Always re-test from a different angle.** A test the implementer wrote and ran is not adversarial. You must add an angle the implementer didn't.
+5. **Parallel dispatch goes in one message.** Multiple subagent tool calls in a single assistant turn so they actually run concurrently. Use the current platform's dispatch API (`spawn_agent`, `Agent`, or equivalent). Sequential dispatch defeats the firm metaphor.
+6. **Agents can file tickets but the orchestrator (you) routes them.** Agents propose, the orchestrator decides specialty + priority before dispatch. This prevents specialty thrash.
+7. **Goal.md is sacred.** If the user wants to change scope mid-loop, edit `goal.md` first, confirm with the user, then continue. Don't silently re-interpret the goal because an agent suggested it.
+8. **Honesty over progress theater.** If a cycle made no real progress (or regressed), say so plainly in the summary. The user trusts the loop only as long as the loop tells the truth.
+9. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 enqueues a roborev review with a different LLM than the implementation model. Findings become next-iteration tickets, never silently dismissed. If `roborev` isn't installed, the repo has no reviewable diff, or no different reviewer is available, skip cleanly, log the exact reason, and file/keep a `tooling` ticket when the gap is persistent. Do not claim the pass ran unless it did.
+10. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close. The story is the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature. If the project has stories and you ship user-perceivable code without one, you broke a hard rule. (Refactor / dependency / infra work without a user surface is exempt — the ticket body must say so.)
+11. **Proof-first order on every ticket.** Every ticket declares `proof_strategy` before dispatch. Behavior and bug tickets use strict RED→GREEN TDD. Refactors use characterization proof, docs use rendered-output proof, research uses an artifact, performance uses before/after numbers, and tooling/deps use an explicit verification command. Implementation comes after the pre-change proof. Then the full test suite or relevant regression set runs where it exists. No code ships with red tests; no completion claim without fresh proof output in the ticket's `Proof / tests:` field. Agents that interleave or skip their proof strategy must be re-dispatched.
+12. **`working_on` is the operator's window.** Every ticket carries a `working_on:` frontmatter field that's one line and kept current at every state transition (dispatch, mid-implementation, return, close). The operator reads `working_on` across the ticket pool to answer "what is the LLM working on right now?" without diving into the iteration log. If `working_on` is stale or empty mid-`in-progress`, the orchestrator must surface the gap.
+13. **Iteration summary always includes a human narrative.** Step 2f ships two blocks: the machine summary and the plain-English "What changed toward the goal" narrative (3-6 sentences). The narrative is for a returning operator catching up after an auto-loop — never skip it, even in unattended runs.
+14. **Every response ends with the orientation footer and concrete next steps.** The `----------` footer is mandatory after every prompt while boil is active. Its `Next:` block must contain 1-5 concrete suggested actions, ordered by priority, and the first item must be the unblock action when a human-action ticket exists. It separates "what just happened" from "what to do next" so the operator can re-enter the loop quickly.
+15. **Frontend claims need Playwright or browser-level proof.** If the goal touches a visible UI, at least one Playwright/browser test must prove the user flow before the checkbox can be checked. Manual screenshots are demos; they are not substitutes for the automated browser proof.
+16. **Confirm-and-loop until proven.** Do not stop at "implemented." Loop until the proof map is green, the demo is visible, and the user accepts or explicitly stops. If proof is missing, file a ticket and continue.
+17. **Human blockers become safe tasks, not leaked secrets.** If progress waits on the user, create a `human-action` ticket and sync only the safe summary to Susi through the ignored local bridge when available. Never place private credentials, tokens, session cookies, account IDs, or local-only Susi config in tracked boil files.
+18. **99% confidence is an evidence gate, not a vibe.** Before a ticket or goal checkbox can be called done, the loop must be at least 99/100 confident that the requirement is understood, implemented, and verified working. That confidence must be backed by `goal.md` interpretation, ticket acceptance criteria, tests/proof output, adversarial retest, and an empty uncertainty list. If confidence is lower, continue the loop or ask the user; never round uncertainty up to done.
+19. **Prefer PR-first production changes.** For production or shared repos, boil should work on a branch and produce a PR body from `.boil/` state. Direct pushes to `main` are opt-in, not the default.
 
 ---
 

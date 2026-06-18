@@ -1,6 +1,6 @@
 # Brainstorm Questions — Phase 0
 
-Read this when the user's `boil X till Y` request is missing a piece. Don't ask everything — only the gaps. The goal is to write a `goal.md` you and the user both believe in, in under 5 minutes of dialogue.
+Read this when the user's `boil X till Y` request is missing a piece. Inspect the workspace first, then ask only about the gaps that remain. The goal is to write a `goal.md` you and the user both believe in before implementation starts.
 
 ## When to skip these questions entirely
 
@@ -14,11 +14,11 @@ The five elements:
 4. **A quality bar** — prototype | personal | production
 5. **A demo target** — *how* the user will see it works
 
-If 4 of 5 are clear, ask only about the missing one. If 2+ are missing, do a brief structured pass.
+If 4 of 5 are clear, ask only about the missing one. If 2+ are missing, do a structured pass. Keep each turn focused, but continue until implementation would no longer depend on guessing.
 
 ## The question pool
 
-Pick the 2–5 most relevant. Ask them in one message; don't drip-feed. Adapt wording to the user's tone.
+Pick the most relevant questions for the unresolved branches. Prefer 1-3 high-leverage questions per turn, and continue branch by branch until the goal, constraints, tradeoffs, decision dependencies, and success criteria are clear. Adapt wording to the user's tone.
 
 ### Artifact clarity
 
@@ -88,7 +88,7 @@ If the user pushes back on any element, edit `goal.md`, re-read, re-confirm. The
 
 ## Anti-patterns
 
-- **Don't ask all eight questions.** That's an interrogation, not a brainstorm.
-- **Don't accept "make it good".** Push gently for an observable form, but only once. If the user genuinely doesn't have a metric, default to "matches a reasonable interpretation that I'll demo each iteration so you can correct me."
+- **Don't ask all questions mechanically.** That's an interrogation, not a brainstorm. Ask the next questions that unblock dependent decisions.
+- **Don't accept "make it good".** Push for an observable form. If the user genuinely cannot choose a metric, make the tradeoff explicit and ask them to accept the demo-based fallback before proceeding.
 - **Don't write goal.md before asking.** That feels like you ignored the user.
 - **Don't start the loop without confirmation.** Even if you're sure the goal is right, the read-back-and-confirm step is what makes the user feel in control of the firm.

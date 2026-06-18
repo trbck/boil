@@ -22,9 +22,9 @@ stop condition.
     /boil the failing test suite until 100% green
     /boil the docs site until every public function has an example
 
-If the goal is fuzzy, the skill will ask 2–5 brainstorming questions before starting (it
-won't ask everything — only the gaps). Otherwise it goes straight to writing
-`.boil/goal.md`, confirms with you, and starts iterating.
+If the goal is fuzzy, the skill will inspect the workspace first, then ask targeted
+questions until the goal, constraints, tradeoffs, and success criteria are clear. Otherwise
+it goes straight to writing `.boil/goal.md`, confirms with you, and starts iterating.
 
 **At the end of every iteration**, you'll get:
 
