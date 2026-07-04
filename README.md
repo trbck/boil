@@ -183,6 +183,8 @@ These scripts are the mechanical layer that pushes boil away from "vibe coding"
 and toward agentic looped development:
 
 ```bash
+python3 scripts/boil-commit-guard.py --root /path/to/project   # no AI trailers in commits
+python3 scripts/boil-commit-guard.py --install-hook            # reject them at commit time
 python3 scripts/boil-doctor.py --root /path/to/project
 python3 scripts/ticket-lint.py --root /path/to/project
 python3 scripts/vibe-check.py /path/to/project/.boil/iterations/iter-001/summary.md
