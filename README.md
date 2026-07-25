@@ -261,3 +261,9 @@ Wrong fit:
 ## Contributing
 
 Issues and PRs welcome. The skill itself was iteratively refined; if you find a phase that drifts, an instruction that gets ignored, or a demo recipe that doesn't fit your domain, open an issue with a concrete repro and a proposed change.
+
+## Attribution
+
+boil integrates third-party tools by reference (it invokes, does not vendor them) — notably
+[hound-mcp](https://github.com/dondai1234/master-fetch) as its web-fetch tool and
+[lsdf-core](https://github.com/ec1980/lsdf-core) for the codebase index. See `NOTICE.md`.
