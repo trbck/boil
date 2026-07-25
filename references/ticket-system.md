@@ -210,6 +210,9 @@ You are working on ticket T-NNNN inside a `boil` dev-firm loop.
 ## Codebase context (relevant slice of .boil/memory.md)
 <paste the relevant lines: stack, where the goal-relevant code lives, run/test commands>
 
+## Tools available
+- **Web content → use `hound` (MCP), not `WebFetch`.** For any web fetch this ticket needs — docs, an API reference, a competitor page, scraping a data source — call the hound MCP tools. `mcp_smart_fetch` with `force_fetcher: "browser"` renders through a real (patchright) browser and clears JS **bot-verification** (Cloudflare "Just a moment…", Anubis "Verifying your browser…", `enable javascript` walls) where `WebFetch` only returns the challenge shell. Also: `mcp_smart_search` (keyless web search), `mcp_smart_crawl` (multi-page), `mcp_screenshot` (visual capture). Pass a generous `timeout` (milliseconds). It CANNOT defeat IP/network-level blocks (e.g. `reddit.com` → `403 "blocked due to a network policy"` from datacenter IPs) — for those use an official API, authenticated MCP, or a public mirror. For a `research-artifact` proof, cite the fetched URL + the `fetcher_used` the tool returns. If the hound tools aren't present in your session, fall back to `WebFetch` and note the gap in `## Working notes`.
+
 ## Your job — proof strategy order
 
 Work in this order. Do not skip steps. Do not interleave them.
