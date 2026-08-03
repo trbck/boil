@@ -161,14 +161,14 @@ Adapters are optional. A greenfield project starts with none and only adds them 
 
 ## The runner
 
-`scripts/story-run.sh STORY-NNN` (or `--all`) runs one story (or all) end-to-end and updates frontmatter + `MATRIX.md`. It is installed alongside the boil skill — generic, no project config required for the default cases.
+`scripts/story-run.sh STORY-NNN --iteration iter-NNN` (or `--all --iteration iter-NNN`) runs one story (or all) end-to-end and updates frontmatter + `MATRIX.md`. It is installed alongside the boil skill — generic, no project config required for the default cases.
 
 Four lanes, one binary:
 
 1. **Functional** — execute each `Functional assertions` entry. HTTP via curl, Redis via redis-cli, SQL via the project adapter. Each entry pass/fail captured.
 2. **Quant** — invoke `adapters/quant.sh` per entry. Project's gate yaml + controls catalogue feed in here.
 3. **UX (mechanical)** — Playwright headless. DOM presence + CSS properties + screenshot diff vs baseline.
-4. **UX (rubric)** — for every `kind: rubric` entry, dispatch a `judge` subagent per the rubrics layer (`references/rubrics.md`). Verdict ∈ {PASS, FAIL, UNCERTAIN}. **UNCERTAIN is treated as FAIL** — no silent passes; if the judge can't tell, the story is red.
+4. **UX (rubric)** — for every `kind: rubric` entry, the orchestrator dispatches a `judge` subagent per the rubrics layer (`references/rubrics.md`) before invoking the runner. The judge writes `.boil/iterations/iter-NNN/judges/R-*.md`, and the runner parses that verdict. Verdict ∈ {PASS, FAIL, UNCERTAIN, INDETERMINATE}. **UNCERTAIN/INDETERMINATE are treated as FAIL** — no silent passes; if the judge can't tell, the story is red. Missing or unparseable judge files are exit code 2 infra errors.
 
 Story green iff all four lanes green.
 
@@ -231,7 +231,7 @@ priority: P0
 
 A new pass slots in **before** Pass 1, because mechanical tests are downstream of the story contract:
 
-**Pass 0 — Story replay (NEW).** For every story listed in any ticket's `closes_stories` that's completed this iteration, run `scripts/story-run.sh STORY-NNN`. If the story isn't green after the iteration's code lands, the iteration is **not** done — file a `demo-prep` ticket and loop. A story that was green before and is red now is a regression — file a `regression` ticket and loop.
+**Pass 0 — Story replay (NEW).** For every story listed in any ticket's `closes_stories` that's completed this iteration, dispatch any story-level rubric judges first, then run `scripts/story-run.sh STORY-NNN --iteration iter-NNN`. If the story isn't green after the iteration's code lands, the iteration is **not** done — file a `demo-prep` ticket and loop. A story that was green before and is red now is a regression — file a `regression` ticket and loop.
 
 The existing Passes 1–4 (direct verification, adversarial re-test, rubric judges, roborev) remain unchanged. Pass 0 sits on top: if the story doesn't replay, none of the other passes matter — the user experience is broken.
 
@@ -255,7 +255,7 @@ Add to the termination conditions: every goal checkbox attached to a story must 
 
 1. **No user-perceivable code change without a story.** If a ticket touches the UI, an endpoint shape, a CLI output, or a stream contract, it must list `closes_stories: [...]`. Tickets that fail this check don't get dispatched. (Internal refactor / dependency / infra work is exempt — but state so explicitly in the ticket body.)
 2. **Stories are written before code.** The story is the spec. Writing the story after the code is just transcribing what happened, which defeats the purpose. The orchestrator drafts stories during Phase 1; ticket-filing agents may propose new stories but the orchestrator routes and approves them, same as tickets.
-3. **UNCERTAIN rubric verdicts fail.** The runner does NOT pass a story whose UX rubric judge said "uncertain." The whole point of the rubrics layer is to refuse to vibe-check — if the judge can't decide, the story owes a clearer assertion or a better artifact.
+3. **UNCERTAIN/INDETERMINATE rubric verdicts fail.** The runner does NOT pass a story whose UX rubric judge said "uncertain" or "indeterminate", and it exits 2 if the judge file is missing or unparseable. The whole point of the rubrics layer is to refuse to vibe-check — if the judge can't decide, the story owes a clearer assertion or a better artifact.
 4. **No silent baseline updates.** A screenshot baseline change is a story-level change. Bump it in a ticket whose body says *why* the UX is allowed to look different now. CI / pre-commit hooks can refuse silent updates to `.boil/stories/baselines/`.
 5. **Adapters fail loud.** If `adapters/quant.sh` exits non-zero with no JSON body, the runner treats it as exit code 2 (infra error), not a failed assertion. Infra errors block the iteration too — don't paper over a missing adapter by calling it a story failure.
 6. **The runner is the same in dev and CI.** Same script, same baselines, same adapter contracts. A green story locally must be green in CI. Divergence is a runner bug, never accepted as flakiness.

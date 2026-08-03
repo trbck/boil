@@ -17,10 +17,10 @@ v0 scope:
   - UX/dom            : stub — requires Playwright; emit clear message.
   - UX/css_property   : stub — same.
   - UX/screenshot_diff: stub — same.
-  - UX/rubric         : stub — judge dispatch isn't wired from a script,
-                        it requires the orchestrating LLM. Emit a
-                        machine-readable "needs orchestrator" line so
-                        boil's Pass 0 can pick up the rubric work.
+  - UX/rubric         : requires an already-written judge verdict file
+                        (`--iteration iter-NNN` or `--judges-dir PATH`).
+                        Missing/unparseable verdicts are infra errors.
+                        UNCERTAIN/INDETERMINATE verdicts fail the story.
 
 Exit codes:
   0  all lanes pass
@@ -31,6 +31,7 @@ Usage:
   story-run.py STORY-001
   story-run.py --all                 # every story in .boil/stories/
   story-run.py STORY-001 --json      # machine-readable output only
+  story-run.py STORY-001 --iteration iter-003
 """
 
 from __future__ import annotations
@@ -111,7 +112,7 @@ def load_story(path: Path) -> Story:
 class AssertResult:
     name: str
     kind: str
-    status: str           # "pass" | "fail" | "skip" | "error"
+    status: str           # "pass" | "fail" | "error"
     details: str = ""
 
 
@@ -190,21 +191,76 @@ def run_adapter_stub(spec: dict[str, Any], lane: str, repo_root: Path) -> Assert
     )
 
 
-def run_rubric_marker(spec: dict[str, Any]) -> AssertResult:
-    """v0: rubric judge dispatch needs the orchestrating LLM, not a CLI.
-    Emit a structured marker that boil's Pass 0 can pick up."""
+def run_rubric_assertion(spec: dict[str, Any], judges_dir: Path | None) -> AssertResult:
+    """Evaluate a rubric assertion from an existing judge verdict file.
+
+    The CLI cannot dispatch an LLM judge itself. The orchestrator must run the
+    judge first, then call story-run with --iteration/--judges-dir so this
+    runner can fold the verdict into the story's pass/fail state.
+    """
     name = spec.get("name", "rubric")
     rubric_id = spec.get("rubric_id", "")
+    if not rubric_id:
+        return AssertResult(name, "rubric", "error", "missing rubric_id")
+    if judges_dir is None:
+        return AssertResult(
+            name, "rubric", "error",
+            f"rubric:{rubric_id} needs a judge verdict; pass "
+            f"--iteration iter-NNN or --judges-dir PATH",
+        )
+
+    verdict_path = judges_dir / f"{rubric_id}.md"
+    if not verdict_path.exists():
+        return AssertResult(
+            name, "rubric", "error",
+            f"judge verdict missing: {verdict_path}",
+        )
+
+    try:
+        text = verdict_path.read_text()
+    except OSError as e:
+        return AssertResult(name, "rubric", "error", f"cannot read {verdict_path}: {e}")
+
+    m = re.search(
+        r"^\s*\*\*Decision:\*\*\s*(PASS|FAIL|INDETERMINATE|UNCERTAIN)\b",
+        text,
+        re.IGNORECASE | re.MULTILINE,
+    )
+    if not m:
+        m = re.search(
+            r"^\s*Decision:\s*(PASS|FAIL|INDETERMINATE|UNCERTAIN)\b",
+            text,
+            re.IGNORECASE | re.MULTILINE,
+        )
+    if not m:
+        return AssertResult(
+            name, "rubric", "error",
+            f"judge verdict unparseable: {verdict_path} lacks Decision",
+        )
+
+    decision = m.group(1).upper()
+    reason = ""
+    rm = re.search(
+        r"^\s*\*\*Reason \(one sentence\):\*\*\s*(.+)$",
+        text,
+        re.IGNORECASE | re.MULTILINE,
+    )
+    if rm:
+        reason = f" — {rm.group(1).strip()}"
+
+    if decision == "PASS":
+        return AssertResult(name, "rubric", "pass", f"{rubric_id} PASS ({verdict_path})")
+    if decision == "FAIL":
+        return AssertResult(name, "rubric", "fail", f"{rubric_id} FAIL{reason}")
     return AssertResult(
-        name, "rubric", "skip",
-        f"rubric:{rubric_id} requires orchestrator dispatch — "
-        f"see references/rubrics.md § How the judge is dispatched. "
-        f"This v0 runner cannot self-evaluate; boil Pass 0 will route "
-        f"the judge during the iteration.",
+        name, "rubric", "fail",
+        f"{rubric_id} {decision}; uncertain rubric verdicts fail stories",
     )
 
 
-def run_story(story: Story, repo_root: Path) -> tuple[list[AssertResult], str]:
+def run_story(
+    story: Story, repo_root: Path, judges_dir: Path | None,
+) -> tuple[list[AssertResult], str]:
     """Run all four lanes. Return (results, overall_status)."""
     results: list[AssertResult] = []
 
@@ -227,18 +283,18 @@ def run_story(story: Story, repo_root: Path) -> tuple[list[AssertResult], str]:
     for spec in story.ux:
         kind = spec.get("kind", "")
         if kind == "rubric":
-            results.append(run_rubric_marker(spec))
+            results.append(run_rubric_assertion(spec, judges_dir))
         else:
             results.append(run_adapter_stub(spec, "ux", repo_root))
 
     has_fail = any(r.status == "fail" for r in results)
     has_err = any(r.status == "error" for r in results)
-    if has_fail:
-        overall = "fail"
-    elif has_err:
+    if has_err:
         overall = "error"
+    elif has_fail:
+        overall = "fail"
     else:
-        overall = "pass"   # 'skip' (rubric-needs-orchestrator) is non-blocking from CLI
+        overall = "pass"
     return results, overall
 
 
@@ -320,10 +376,32 @@ def regenerate_matrix(stories_dir: Path) -> None:
     (stories_dir / "MATRIX.md").write_text("\n".join(out) + "\n")
 
 
+def write_iteration_record(
+    repo_root: Path,
+    iteration: str,
+    story_id: str,
+    overall: str,
+    sha: str,
+    results: list[AssertResult],
+) -> None:
+    record_dir = repo_root / ".boil" / "iterations" / iteration / "stories"
+    record_dir.mkdir(parents=True, exist_ok=True)
+    record = {
+        "story": story_id,
+        "iteration": iteration,
+        "sha": sha,
+        "overall": overall,
+        "results": [r.__dict__ for r in results],
+        "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    (record_dir / f"{story_id}.json").write_text(json.dumps(record, indent=2) + "\n")
+
+
 def current_sha(repo_root: Path) -> str:
     try:
         return subprocess.check_output(
             ["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
     except subprocess.CalledProcessError:
@@ -343,6 +421,10 @@ def main(argv: list[str]) -> int:
                     help="machine-readable output only")
     ap.add_argument("--stories-dir", default=".boil/stories",
                     help="default .boil/stories")
+    ap.add_argument("--iteration",
+                    help="iteration name whose judges/ directory holds rubric verdicts, e.g. iter-003")
+    ap.add_argument("--judges-dir",
+                    help="directory containing R-*.md judge verdicts; overrides --iteration")
     args = ap.parse_args(argv)
 
     repo_root = Path.cwd()
@@ -362,6 +444,18 @@ def main(argv: list[str]) -> int:
         ap.print_help()
         return 2
 
+    judges_dir: Path | None = None
+    if args.judges_dir:
+        judges_dir = Path(args.judges_dir)
+        if not judges_dir.is_absolute():
+            judges_dir = repo_root / judges_dir
+    elif args.iteration:
+        judges_dir = repo_root / ".boil" / "iterations" / args.iteration / "judges"
+    elif os.environ.get("BOIL_JUDGES_DIR"):
+        judges_dir = Path(os.environ["BOIL_JUDGES_DIR"])
+        if not judges_dir.is_absolute():
+            judges_dir = repo_root / judges_dir
+
     sha = current_sha(repo_root)
     all_results: dict[str, list[AssertResult]] = {}
     worst_exit = 0
@@ -376,9 +470,12 @@ def main(argv: list[str]) -> int:
             print(f"story-run: {p} parse error: {e}", file=sys.stderr)
             worst_exit = max(worst_exit, 2)
             continue
-        results, overall = run_story(story, repo_root)
-        all_results[story.meta.get("id", p.stem)] = results
+        results, overall = run_story(story, repo_root, judges_dir)
+        story_id = story.meta.get("id", p.stem)
+        all_results[story_id] = results
         update_story_frontmatter(story, results, overall, sha)
+        if args.iteration:
+            write_iteration_record(repo_root, args.iteration, story_id, overall, sha, results)
         if overall == "fail":
             worst_exit = max(worst_exit, 1)
         elif overall == "error":
@@ -394,8 +491,7 @@ def main(argv: list[str]) -> int:
         for sid, rs in all_results.items():
             print(f"\n=== {sid} ===")
             for r in rs:
-                tag = {"pass": "✓", "fail": "✗", "skip": "○",
-                       "error": "‼"}.get(r.status, "?")
+                tag = {"pass": "✓", "fail": "✗", "error": "‼"}.get(r.status, "?")
                 print(f"  {tag} [{r.kind}] {r.name}: {r.details}")
         print(f"\nstories: {len(all_results)} run, exit={worst_exit}")
     return worst_exit

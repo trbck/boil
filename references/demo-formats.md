@@ -46,8 +46,8 @@ The user opens a URL and sees the change. Visual proof beats code proof.
 
 **Steps:**
 1. Start the dev server (background process via Bash `run_in_background: true`). Note the port.
-2. **Take a screenshot** via the Chrome MCP if the user has Chrome connected — `mcp__Claude_in_Chrome__computer` with `action: screenshot`. Save to `iterations/iter-NNN/artifacts/screenshot.png` (use `save_to_disk: true`).
-3. If Chrome MCP isn't available, fall back to: a curl of the page HTML showing the new element, or a Playwright/Puppeteer one-shot if the project has one set up.
+2. **Take a screenshot** via the browser/screenshot tool available in the current client (Chrome MCP, Playwright, Puppeteer, or local browser automation). Save to `iterations/iter-NNN/artifacts/screenshot.png`.
+3. If no browser tool is available, fall back to: a curl of the page HTML showing the new element, or a Playwright/Puppeteer one-shot if the project has one set up.
 4. Provide the localhost URL the user can open themselves.
 
 **Demo content:**
