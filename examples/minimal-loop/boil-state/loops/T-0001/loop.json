@@ -1,0 +1,48 @@
+{
+  "ticket": "T-0001",
+  "title": "Validate the minimal guardrail fixture",
+  "specialty": "verification",
+  "closes_goal_checkbox": [],
+  "status": "accepted",
+  "created_at": "2026-08-03T08:18:03Z",
+  "updated_at": "2026-08-03T08:18:03Z",
+  "answer_key": {
+    "kind": "document",
+    "ref": "ACCEPTANCE.md",
+    "expect": "pass",
+    "authored_by": "orchestrator",
+    "frozen_at": "2026-06-10T09:31:00Z",
+    "frozen_sha": "df77d7c4d597",
+    "paths": [
+      "ACCEPTANCE.md"
+    ]
+  },
+  "max_revisions": 3,
+  "budget": {
+    "usd_cap": 0.0,
+    "usd_spent": 0.0,
+    "wall_clock_cap_min": 0
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "started_at": "2026-08-03T08:18:03Z",
+      "verdict": "PASS",
+      "failure_signature": "none",
+      "decision": "ACCEPT",
+      "reason": "the answer key is satisfied with cited evidence",
+      "cost_usd": 0.0,
+      "key_integrity": "VERIFIED",
+      "builder_family": "claude",
+      "judge_family": "codex",
+      "judge_runs": 1,
+      "changed_files": [],
+      "build_recorded_at": "2026-08-03T08:18:03Z",
+      "judge_reason": "every condition in ACCEPTANCE.md is satisfied with cited evidence.",
+      "judge_recorded_at": "2026-08-03T08:18:03Z",
+      "decided_at": "2026-08-03T08:18:03Z"
+    }
+  ],
+  "escalated_to_ticket": "",
+  "terminal_reason": ""
+}

@@ -51,6 +51,68 @@ CONFIDENCE_FIELDS = (
     "implementation_matches",
     "verification_working",
 )
+# Ticket types whose work is behavior, and therefore needs an external answer key
+# before a builder is dispatched. See references/self-correcting-loop.md.
+BEHAVIOR_TYPES = {"bug", "feature", "test", "refactor", "perf"}
+VALID_KEY_KINDS = {"suite", "document", "checklist", "none"}
+SELF_AUTHORED = {"builder", "agent", "self", "implementer"}
+
+
+def lint_answer_key(path: Path, meta: dict[str, Any]) -> list[dict[str, str]]:
+    """The answer key is what makes the judge a judge instead of a second opinion.
+    These checks exist so a key can't be missing, self-authored, or quietly unfrozen."""
+    issues: list[dict[str, str]] = []
+    ttype = str(meta.get("type") or "")
+    status = str(meta.get("status") or "")
+    key = meta.get("answer_key")
+    behavior = ttype in BEHAVIOR_TYPES
+
+    if key is None:
+        if behavior:
+            issues.append(_issue(path, "error", "missing-answer-key",
+                                 f"`answer_key` is required for `type: {ttype}` tickets"))
+        return issues
+    if not isinstance(key, dict):
+        return [_issue(path, "error", "bad-answer-key", "`answer_key` must be a mapping")]
+
+    kind = str(key.get("kind") or "")
+    if kind not in VALID_KEY_KINDS:
+        issues.append(_issue(path, "error", "bad-answer-key-kind",
+                             f"`answer_key.kind` must be one of {sorted(VALID_KEY_KINDS)}, got `{kind}`"))
+        return issues
+    if kind == "none":
+        if behavior:
+            issues.append(_issue(path, "error", "answer-key-none-behavior",
+                                 f"`answer_key.kind: none` is not allowed for `type: {ttype}` — "
+                                 "a behavior ticket needs external ground truth"))
+        if not str(key.get("reason") or "").strip():
+            issues.append(_issue(path, "error", "answer-key-none-reason",
+                                 "`answer_key.reason` is required when kind is `none`"))
+        return issues
+
+    if not str(key.get("ref") or "").strip():
+        issues.append(_issue(path, "error", "missing-answer-key-ref", "`answer_key.ref` is required"))
+    author = str(key.get("authored_by") or "").strip()
+    specialty = str(meta.get("specialty") or "").strip()
+    if not author:
+        issues.append(_issue(path, "error", "missing-answer-key-author",
+                             "`answer_key.authored_by` is required (and may not be the builder)"))
+    elif author.lower() in SELF_AUTHORED or (
+            specialty and author.lower() in {specialty.lower(), f"agent:{specialty}".lower()}):
+        issues.append(_issue(path, "error", "answer-key-self-authored",
+                             f"`answer_key.authored_by: {author}` is the builder's own specialty — "
+                             "the key must come from the orchestrator, the user, or upstream"))
+    if key.get("protected") is not True:
+        issues.append(_issue(path, "error", "answer-key-unprotected",
+                             "`answer_key.protected` must be true"))
+    if status in {"in-progress", "done"} and not str(key.get("frozen_sha") or "").strip():
+        issues.append(_issue(path, "error", "answer-key-unfrozen",
+                             "`answer_key.frozen_sha` is empty — run `boil-loop.py init` to freeze "
+                             "the key BEFORE the first build attempt"))
+    if not str(key.get("frozen_at") or "").strip():
+        issues.append(_issue(path, "warning", "answer-key-no-freeze-time",
+                             "`answer_key.frozen_at` is not set"))
+    return issues
 
 
 def _frontmatter(path: Path) -> tuple[dict[str, Any], str]:
@@ -140,6 +202,8 @@ def lint_ticket(path: Path) -> list[dict[str, str]]:
                 value = str(human.get(key) or "").strip()
                 if value and value not in {"pending", "created", "sent", "not_configured", "failed", "skipped"}:
                     issues.append(_issue(path, "warning", "human-status", f"unexpected `{key}` value `{value}`"))
+
+    issues.extend(lint_answer_key(path, meta))
 
     if "closes_stories" in meta and not isinstance(meta["closes_stories"], list):
         issues.append(_issue(path, "error", "bad-closes-stories", "`closes_stories` must be a list"))

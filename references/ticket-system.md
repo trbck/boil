@@ -18,13 +18,26 @@ One file per ticket: `.boil/tickets/T-NNNN.md`. Use 4-digit zero-padded IDs.
 id: T-0042
 title: Fix dashboard chart not refreshing on filter change
 type: bug | feature | test | research | refactor | demo-prep | docs | human-action
-specialty: frontend | backend | qa | debugger | code-review | design | devops | data | docs | general | brainstorm | verification | review | parallel-dispatch | orchestrator | ticket-triage | error-detective
+specialty: frontend | backend | qa | debugger | code-review | design | devops | data | docs | general | brainstorm | verification | review | parallel-dispatch | orchestrator | ticket-triage | error-detective | judge
 status: open | in-progress | blocked | done | wontfix
 priority: P0 | P1 | P2 | P3
 proof_strategy: red-green | characterization | verification-only | rendered-doc | research-artifact | perf-baseline
 opened_by: orchestrator | T-0040 | agent:frontend
 opened_at: 2026-05-05T14:32:00Z
 blocked_by: []                       # list of ticket IDs that must be done first
+answer_key:                          # the EXTERNAL ground truth the judge measures against.
+  kind: suite                        #   suite | document | checklist | none
+  ref: "tests/e2e/filter-refresh.spec.ts::refetches on date change"
+  expect: pass                       #   suite only: pass | fail | <stdout substring>
+  authored_by: orchestrator          #   orchestrator | user | upstream | <specialty> — NEVER the builder
+  frozen_at: 2026-05-05T14:35:00Z    #   must precede the first build attempt
+  frozen_sha: ""                     #   stamped by `boil-loop.py init`; the key's hash at freeze time
+  protected: true                    #   the builder may not edit the key's files
+  reason: ""                         #   required only when kind is `none`
+loop:                                # mirror of .boil/loops/<id>/loop.json — read-only for agents
+  max_revisions: 3                   #   hard limit; 3 failed revisions escalate to a human
+  attempts: 0
+  status: ""                         #   running | accepted | escalated | aborted
 confidence:
   requirements_understood: 0          # 0-100; done tickets must be >=99
   implementation_matches: 0           # 0-100; done tickets must be >=99
@@ -103,6 +116,8 @@ reading the first 12 lines — `status`, `priority`, `working_on`,
 - **`specialty`** — Match against `routing.md`. Use `general` only when nothing else fits. If using the superpowers-compatible routing profile, prefer `verification` for independent proof checks, `debugger` or `error-detective` for root-cause work, `parallel-dispatch` or `orchestrator` for coordination/tooling tickets, `brainstorm` for goal shaping, and `review` or `code-review` for review work.
 - **`priority`** — P0 = blocker (loop can't make progress without it). P1 = critical to goal. P2 = needed for goal but flexible. P3 = nice-to-have.
 - **`proof_strategy`** — Pick the proof shape before dispatch. Use `red-green` for behavior/bug tickets, `characterization` for refactors that preserve behavior, `verification-only` for dependency/tooling changes, `rendered-doc` for documentation, `research-artifact` for spikes, and `perf-baseline` for performance work.
+- **`answer_key`** — Required for every behavior ticket (`bug`, `feature`, `test`, `refactor`, perf work). It names the one external artifact the judge measures the attempt against, and `boil-loop.py init` freezes its hash before the first builder is dispatched. `authored_by` may never be the ticket's own specialty — a builder that writes its own key writes its own grade. `kind: none` is allowed only for `docs`, `research`, `demo-prep`, and `human-action` tickets, and only with a written `reason`; such a ticket may not close a goal checkbox on its own. Full protocol: `references/self-correcting-loop.md`.
+- **`loop`** — A convenience mirror of the loop's state machine so the ticket answers "how many attempts has this had?" without opening `.boil/loops/`. Agents never write it; `boil-loop.py` owns it. `max_revisions` is 3 and is a hard limit, not a suggestion.
 - **`confidence`** — Evidence-backed confidence, not vibes. A ticket may only be marked `done` when `requirements_understood`, `implementation_matches`, and `verification_working` are all `>=99`, `evidence` lists concrete artifacts/commands, and `uncertainty` is empty. If any score is below 99 or uncertainty remains, keep the ticket `in-progress` or `blocked` and file the next ticket needed to close the gap.
 - **`opened_by`** — Lets you trace agent-to-agent chains. Useful when the loop produces a chain of tickets and you want to debug the cascade.
 - **`closes_goal_checkbox`** — Optional but powerful. Lets the orchestrator pick tickets that move the needle on `goal.md`.
@@ -209,6 +224,21 @@ You are working on ticket T-NNNN inside a `boil` dev-firm loop.
 
 ## Codebase context (relevant slice of .boil/memory.md)
 <paste the relevant lines: stack, where the goal-relevant code lives, run/test commands>
+
+## Answer key — you are measured against this, and you may NOT edit it
+- kind: <suite | document | checklist>
+- ref: <selector / document path / rubric id>
+- READ-ONLY for you: <the key's files>
+- An independent judge, which has not seen this conversation, will check your work
+  against that key and nothing else. Your own confidence scores are not an input to
+  its verdict.
+- Making the key pass by editing, deleting, skipping, xfailing, narrowing, or
+  loosening it ends this ticket as a tamper abort — no revision is offered. Change
+  the real code.
+- Do not write anything under `.boil/loops/`.
+<When kind is `checklist`, paste the criterion sentence but NOT the eval_steps — handing
+over the steps turns a measure into a spec to game. When kind is `document`, paste or
+link the document: it is the source of truth for both of you.>
 
 ## Tools available
 - **Web content → use `hound` (MCP), not `WebFetch`.** For any web fetch this ticket needs — docs, an API reference, a competitor page, scraping a data source — call the hound MCP tools. `mcp_smart_fetch` with `force_fetcher: "browser"` renders through a real (patchright) browser and clears JS **bot-verification** (Cloudflare "Just a moment…", Anubis "Verifying your browser…", `enable javascript` walls) where `WebFetch` only returns the challenge shell. Also: `mcp_smart_search` (keyless web search), `mcp_smart_crawl` (multi-page), `mcp_screenshot` (visual capture). Pass a generous `timeout` (milliseconds). It CANNOT defeat IP/network-level blocks (e.g. `reddit.com` → `403 "blocked due to a network policy"` from datacenter IPs) — for those use an official API, authenticated MCP, or a public mirror. For a `research-artifact` proof, cite the fetched URL + the `fetcher_used` the tool returns. If the hound tools aren't present in your session, fall back to `WebFetch` and note the gap in `## Working notes`.
@@ -320,6 +350,71 @@ Return a structured report:
 ```
 
 Adjust the language to the agent type — a `qa-expert` and a `frontend-developer` care about different things, but the structure stays the same.
+
+## The self-correcting loop — three dispatches per ticket
+
+A behavior ticket is not one dispatch, it is a bounded cycle: **builder → judge → manager**, up to three times. The builder uses the template above. The manager is `scripts/boil-loop.py` (deterministic — not a model). This section is the judge's dispatch.
+
+Arm the loop before the first dispatch, and record every stage:
+
+```bash
+python3 <boil-skill-repo>/scripts/boil-loop.py init         --root <project> --ticket T-0042
+python3 <boil-skill-repo>/scripts/boil-loop.py record-build --root <project> --ticket T-0042 --attempt N \
+        --report <build report path> --changed-file <path> --builder-family <family>
+python3 <boil-skill-repo>/scripts/boil-loop.py record-judge --root <project> --ticket T-0042 --attempt N \
+        --file <judge verdict path> --judge-family <family>
+python3 <boil-skill-repo>/scripts/boil-loop.py decide       --root <project> --ticket T-0042 --attempt N
+```
+
+`decide` exits 0 for ACCEPT/REVISE and 3 for any terminal state; on 3, run `escalate --convert-ticket`. Full decision table and escalation packet: `references/self-correcting-loop.md`.
+
+### Judge dispatch prompt
+
+Route with `specialty: judge`, in a **different model family than the builder** where the runtime offers one. The judge is context-isolated on purpose — that isolation is the whole mechanism.
+
+```
+You are the judge for ticket T-NNNN, attempt N, inside a `boil` self-correcting loop.
+
+You have NOT seen the implementation work and you do not need to. You did not write
+the code and you are not reviewing the code's style. You answer exactly one question:
+does the artifact satisfy the answer key below?
+
+# The answer key (the only thing you measure against)
+- kind: <suite | document | checklist>
+- ref: <selector / document path / rubric id>
+- frozen_sha: <hash>
+- expect: <pass | fail | substring>
+<paste the key: the test selector + how to run it, the document's relevant text, or the
+full rubric eval_steps>
+
+# Artifacts
+<absolute paths: the changed files, the iteration demo.md, screenshots, captured runs>
+
+# Diff for this attempt
+<git diff --stat for the attempt, plus per-file diffs the key points at>
+
+# Your job
+1. Verify key integrity FIRST: hash the key's files and compare to frozen_sha. If they
+   differ, stop and report TAMPERED — do not evaluate further.
+2. Execute the key yourself. For `suite`, run the selector and quote its result line —
+   do NOT accept the builder's reported output as evidence; it is hearsay. For
+   `document`, quote the specific lines the work must satisfy. For `checklist`, execute
+   every eval_step in order.
+3. Every check gets an Action, an Observation, an Evidence citation, and a Result.
+   A PASS with no cited evidence is INVALID, not PASS — say so.
+4. If anything the key names is missing or unreadable, return INDETERMINATE. Do not guess.
+5. Name the defect, not the fix. Prescribing an implementation biases the next attempt.
+
+# Output
+Write .boil/loops/T-NNNN/attempt-N/judge.md using the exact template in
+references/self-correcting-loop.md ("Handoff 3 — the judge verdict"), including the
+**Decision:**, **Failure signature:**, and **Key integrity:** lines — the manager parses
+those three. Return the file path plus a one-line verdict summary.
+```
+
+### What the judge must never receive
+
+The builder's chat history, the builder's self-report, the builder's confidence block, prior judge runs on this ticket, or the manager's rationale. Every one of those reintroduces the bias the layer exists to remove.
 
 ## Routing in code
 

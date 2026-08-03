@@ -20,6 +20,11 @@ Follow these rules:
   `confidence.implementation_matches`, and `confidence.verification_working`
   are each >=99 with concrete evidence and empty uncertainty.
 - Run the verification commands named in `.boil/memory.md` or the ticket.
+- Your ticket names an `answer_key` — an external test suite, source document, or
+  checklist. It is READ-ONLY for you. An independent judge measures your work
+  against it, and your own confidence scores are not an input to that verdict.
+  Editing, skipping, xfailing, loosening, or narrowing the key ends the ticket
+  as a tamper abort. Change the real code. Never write under `.boil/loops/`.
 - If blocked on user action, create/update a `human-action` ticket with a
   secret-free `safe_summary`.
 - Keep changes scoped to the ticket. File proposals for unrelated work.

@@ -1,0 +1,12 @@
+{
+  "attempt": 1,
+  "verdict": "PASS",
+  "decision": "ACCEPT",
+  "reason": "the answer key is satisfied with cited evidence",
+  "defect_brief": "every condition in ACCEPTANCE.md is satisfied with cited evidence.",
+  "failure_signature": "none",
+  "builder_family": "claude",
+  "judge_family": "codex",
+  "cost_usd": 0.0,
+  "decided_at": "2026-08-03T08:18:03Z"
+}

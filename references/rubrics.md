@@ -2,7 +2,7 @@
 
 Vibe-checking a demo is not verification. When a goal contains a semantic criterion ("the agent honored the user's constraint across turns", "the dashboard is actually readable", "the refactor preserved behavior") string-match and exit codes will tell you nothing. This file defines the rubric layer: how to encode semantic acceptance as code, and how to dispatch a context-isolated judge to evaluate it.
 
-This is the `boil` adaptation of G-Eval / LLM-as-Judge with forced Chain-of-Thought traces. The rubric is the deterministic part. The judge is the non-deterministic engine that executes it.
+This is the `boil` adaptation of G-Eval / LLM-as-Judge with forced evidence traces. The rubric is the deterministic part. The judge is the non-deterministic engine that executes it.
 
 ---
 
@@ -23,6 +23,23 @@ This is the `boil` adaptation of G-Eval / LLM-as-Judge with forced Chain-of-Thou
 - "The migration completes without errors against a fresh DB."
 
 Deterministic checks stay in Step 2d Pass 1. Rubrics live in Pass 3 (new — see below). If a checklist item has both a deterministic and a semantic side, write it as two checklist items and rubric only the semantic half.
+
+### Rubrics at two scales
+
+A rubric is a **written checklist**, which makes it one of the three valid answer-key kinds in `references/self-correcting-loop.md`. The same file format serves two scopes:
+
+| Scope | Attached to | Evaluated at | Consequence of FAIL |
+|---|---|---|---|
+| **Ticket** (`answer_key.kind: checklist`) | one ticket, frozen before its first build attempt | Step 2c.5, once per attempt | the manager's decision table — REVISE, or escalate at the retry limit |
+| **Goal** (this file's original scope) | one `goal.md` checkbox | Step 2d Pass 3, once per iteration | the checkbox stays unchecked; one ticket per failed rubric |
+
+Nothing below changes for goal-scope rubrics. When a rubric is used as a *ticket's* answer key, three extra rules apply, and they exist to keep the judge external:
+
+1. **It is frozen and hashed** before the builder is dispatched (`boil-loop.py init`), and it is read-only for the duration.
+2. **The builder gets the `criterion` sentence, never the `eval_steps`.** Handing over the steps turns a measure into a spec to game.
+3. **A verdict that cites no evidence from the rubric's artifacts is INVALID, not PASS** — the manager downgrades it automatically and re-runs the judge.
+
+A `suite` key (a real test) is stronger than a `checklist` key whenever one is available, because it doesn't share the judge's priors — see the shared-blind-spot scenario in the red-team suite. Reach for a `checklist` key when the criterion genuinely cannot be reduced to an exit code, not when writing the test is inconvenient.
 
 ---
 
@@ -108,7 +125,7 @@ A markdown file at `.boil/iterations/iter-NNN/judges/R-NNN.md` with this exact s
 **Criterion:** <copied from rubric>
 **Pass rule:** <copied from rubric>
 
-## Chain-of-thought trace
+## Evidence trace
 
 ### Step 1: <step text from rubric>
 **Action:** <what the judge actually did>
@@ -121,14 +138,14 @@ A markdown file at `.boil/iterations/iter-NNN/judges/R-NNN.md` with this exact s
 
 ## Verdict
 **Score:** <number or PASS/FAIL>
-**Decision:** PASS | FAIL
+**Decision:** PASS | FAIL | INDETERMINATE
 **Reason (one sentence):** <the load-bearing finding from the trace>
 
 ## If FAIL — actionable next step
 <exactly one sentence the orchestrator can copy as a ticket title>
 ```
 
-The CoT trace is non-negotiable. A judge that returns only a verdict — even if it's "correct" — is unusable, because the orchestrator can't tell *which step* failed, can't file a precise ticket, and can't audit drift over iterations. **Treat the trace as the real output; the verdict is a derived summary.**
+The evidence trace is non-negotiable. A judge that returns only a verdict — even if it's "correct" — is unusable, because the orchestrator can't tell *which step* failed, can't file a precise ticket, and can't audit drift over iterations. **Treat the trace as the real output; the verdict is a derived summary.** The trace should contain actions, observations, and cited evidence, not hidden chain-of-thought.
 
 ### Dispatch prompt template
 

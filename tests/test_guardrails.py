@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -12,14 +13,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run_cmd(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+def run_cmd(*args: str, cwd: Path | None = None,
+            env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         list(args),
         cwd=cwd or ROOT,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=env,
     )
+
+
+def isolated_env(tmp: Path) -> dict[str, str]:
+    """Point the status bridge at a throwaway HELM_DIR.
+
+    `boil-run-iteration.sh` emits a status event, and the bridge resolves helm from the
+    environment — so without this a test run would publish fixture sessions into the
+    OPERATOR'S real `runs/boil/` and event log. Same guard helm's own conftest applies
+    from the other side."""
+    fake = tmp / "fake-helm"
+    fake.mkdir(parents=True, exist_ok=True)
+    (fake / "helm.py").write_text("# test stub\n", encoding="utf-8")
+    return {**os.environ, "HELM_DIR": str(fake), "HELM_EVENTS_DIR": str(fake / "events")}
 
 
 class GuardrailScriptsTest(unittest.TestCase):
@@ -221,6 +237,13 @@ proof_strategy: verification-only
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
+answer_key:
+  kind: document
+  ref: ACCEPTANCE.md
+  authored_by: orchestrator
+  frozen_at: 2026-06-10T09:31:00Z
+  frozen_sha: ""
+  protected: true
 working_on: ""
 ---
 
@@ -261,6 +284,13 @@ proof_strategy: verification-only
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
+answer_key:
+  kind: document
+  ref: ACCEPTANCE.md
+  authored_by: orchestrator
+  frozen_at: 2026-06-10T09:31:00Z
+  frozen_sha: ""
+  protected: true
 working_on: ""
 ---
 
@@ -337,8 +367,12 @@ Packet test.
             root = Path(td)
             shutil.copytree(ROOT / "examples" / "minimal-loop" / "project", root, dirs_exist_ok=True)
             shutil.copytree(ROOT / "examples" / "minimal-loop" / "boil-state", root / ".boil")
-            proc = run_cmd("bash", str(ROOT / "scripts" / "boil-run-iteration.sh"), "iter-001", str(root))
+            proc = run_cmd("bash", str(ROOT / "scripts" / "boil-run-iteration.sh"), "iter-001",
+                           str(root), env=isolated_env(root))
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            # the runner's status emit must land in the isolated helm, never the real one
+            self.assertTrue((root / ".boil" / "STATUS.md").exists())
+            self.assertEqual(len(list((root / "fake-helm" / "runs" / "boil").glob("*.json"))), 1)
 
     def test_doctor_rejects_goal_without_requirements_contract(self) -> None:
         with tempfile.TemporaryDirectory() as td:

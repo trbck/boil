@@ -31,6 +31,7 @@ done
 
 python3 "$SCRIPT_DIR/boil-doctor.py" --root "$PROJECT_ROOT"
 python3 "$SCRIPT_DIR/ticket-lint.py" --root "$PROJECT_ROOT"
+python3 "$SCRIPT_DIR/boil-loop.py" audit --root "$PROJECT_ROOT"
 
 if [[ -d "$PROJECT_ROOT/.boil/stories" ]]; then
   python3 "$SCRIPT_DIR/story-run.py" --all --stories-dir "$PROJECT_ROOT/.boil/stories" --iteration "$ITERATION"
@@ -43,5 +44,10 @@ done
 if [[ -d "$PROJECT_ROOT/.boil/iterations/$ITERATION" ]]; then
   bash "$SCRIPT_DIR/boil-verify-iteration.sh" "$ITERATION" "$PROJECT_ROOT"
 fi
+
+# Refresh the operator's status view (and helm's, when helm is installed). Never fatal:
+# a status-logging failure must not fail an iteration that otherwise passed its gates.
+python3 "$SCRIPT_DIR/boil-helm-log.py" emit --root "$PROJECT_ROOT" \
+  --kind boil.iteration.gates --status ok --detail "$ITERATION" || true
 
 echo "boil-run-iteration: gates complete for $ITERATION"

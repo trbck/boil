@@ -162,6 +162,14 @@ Create `.boil/` in the repo root (or working dir). Layout:
 │   ├── T-0001.md
 │   ├── T-0002.md
 │   └── proposals/             # agent-filed proposals; orchestrator assigns IDs
+├── loops/                     # the self-correcting loop's state machine, one dir per ticket
+│   └── T-0001/
+│       ├── loop.json          # frozen answer key, attempts, decisions (owned by boil-loop.py)
+│       ├── attempt-1/         # build.md + judge.md + manager.json
+│       └── escalation.md      # written only when a loop escalates — the human packet
+├── status.jsonl               # append-only status event log (helm reads this)
+├── STATUS.md                  # rendered operator overview, regenerated on every transition
+├── session.json               # this session's identity + snapshot (helm session object)
 ├── stories/                   # user-experience contracts (see references/stories.md)
 │   ├── STORY-001.md
 │   ├── MATRIX.md              # auto-generated status table
@@ -196,6 +204,14 @@ Create `.boil/` in the repo root (or working dir). Layout:
 - For refactor/docs/research/tooling/performance work, name the equivalent proof (`characterization`, `rendered-doc`, `research-artifact`, `verification-only`, or `perf-baseline`).
 - If a checkbox cannot be expressed as deterministic proof, attach a story and/or rubric before any code changes.
 
+**Answer-key map (write this before dispatch — it is the judge's checklist):**
+- For every behavior ticket (`bug`, `feature`, `test`, `refactor`, perf work), name the **external** artifact the work will be measured against: a test selector (`suite`), a source document (`document`), or a written rubric (`checklist`).
+- Write the key **before** you know how you'd implement the ticket. A key written after seeing the implementation is shaped by it.
+- The key is authored by the orchestrator, the user, or an upstream source — never by the specialty that will build against it.
+- If you cannot state the key, you do not understand the ticket yet. File a `brainstorm` or `research` ticket instead of dispatching a builder at a fuzzy target.
+- `docs`, `research`, `demo-prep`, and `human-action` tickets may declare `answer_key.kind: none` with a written reason. Such a ticket may not close a goal checkbox on its own.
+- Freeze every key before the first dispatch: `python3 <boil-skill-repo>/scripts/boil-loop.py init --root <project> --ticket T-NNNN`. Full protocol in `references/self-correcting-loop.md`.
+
 **Confidence gate map (write this before dispatch):**
 - For every goal checkbox and initial ticket, name the evidence that would make the orchestrator at least 99/100 confident that:
   1. the user requirement is understood,
@@ -217,6 +233,16 @@ development tickets route through roles like `superpowers:test-driven-developmen
 `superpowers:dispatching-parallel-agents`, and
 `superpowers:requesting-code-review`. If those exact agents are not available,
 use the Codex or rich-agent profile and keep the same specialty names.
+
+**Register the session with helm (status logging):** run
+
+```bash
+python3 <boil-skill-repo>/scripts/boil-helm-log.py sync --root <project>
+# if this loop burns down a helm goal, link it so it lands on that goal's card:
+python3 <boil-skill-repo>/scripts/boil-helm-log.py link --root <project> --stem <helm contract stem>
+```
+
+This writes `.boil/STATUS.md` + `.boil/session.json` and, when helm is installed, registers the boil session as a first-class helm object so `helm boil` and the dashboard show it live. It degrades cleanly to project-local files when helm is absent. See `references/helm-status.md`.
 
 **Sync project agent instructions:** When the project should be usable across
 Codex/Cursor/other agents, run `scripts/boil-sync-agents.py --root <project>`.
@@ -284,6 +310,53 @@ When agents return:
 3. Update each ticket's status (`done`, `blocked`, `in-progress`).
 4. Read any files in `tickets/proposals/`, assign canonical `T-NNNN` IDs, resolve priority/specialty/proof strategy, write real ticket files, then move accepted proposals to `tickets/proposals/accepted/` (or delete rejected ones with a short note in the iteration summary).
 5. Append observed defects to `bugs.md`.
+
+### Step 2c.5 — The self-correcting loop (builder → judge → manager)
+
+Every behavior ticket runs a bounded correction cycle instead of a single dispatch. Three roles: the **builder** makes the attempt, an **independent judge** checks it against an external answer key, and the **manager** (`scripts/boil-loop.py`, deterministic — not a model) decides revise, finish, or escalate to a human.
+
+The judge is the part that matters. Its answer key must live **outside the builder's own reasoning** — a test suite, a source document, or a written checklist frozen before the first attempt. Without that, the loop is one model agreeing with itself, and every green it produces is worthless.
+
+Per ticket, per attempt:
+
+```bash
+S=<boil-skill-repo>/scripts
+python3 $S/boil-loop.py init         --root <project> --ticket T-0042        # once, before attempt 1
+python3 $S/boil-loop.py record-build --root <project> --ticket T-0042 --attempt N \
+        --report <builder report> --changed-file <path> --builder-family <family>
+# dispatch the judge (specialty: judge, different model family), then:
+python3 $S/boil-loop.py record-judge --root <project> --ticket T-0042 --attempt N \
+        --file <judge verdict> --judge-family <family>
+python3 $S/boil-loop.py decide       --root <project> --ticket T-0042 --attempt N --cost-usd <spend>
+```
+
+`decide` prints one of:
+
+| Decision | What you do next |
+|---|---|
+| `ACCEPT` | Close the ticket, fill `proof`, let the goal checkbox move. |
+| `REVISE` | Re-dispatch the builder with **the defect brief only** — never the judge's full trace, never a prescribed fix. |
+| `RERUN-JUDGE` | The verdict cited no key evidence. Re-dispatch the judge. The attempt counter does not move. |
+| `REVISE-VISIBILITY` | The judge couldn't see the artifact. File a `demo-prep` ticket, then re-judge. |
+| `ESCALATE-*` / `ABORT-TAMPER` | Stop. Run `escalate --convert-ticket` and hand the human packet over. |
+
+`decide` exits 0 for ACCEPT/REVISE and **3** for any terminal state, so the loop can be driven from a script.
+
+**Three failed revisions stop the loop.** `max_revisions` is 3 and it is a hard limit — the manager does not get to decide the task is nearly there. Two brakes fire before it and both are deliberate: two identical failure signatures in a row (`ESCALATE-STALL` — the revisions are not converging) and a blown budget cap (`ESCALATE-BUDGET`). On any terminal decision:
+
+```bash
+python3 $S/boil-loop.py escalate --root <project> --ticket T-0042 --convert-ticket
+```
+
+That writes `.boil/loops/T-0042/escalation.md` — the full attempt history, what stayed constant across attempts, and the one question the human has to answer — and converts the ticket to a blocked P0 `human-action` ticket. Then follow Step 2d.5 (Susi/Pushover sync) and make it the first `Next:` bullet in the footer.
+
+**An escalation is a successful outcome.** The loop caught something it could not resolve and stopped cleanly with a complete record. Do not grant a fourth attempt, and do not close the goal checkbox.
+
+Two things the manager checks mechanically, not by asking a model:
+- **Key integrity.** If the key's hash moved or the key's files appear in the builder's diff, the loop aborts as a tamper event. Weakening a test — skip, xfail, loosened threshold, narrowed selector — is tampering even when the file grew.
+- **Evidence citation.** A judge PASS with no cited key evidence is downgraded to INVALID automatically. This is the shared-blind-spot brake: it stops a same-family judge from waving through work on vibes.
+
+Full protocol, handoff formats, judge dispatch prompt, and the red-team suite: `references/self-correcting-loop.md`.
 
 ### Step 2d — Verify, then re-test from a different angle
 
@@ -395,6 +468,7 @@ human reads to catch up.
 **Done this cycle:** <2-3 bullets, file-level>
 **Goal progress:** <X / Y checkboxes green> — <which one(s) just turned green>
 **Tests:** <added N, all green | added N, M failing — see bugs.md>. Paste the actual test stdout one-liner (e.g. `47 passed in 2.3s`), not "should be green".
+**Loops:** <T-00XX accepted attempt 2/3 | T-00YY escalated (ESCALATE-STALL) — see escalation.md> — or "none"
 **New tickets filed:** <T-00XX (frontend), T-00YY (qa)> — or "none"
 
 **Demo (30 seconds to verify):**
@@ -468,7 +542,7 @@ test commands, and iteration verification.
 
 Stop when **any** of these are true:
 
-1. Every checkbox in `goal.md` is checked, AND every checkbox has proof mapped to it (RED→GREEN TDD evidence, Playwright/browser proof for frontend behavior, story/rubric verdict where applicable), AND every closing ticket has `confidence.requirements_understood >=99`, `confidence.implementation_matches >=99`, `confidence.verification_working >=99`, concrete evidence, and no uncertainty, AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
+1. Every checkbox in `goal.md` is checked, AND every behavior ticket that closed a checkbox has an `accepted` loop in `.boil/loops/` whose frozen answer key still hashes to `frozen_sha` (`boil-loop.py audit` exits 0), AND every checkbox has proof mapped to it (RED→GREEN TDD evidence, Playwright/browser proof for frontend behavior, story/rubric verdict where applicable), AND every closing ticket has `confidence.requirements_understood >=99`, `confidence.implementation_matches >=99`, `confidence.verification_working >=99`, concrete evidence, and no uncertainty, AND the most recent direct + adversarial verification both pass, AND every rubric attached to a checked checkbox has a current PASS verdict (in this iteration, or the most recent iteration that touched its artifacts), AND the user accepted the most recent demo (explicit "looks good" or equivalent).
 2. The user says stop / good enough / ship it.
 3. You've hit a hard blocker that no specialist can resolve without user input (e.g., needs a credential, needs a product decision). File/update a `human-action` ticket, sync it to Susi if the ignored local bridge is available, surface the blocker clearly, and stop.
 
@@ -510,6 +584,11 @@ These exist because each one corresponds to a known failure mode of looped agent
 18. **99% confidence is an evidence gate, not a vibe.** Before a ticket or goal checkbox can be called done, the loop must be at least 99/100 confident that the requirement is understood, implemented, and verified working. That confidence must be backed by `goal.md` interpretation, ticket acceptance criteria, tests/proof output, adversarial retest, and an empty uncertainty list. If confidence is lower, continue the loop or ask the user; never round uncertainty up to done.
 19. **Prefer PR-first production changes.** For production or shared repos, boil should work on a branch and produce a PR body from `.boil/` state. Direct pushes to `main` are opt-in, not the default.
 20. **Commits are authored by the user only — no AI trailers, ever.** Never add `Co-Authored-By: Claude/Codex/...`, `Generated with ...`, or any AI attribution trailer to a commit message, and never commit with an AI author/committer identity. GitHub renders co-author trailers as repo Contributors, and once pushed the commit survives force-push rewrites as an unreachable object on GitHub's servers — cache rebuilds keep resurrecting the AI contributor, and only repo deletion or GitHub Support purges it. Prevention is the only cheap fix. Before any push to a remote, run `scripts/boil-commit-guard.py` (zero findings required); at bootstrap in a git repo, install the commit-msg hook via `scripts/boil-commit-guard.py --install-hook`. If a trailer is found before pushing: amend/rebase it away. If it already reached GitHub: tell the user plainly that rewrite alone won't clear Contributors and the reliable fix for a fresh repo is delete + recreate + push clean history.
+21. **No judge without an answer key outside the builder's reasoning.** Every behavior ticket carries an `answer_key` — a test suite, a source document, or a written checklist — authored by the orchestrator, the user, or an upstream source, and frozen (hashed) before the first build attempt. A key the builder wrote, or a key that appeared after the attempt, is not a key; it is the builder grading itself. `ticket-lint.py` errors on a missing, self-authored, unprotected, or unfrozen key. If you cannot state the key, you do not understand the ticket — file a `brainstorm`/`research` ticket instead of dispatching.
+22. **The retry limit is three, and it is hard.** Three failed revisions stop the loop and send the full history to a human via `escalation.md` + a blocked P0 `human-action` ticket. Two identical failure signatures in a row, or a blown budget cap, stop it sooner. The manager never grants a fourth attempt, never reinterprets the ticket to make attempt 3 pass, and never closes the goal checkbox on an escalated loop. An honest escalation is a success of the system.
+23. **The judge is isolated and never self-certifies.** The judge sees the key, the artifacts, and the diff — never the builder's chat, self-report, or confidence block, and never a prior judge run on the same ticket. Route it to `specialty: judge` in a different model family than the builder where the runtime offers one. A PASS that cites no key evidence is INVALID, not PASS. Builder confidence scores are not an input to the manager's decision.
+24. **The answer key is read-only for the duration.** If the key's hash moves or its files appear in the builder's diff, the loop aborts as a tamper event and escalates — no revision is offered. Weakening counts as editing: a skip, an xfail, a loosened threshold, a narrowed selector. Same principle as helm's sensor immutability, one scale down.
+25. **Every state transition is logged where a human can watch it.** `scripts/boil-helm-log.py` writes `.boil/status.jsonl` + `.boil/STATUS.md` on every dispatch, verdict, decision, demo, and blocker, and registers the session with helm when helm is installed. The operator must be able to answer "what is it doing, and what did it decide?" in real time and after the fact without reading the transcript. A loop that ran without logging cannot be reviewed, and an unreviewable loop cannot be trusted to run unattended.
 
 ---
 
@@ -522,6 +601,8 @@ Read these as you need them:
 - `references/ticket-system.md` — ticket schema, dispatch prompt template, agent-to-agent handoff rules.
 - `references/specialty-routing.md` — the specialty → platform dispatch profile. Copy the profile matching the current client into `.boil/routing.md` at bootstrap and adapt per-project.
 - `references/demo-formats.md` — recipes for producing a user-visible demo for each work type.
+- `references/self-correcting-loop.md` — the builder/judge/manager triad: the answer-key contract (suite / document / checklist), the freeze + tamper rules, the four handoff formats with triggers and failure paths, the manager's decision table, the hard retry limit and its escalation packet, and the four-scenario red-team suite to run before trusting the loop unattended.
+- `references/helm-status.md` — status logging: the event kinds boil emits, the session object helm stores, and how a boil session's tickets, judge reasoning, and manager decisions surface on the helm dashboard live and after the fact.
 - `references/rubrics.md` — semantic LLM-as-judge layer: when to write a rubric, the rubric shape, how the judge subagent is dispatched (context-isolated, evidence trace required), and how verdicts feed back into tickets and termination.
 - `references/stories.md` — user-experience contracts (BPM-style): one file per user-perceivable behavior, replayed end-to-end by `scripts/story-run.sh` across four lanes (functional, quant, UX-mechanical, UX-rubric). No human in the inner loop; rubric-judge handles the "feels right" check.
 - `references/lsdf-codebase-index.md` — when and how to use [L-SDF](https://github.com/ec1980/lsdf-core) (`lsdf-core` on PyPI) to maintain a compact `INDEX.lsdf` of the repo so subagent dispatch contexts navigate the codebase by index rather than full file reads (~13× cheaper on Python repos). Read this if dispatch context is the cost driver of your loop.
@@ -540,6 +621,12 @@ Read these as you need them:
 - **ADHD-friendly orientation** (inspired by `ayghri/i-have-adhd`) — action-first updates, visible state, short next-step bullets, and no tangents. Boil encodes this as the mandatory `----------` footer after every response.
 - **roborev cross-LLM review** — Step 2d Pass 4 calls `roborev review --agent <different-reviewer> --fast --wait` to have a different LLM critique the iteration's code. Findings become tickets, not in-place edits. Outside of boil, the equivalent self-driven loop is `/milestone-review`; the user-driven version is `/roborev-refine`.
 - **Superpowers-compatible agents** — when available, route development through `superpowers:test-driven-development`, verification through `superpowers:verification-before-completion`, debugging through `superpowers:systematic-debugging`, parallel batching through `superpowers:dispatching-parallel-agents`, and review through `superpowers:requesting-code-review`. These are role contracts; if the runtime lacks those agents, use the nearest local subagent and keep the same proof/return requirements.
+- **gate + helm — the full setup.** The three skills stack into one chain, each owning a different loop and none duplicating another:
+  - **gate** owns the OUTER loop — *is this project worth finishing, and is it converging?* It holds the maturity ladder (L0–L5), the evidence rules, the todo discipline, and the portfolio WIP limit. One open ladder criterion is one valid boil goal.
+  - **helm** is the CONTROLLER — *what is the measured gap, and is it closing?* A criterion contract turns the goal into machine-checkable subgoals (test / data / human), `helm steer` drives a boil session at the first open one, and guardrails (`budget_usd`, `stall_ticks`, `wip_group`, `kill_by`) bound it. `helm gate-sync --write` ticks the gate ladder box with a properly formatted EVIDENCE line once the goal measures MET.
+  - **boil** owns the INNER loop — *build one thing until it's proven*. Inside it, Step 2c.5 runs an inner-inner loop per ticket: builder → judge → manager against a frozen answer key.
+  
+  The same principle repeats at all three scales, which is why the rules rhyme: gate says *no checkmark without fresh evidence*, helm says *never edit a sensor to pass a goal*, boil says *never edit the answer key to pass a ticket*. Whoever is being measured never owns the ruler. When a project has `.gate/`, follow gate's session protocol (read charter/ladder/todo + recent log on start, append a gate-delta entry on end). When a helm contract drives the session, link it with `boil-helm-log.py link --stem <contract stem>` so every ticket, judge verdict, and manager decision shows up on that goal's card.
 - **Loop / schedule** — `/loop` can wrap `boil` for unattended runs; `/schedule` can run `boil` on a recurring basis (e.g., nightly maintenance loops).
 - **L-SDF codebase index** ([`lsdf-core`](https://pypi.org/project/lsdf-core/)) — when present, boil uses `lsdf gen . --recursive` at bootstrap and `lsdf sync --check` per iteration to keep a compact index alongside source. Subagent dispatch contexts then point at the index rather than asking each agent to grep / read source from scratch. ~13× compression on Python repos; non-Python repos currently skip. Full protocol in `references/lsdf-codebase-index.md`.
 - **Web research & scraping** (`hound-mcp`, registered as the `hound` MCP server) — for any ticket that fetches web content (research spikes, doc/reference/competitor lookup, scraping a data source), prefer the hound MCP tools over the built-in `WebFetch` whenever a page is JS-heavy or bot-walled. `mcp_smart_fetch` with `force_fetcher: "browser"` renders via a real (patchright) browser and clears JS **bot-verification** — Cloudflare "Just a moment…", Anubis "Verifying your browser…", `enable javascript` interstitials — where `WebFetch` returns the challenge shell. Also: `mcp_smart_search` (keyless web search), `mcp_smart_crawl` (multi-page), `mcp_screenshot` (visual capture). Set a generous `timeout` (milliseconds). **Caveat:** it cannot defeat IP/network-level blocks — e.g. `reddit.com` returns `403 "blocked due to a network policy"` to datacenter IPs regardless of fetcher; for those use an official API, authenticated MCP, or a public mirror. `research`-artifact tickets should cite the fetched URL + the `fetcher_used` returned. Install/repair: `uv tool install "hound-mcp[all]"`, health-check `hound --doctor`.

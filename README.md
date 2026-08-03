@@ -17,6 +17,7 @@ boil a better dashboard till the conversion chart loads under 200ms
 3. **Loops** — each iteration:
    - Picks ready tickets from the pool
    - Dispatches them in parallel to **specialist subagents** (frontend, backend, qa, debugger, …) based on a routing table covering ~60 specialties
+   - Runs a **self-correcting loop** per behavior ticket — a builder attempts it, an independent judge checks it against an external answer key frozen beforehand, and a deterministic manager decides revise / finish / escalate. Three failed revisions stop the loop and hand a human the full history
    - Verifies with the project's real test/lint/build commands
    - Re-tests **from a different angle** than the implementer used (adversarial pass)
    - **Cross-LLM review** via [`roborev`](https://roborev.io) when installed — a different LLM than the implementer critiques the iteration's code; findings become next-iteration tickets
@@ -25,6 +26,40 @@ boil a better dashboard till the conversion chart loads under 200ms
 4. **Terminates** when the goal checklist is fully green AND the user accepts the demo, OR when the user says stop.
 
 The demo at the end of every iteration is the cornerstone — it's what makes this different from a black-box loop. If the iteration's work can't be demoed, the skill files a `demo-prep` ticket and tries again rather than claiming progress.
+
+## The self-correcting loop
+
+Inside each iteration, every behavior ticket runs a bounded correction cycle with three roles:
+
+- **builder** — makes the attempt (a specialist subagent)
+- **judge** — checks it against an **answer key**, and nothing else. Context-isolated: it never sees the builder's chat, self-report, or confidence scores
+- **manager** — [`scripts/boil-loop.py`](scripts/boil-loop.py), deterministic. Decides revise, finish, or escalate
+
+The judge is the part that matters, and it only works if its answer key lives **outside the builder's own reasoning**. boil accepts exactly three kinds — a **test suite**, a **source document**, or a **written checklist** — authored by the orchestrator, the user, or an upstream source, and hashed before the first attempt. Without that, the system is only asking the same model to agree with itself.
+
+Four properties make it safe to run unattended:
+
+| Property | Mechanism |
+|---|---|
+| The key can't be gamed | Its hash is frozen before attempt 1; if it moves, or its files appear in the builder's diff, the loop aborts as a tamper event — no revision offered |
+| The judge can't wave things through | A PASS citing no key evidence is auto-downgraded to INVALID; the builder's confidence block is not an input to any decision |
+| The loop can't run forever | Hard limit of **3** revisions. Two identical failure signatures, or a blown budget cap, stop it sooner |
+| A human always gets the full story | On any terminal state it writes `escalation.md` — every attempt, what stayed constant, and the one question a human has to answer — and converts the ticket to a blocked P0 `human-action` item |
+
+`ticket-lint.py` errors on a behavior ticket with a missing, self-authored, unprotected, or unfrozen key, and `boil-loop.py audit` fails an iteration where a ticket closed without a satisfied key.
+
+Before trusting it unattended, run the four-scenario red-team suite in [`references/self-correcting-loop.md`](references/self-correcting-loop.md): an **unsolvable task**, a **confidently wrong answer**, a **shared model blind spot**, and the **most expensive possible run**. If it catches real errors and stops cleanly on all four, you have something you can run without watching every step.
+
+## Status logging — watch it live in helm
+
+Every state transition is logged, so a long run isn't opaque:
+
+```bash
+python3 scripts/boil-helm-log.py sync --root /path/to/project              # .boil/STATUS.md
+python3 scripts/boil-helm-log.py link --root /path/to/project --stem <helm goal>
+```
+
+boil always writes `.boil/status.jsonl` (append-only) and `.boil/STATUS.md` (rendered). When [helm](https://github.com/trbck/helm) is installed, the same snapshot is registered as a first-class helm object, so `helm boil` and the helm dashboard show the running session — its tickets, each ticket's frozen answer key, the judge's reasoning per attempt, and every manager decision with its reason — live and reviewable afterwards. No helm, no problem: the project-local files are the canonical record either way. See [`references/helm-status.md`](references/helm-status.md).
 
 ## Trigger phrases
 
@@ -118,6 +153,11 @@ boil/
 │   ├── specialty-routing.md          specialty → platform dispatch profile
 │   ├── demo-formats.md               9 recipes: web UI, API, CLI, library, bug fix,
 │   │                                 test-only, performance, docs, refactor
+│   ├── self-correcting-loop.md       builder/judge/manager triad: answer-key contract,
+│   │                                 handoff formats, decision table, retry limit,
+│   │                                 escalation packet, red-team suite
+│   ├── helm-status.md                Status logging: event kinds, the session object,
+│   │                                 and how boil sessions render in helm
 │   ├── rubrics.md                    Semantic LLM-as-judge layer for non-deterministic
 │   │                                 checklist items
 │   └── stories.md                    User-experience contracts (BPM-style): functional +
@@ -128,8 +168,12 @@ boil/
     │                                 SQL/Redis/UX require project adapters;
     │                                 rubric requires judge verdict files
     ├── story-run.sh                  thin wrapper for the .sh-style invocation
+    ├── boil-loop.py                  the manager: freezes answer keys, applies the
+    │                                 decision table, enforces the retry limit,
+    │                                 writes escalation packets
+    ├── boil-helm-log.py              status logging + the helm session bridge
     ├── boil-doctor.py                validates a `.boil/` workspace
-    ├── ticket-lint.py                lints ticket schema, blockers, and secrets
+    ├── ticket-lint.py                lints ticket schema, answer keys, blockers, secrets
     ├── vibe-check.py                 flags summaries without proof/demo/next steps
     ├── boil-verify-iteration.sh      gates one iteration directory
     ├── boil-run-iteration.sh         runs doctor/lint/story/test/iteration gates
@@ -161,6 +205,10 @@ These are non-negotiable inside the loop:
 9. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 (roborev + a non-implementer reviewer) — findings become next-iteration tickets, never silently dismissed.
 10. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close via `scripts/story-run.py`. Stories are the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature.
 11. **TDD plus 99% evidence confidence.** New behavior starts with RED proof, implementation follows, and a ticket cannot be `done` unless requirements understood, implementation match, and verification working are each `>=99/100` with concrete evidence and no remaining uncertainty.
+12. **No judge without an answer key outside the builder's reasoning.** Every behavior ticket carries a suite / document / checklist key, authored elsewhere and frozen before the first attempt. A key the builder wrote is the builder grading itself.
+13. **The retry limit is three, and it is hard.** Three failed revisions escalate to a human with the full history. No fourth attempt, no reinterpreting the ticket to make attempt 3 pass. An honest escalation is a success of the system.
+14. **The answer key is read-only for the duration.** Editing, skipping, xfailing, loosening, or narrowing it aborts the loop as a tamper event. Whoever is being measured never owns the ruler.
+15. **Every state transition is logged where a human can watch it.** An unreviewable loop can't be trusted to run unattended.
 
 ## Integration with other skills
 
@@ -169,6 +217,12 @@ These are non-negotiable inside the loop:
 - **[`superpowers`](https://github.com/obra/superpowers)** — `brainstorming`, `verification-before-completion`, `dispatching-parallel-agents`, `systematic-debugging`, `test-driven-development` are all referenced from inside the loop.
 - **[`ralph-wiggum`](https://github.com/obra/ralph-wiggum)** — `boil` does the iteration internally rather than relying on a stop-hook loop, but you can wrap it with `/loop` for unattended runs.
 - **[`roborev`](https://roborev.io)** — Step 2d Pass 4 enqueues a `roborev review --agent <different-reviewer>` per iteration when roborev is installed in the repo and a reviewable diff exists, so a second LLM critiques each iteration's code. Findings become next-iteration tickets, never silently dismissed.
+- **`gate` + `helm` — the full setup.** Three loops, one chain, none duplicating another:
+  - **gate** owns the OUTER loop — *is this project worth finishing, and is it converging?* Maturity ladder L0–L5, evidence rules, todo discipline, portfolio WIP limit. One open ladder criterion is one valid boil goal.
+  - **helm** is the CONTROLLER — *what is the measured gap, and is it closing?* It turns the goal into machine-checkable subgoals (test / data / human), steers a boil session at the first open one under hard guardrails (budget, stall, WIP, kill-by), re-measures, and ticks the gate ladder box with a formatted EVIDENCE line once the goal measures MET.
+  - **boil** owns the INNER loop — *build one thing until it's proven* — and inside it, the self-correcting loop runs builder → judge → manager per ticket.
+
+  The rules rhyme on purpose: gate says *no checkmark without fresh evidence*, helm says *never edit a sensor to pass a goal*, boil says *never edit the answer key to pass a ticket*. Same principle at three scales — whoever is being measured never owns the ruler.
 - **`/loop` and `/schedule`** — wrap `boil` invocations for hands-off recurring runs.
 
 ## Subagent routing
@@ -183,6 +237,11 @@ These scripts are the mechanical layer that pushes boil away from "vibe coding"
 and toward agentic looped development:
 
 ```bash
+python3 scripts/boil-loop.py init   --root /path/to/project --ticket T-0001   # freeze the key
+python3 scripts/boil-loop.py decide --root /path/to/project --ticket T-0001 --attempt 1
+python3 scripts/boil-loop.py status --root /path/to/project
+python3 scripts/boil-loop.py audit  --root /path/to/project     # loop-safety gate
+python3 scripts/boil-helm-log.py sync --root /path/to/project   # STATUS.md + helm session
 python3 scripts/boil-commit-guard.py --root /path/to/project   # no AI trailers in commits
 python3 scripts/boil-commit-guard.py --install-hook            # reject them at commit time
 python3 scripts/boil-doctor.py --root /path/to/project

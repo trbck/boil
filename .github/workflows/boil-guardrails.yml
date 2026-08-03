@@ -24,4 +24,5 @@ jobs:
           cp -R examples/minimal-loop/boil-state "$tmp/.boil"
           python scripts/boil-doctor.py --root "$tmp"
           python scripts/ticket-lint.py --root "$tmp"
+          python scripts/boil-loop.py audit --root "$tmp"
           bash scripts/boil-verify-iteration.sh iter-001 "$tmp"

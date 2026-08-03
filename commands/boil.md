@@ -26,6 +26,13 @@ If the goal is fuzzy, the skill will inspect the workspace first, then ask targe
 questions until the goal, constraints, tradeoffs, and success criteria are clear. Otherwise
 it goes straight to writing `.boil/goal.md`, confirms with you, and starts iterating.
 
+**Inside each iteration**, every behavior ticket runs a self-correcting loop: a builder makes
+the attempt, an independent judge checks it against an external answer key frozen beforehand
+(a test suite, a source document, or a written checklist), and a deterministic manager decides
+revise, finish, or escalate. Three failed revisions stop the loop and hand you the full history
+instead of trying a fourth time. Every transition is logged to `.boil/STATUS.md` — and to the
+helm dashboard when helm is installed, so you can watch it live or review it later.
+
 **At the end of every iteration**, you'll get:
 
 - A 10-line summary (what changed, goal progress, tests, next focus)
