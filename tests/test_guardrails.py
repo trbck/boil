@@ -76,6 +76,57 @@ Safe, secret-free blocker.
             data = json.loads(proc.stdout)
             self.assertTrue(data["ok"])
 
+    def test_ticket_lint_ignores_derived_plain_english_siblings(self) -> None:
+        """A rendered `T-0001.plain.md` is not a ticket and must not be linted as one.
+
+        claudish-to-english in `sibling` mode writes `NAME.<suffix>.md` next to the
+        original. If a misconfigured CLAUDISH_MD_DIR points at `.boil/tickets`, the
+        `T-*.md` glob would otherwise pick the sibling up and fail it for having no
+        frontmatter — noise about a file that carries no authority.
+        See references/plain-english-output.md.
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            tickets = root / ".boil" / "tickets"
+            tickets.mkdir(parents=True)
+            (tickets / "T-0001.md").write_text(
+                """---
+id: T-0001
+title: Provide test API key
+type: human-action
+specialty: general
+status: blocked
+priority: P0
+proof_strategy: verification-only
+opened_by: orchestrator
+opened_at: 2026-06-10T09:30:00Z
+blocked_by: []
+human_action:
+  required: true
+  reason: "User needs to add the API key locally."
+  safe_summary: "Add the missing API key locally, then ask boil to continue."
+  susi_task_id: ""
+  susi_sync_status: pending
+  pushover_status: pending
+working_on: "blocked on user action: add missing API key"
+---
+
+## Context
+Safe, secret-free blocker.
+""",
+                encoding="utf-8",
+            )
+            # A rewritten sibling: prose only, no frontmatter, same id in the name.
+            (tickets / "T-0001.plain.md").write_text(
+                "This ticket is waiting on you to add an API key on your machine.\n",
+                encoding="utf-8",
+            )
+            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--json")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            data = json.loads(proc.stdout)
+            self.assertTrue(data["ok"])
+            self.assertNotIn("plain", json.dumps(data["issues"]))
+
     def test_ticket_lint_rejects_possible_secret(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

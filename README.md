@@ -147,6 +147,9 @@ boil/
 ├── commands/boil.md                  /boil slash command
 ├── requirements.txt                   Python dependency for story-run.py
 ├── references/
+│   ├── clanker-constitution.md      Baseline conduct layer — the Clanker Constitution
+│   │                                 verbatim (CC BY 4.0) + mapping to boil's hard rules
+│   ├── plain-english-output.md      Optional claudish-to-english wiring + scoping rules
 │   ├── brainstorm-questions.md       Phase 0 question pool for fuzzy goals
 │   ├── state-files.md                Templates for goal/memory/implementation/bugs/iter
 │   ├── ticket-system.md              Ticket schema + dispatch prompt + handoff rules
@@ -209,6 +212,7 @@ These are non-negotiable inside the loop:
 13. **The retry limit is three, and it is hard.** Three failed revisions escalate to a human with the full history. No fourth attempt, no reinterpreting the ticket to make attempt 3 pass. An honest escalation is a success of the system.
 14. **The answer key is read-only for the duration.** Editing, skipping, xfailing, loosening, or narrowing it aborts the loop as a tamper event. Whoever is being measured never owns the ruler.
 15. **Every state transition is logged where a human can watch it.** An unreviewable loop can't be trusted to run unattended.
+16. **Baseline conduct is the [Clanker Constitution](references/clanker-constitution.md).** Honor the request, act with judgment, finish the job, protect existing work, verify reality, communicate for humans, learn in the right place — in force for the orchestrator and every dispatched subagent. It's the floor under the loop rules, never a way around them.
 
 ## Integration with other skills
 
@@ -223,6 +227,7 @@ These are non-negotiable inside the loop:
   - **boil** owns the INNER loop — *build one thing until it's proven* — and inside it, the self-correcting loop runs builder → judge → manager per ticket.
 
   The rules rhyme on purpose: gate says *no checkmark without fresh evidence*, helm says *never edit a sensor to pass a goal*, boil says *never edit the answer key to pass a ticket*. Same principle at three scales — whoever is being measured never owns the ruler.
+- **[`claudish-to-english`](https://github.com/gvzdv/claudish-to-english)** — optional plugin that appends a plain-English rewrite of each assistant message using a **local** ollama model, so a long unattended run's summaries and footers read in a second, plainer voice. Fails open, no egress. Its Markdown-file hook is opt-in and must be scoped to `.boil/iterations` in `sibling` mode — never over tickets, loops, stories, rubrics, `goal.md`, or an answer key. See [`references/plain-english-output.md`](references/plain-english-output.md).
 - **`/loop` and `/schedule`** — wrap `boil` invocations for hands-off recurring runs.
 
 ## Subagent routing

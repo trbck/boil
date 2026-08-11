@@ -217,6 +217,20 @@ def lint_ticket(path: Path) -> list[dict[str, str]]:
     return issues
 
 
+def _is_derived_sibling(path: Path) -> bool:
+    """True for rendered/derived copies of a ticket, e.g. `T-0001.plain.md`.
+
+    A canonical ticket file is `T-NNNN.md` — its stem never contains a dot.
+    Tools that write a plain-English or otherwise rendered sibling next to the
+    original (claudish-to-english in `sibling` mode is the one boil documents,
+    see `references/plain-english-output.md`) produce `T-NNNN.<suffix>.md`,
+    which the `T-*.md` glob would otherwise pick up and lint as a real ticket
+    with no frontmatter. Derived copies are not tickets: they carry no
+    authority, close no checkbox, and are ignored here.
+    """
+    return "." in path.stem
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".", help="project root containing .boil/")
@@ -231,6 +245,8 @@ def main(argv: list[str]) -> int:
         issues = []
         ids: dict[str, Path] = {}
         for path in sorted(tickets_dir.glob("T-*.md")):
+            if _is_derived_sibling(path):
+                continue
             issues.extend(lint_ticket(path))
             try:
                 meta, _ = _frontmatter(path)
