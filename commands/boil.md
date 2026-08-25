@@ -10,7 +10,9 @@ Start a `boil` loop in the current session.
 The `boil` skill (loaded by this command) runs a production-grade iterative dev-firm loop:
 parallel skilled subagents, an inter-agent ticket pool, mandatory verification both directly
 and from a different angle, and — every iteration — a user-visible demo so you can verify
-the work in 30 seconds.
+the work in 30 seconds. Iterations that ship code also run roborev with an explicitly
+different reviewer: Claude/Claude Code implementations prefer Codex review, and Codex
+implementations prefer Claude review.
 
 **Arguments:** Pass the goal as natural-language text. Use "till" or "until" to express the
 stop condition.

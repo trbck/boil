@@ -26,10 +26,11 @@ Loop metadata. Written in Phase 1 and updated at each iteration boundary.
 
 - Implementation agent/model: <codex | claude | mixed | unknown>
 - Preferred roborev reviewer: <agent name different from implementation agent/model>
+- Reviewer resolution: pass the selected reviewer explicitly with `roborev --agent`; Claude/Claude Code implementations prefer `codex`, and Codex implementations prefer `claude-code`.
 - Fallback if no different reviewer is available: log as skipped, file/keep a P2 tooling ticket, and do not claim cross-LLM review ran.
 ```
 
-At the start of each iteration, set `Iteration start SHA` before dispatch. If the iteration creates a checkpoint commit, Pass 4 reviews the range from that SHA to HEAD. If no commit exists and no working-tree review mode exists, the summary must say review was unavailable rather than pretending Pass 4 ran.
+At the start of each iteration, set `Iteration start SHA` before dispatch. If the iteration creates a checkpoint commit, Pass 4 reviews the range from that SHA to HEAD. If no commit exists and no working-tree review mode exists, the summary must say review was unavailable rather than pretending Pass 4 ran. Do not let repo-local roborev defaults choose the reviewer implicitly; they may route Claude work back to `claude-code` or Codex work back to `codex`.
 
 ## `.boil/goal.md`
 

@@ -20,7 +20,7 @@ boil a better dashboard till the conversion chart loads under 200ms
    - Runs a **self-correcting loop** per behavior ticket — a builder attempts it, an independent judge checks it against an external answer key frozen beforehand, and a deterministic manager decides revise / finish / escalate. Three failed revisions stop the loop and hand a human the full history
    - Verifies with the project's real test/lint/build commands
    - Re-tests **from a different angle** than the implementer used (adversarial pass)
-   - **Cross-LLM review** via [`roborev`](https://roborev.io) when installed — a different LLM than the implementer critiques the iteration's code; findings become next-iteration tickets
+   - **Cross-LLM review** via [`roborev`](https://roborev.io) when installed — a different LLM than the implementer critiques the iteration's code; Claude implementations prefer Codex review and Codex implementations prefer Claude review; findings become next-iteration tickets
    - Produces a **30-second demo** the user can verify (URL, screenshot, curl + response, terminal output, diff snippet, green test)
    - Posts a 10-line summary and asks: continue / refine / pivot / stop
 4. **Terminates** when the goal checklist is fully green AND the user accepts the demo, OR when the user says stop.
@@ -205,7 +205,7 @@ These are non-negotiable inside the loop:
 6. **Agents file ticket proposals, the orchestrator assigns IDs and dispatches them.** Specialists never recruit each other directly.
 7. **`goal.md` is sacred.** Scope changes go through an explicit edit + re-confirm with the user.
 8. **Honesty over progress theater.** If a cycle made no real progress, say so.
-9. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 (roborev + a non-implementer reviewer) — findings become next-iteration tickets, never silently dismissed.
+9. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 (roborev + a non-implementer reviewer; Claude implementations prefer Codex review, Codex implementations prefer Claude review) — findings become next-iteration tickets, never silently dismissed.
 10. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close via `scripts/story-run.py`. Stories are the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature.
 11. **TDD plus 99% evidence confidence.** New behavior starts with RED proof, implementation follows, and a ticket cannot be `done` unless requirements understood, implementation match, and verification working are each `>=99/100` with concrete evidence and no remaining uncertainty.
 12. **No judge without an answer key outside the builder's reasoning.** Every behavior ticket carries a suite / document / checklist key, authored elsewhere and frozen before the first attempt. A key the builder wrote is the builder grading itself.
@@ -220,7 +220,7 @@ These are non-negotiable inside the loop:
 
 - **[`superpowers`](https://github.com/obra/superpowers)** — `brainstorming`, `verification-before-completion`, `dispatching-parallel-agents`, `systematic-debugging`, `test-driven-development` are all referenced from inside the loop.
 - **[`ralph-wiggum`](https://github.com/obra/ralph-wiggum)** — `boil` does the iteration internally rather than relying on a stop-hook loop, but you can wrap it with `/loop` for unattended runs.
-- **[`roborev`](https://roborev.io)** — Step 2d Pass 4 enqueues a `roborev review --agent <different-reviewer>` per iteration when roborev is installed in the repo and a reviewable diff exists, so a second LLM critiques each iteration's code. Findings become next-iteration tickets, never silently dismissed.
+- **[`roborev`](https://roborev.io)** — Step 2d Pass 4 enqueues a `roborev review --agent <different-reviewer>` per iteration when roborev is installed in the repo and a reviewable diff exists, so a second LLM critiques each iteration's code. Claude implementations prefer `--agent codex`; Codex implementations prefer `--agent claude-code`. Findings become next-iteration tickets, never silently dismissed.
 - **`gate` + `helm` — the full setup.** Three loops, one chain, none duplicating another:
   - **gate** owns the OUTER loop — *is this project worth finishing, and is it converging?* Maturity ladder L0–L5, evidence rules, todo discipline, portfolio WIP limit. One open ladder criterion is one valid boil goal.
   - **helm** is the CONTROLLER — *what is the measured gap, and is it closing?* It turns the goal into machine-checkable subgoals (test / data / human), steers a boil session at the first open one under hard guardrails (budget, stall, WIP, kill-by), re-measures, and ticks the gate ladder box with a formatted EVIDENCE line once the goal measures MET.
