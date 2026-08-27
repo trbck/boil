@@ -1,0 +1,23 @@
+# --- Licensed vendor documentation -------------------------------------------
+# VectorBT PRO docs are proprietary. Redistributing them would breach the vendor
+# licence, so they are excluded by default and each install supplies its own copy.
+# If your remote is private AND your licence permits it, remove these two lines.
+knowledge/vbtpro/*.txt
+
+# Derived engine index (~3.5 MB). Useless without the sources above, and cheap to
+# regenerate: python3 scripts/build_index.py
+generated/engines/*.index.json
+
+# --- Ingest archive ----------------------------------------------------------
+# Timestamped originals kept after ingestion. Local safety net, not shared state.
+inbox/processed/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- OS ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
