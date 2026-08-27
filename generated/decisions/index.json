@@ -1,0 +1,3962 @@
+{
+ "domain": "decisions",
+ "title": "Decision-making under uncertainty",
+ "summary": "Applying computer science to human decisions: when to stop searching, how to balance exploring against exploiting, sorting and caching, scheduling, Bayesian prediction, overfitting, constraint relaxation, deliberate randomness, and strategic interaction.",
+ "scope": [
+  "deciding when to stop searching and commit",
+  "balancing exploration against exploitation",
+  "scheduling, prioritising and ordering work",
+  "predicting from sparse evidence and choosing priors",
+  "overfitting, and when to deliberately think less",
+  "simplifying an intractable problem by relaxing constraints",
+  "using randomness deliberately in search and decision-making",
+  "designing protocols, queues and backoff under congestion",
+  "anticipating other people's strategies and reducing their cognitive load"
+ ],
+ "corpus_fingerprint": "87eac9868cae",
+ "packs": [
+  {
+   "id": "atlb",
+   "kind": "book",
+   "prefix": "ATLB",
+   "title": "Algorithms to Live By",
+   "author": "Brian Christian & Tom Griffiths",
+   "publisher": "HarperCollins",
+   "year": 2016,
+   "path": "knowledge/atlb",
+   "authoritative_on": [
+    "stopping",
+    "explore_exploit",
+    "scheduling",
+    "prediction",
+    "overfitting",
+    "relaxation",
+    "randomness",
+    "networking",
+    "game_theory"
+   ],
+   "caveats": [
+    "Popular-science synthesis, not a primary source. It reports results from optimal stopping, bandit theory, scheduling and Bayesian statistics accurately but informally; cite it for the decision heuristic, not for a proof.",
+    "Numeric thresholds (37%, Gittins indices, Bayes rules) assume the stated model. Check the assumptions hold before transferring a constant."
+   ],
+   "domain": "decisions"
+  }
+ ],
+ "chapters": [
+  {
+   "file": "domains/decisions/knowledge/atlb/00-introduction.md",
+   "pinned_topics": [],
+   "number": 0,
+   "title": "Introduction: Algorithms to Live By",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Introduction.",
+   "governs": "the frame for every other chapter — what an algorithm is, when borrowing one from computer science is legitimate, and what the book actually claims.",
+   "thesis": "the hardest problems in human life have the **same computational structure** as the hardest problems in computer science, because both are what happens when a finite agent acts in finite space and time. Where the structures match, the algorithms transfer.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "The apartment hunt — a solved problem people agonise over",
+     "start_line": 9,
+     "end_line": 28,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "The claim, stated precisely",
+     "start_line": 29,
+     "end_line": 38,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Three levels of payoff",
+     "start_line": 39,
+     "end_line": 48,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "What modern computers actually do — and why it matters",
+     "start_line": 49,
+     "end_line": 64,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "The hard-won precepts",
+     "start_line": 65,
+     "end_line": 76,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — the 37% rule in full, with its variants and its 63% failure rate · Ch. 2 explore/exploit · Ch. 3 sorting · Ch. 4 caching · Ch. 5 scheduling · Ch. 8 relaxation and Ch. 9 randomness — where \"hard problem\" gets its formal meaning · Ch. 12 conclusion — process versus outcome, and computational kindness. **Named references:** al-Khwārizmī (9th c.) · Alan Turing · Carl Sagan · Brian Christian & Tom Griffiths (the authors' own backgrounds: computer science/philosophy/English, and psychology/statistics at UC Berkeley).",
+   "problems": [],
+   "id": "ATLB-00",
+   "topics": [],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Introduction.",
+   "rule_count": 9
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/01-optimal-stopping.md",
+   "pinned_topics": [],
+   "number": 1,
+   "title": "Optimal Stopping",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 1.",
+   "governs": "when to stop searching and commit, in any process where options arrive one at a time and passing means losing them.",
+   "thesis": "the hard part of a search is not *which* option to pick — it is *how many* to consider before picking. That question has a closed-form answer, and the answer depends almost entirely on what information you have and what waiting costs.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "The two ways to fail",
+     "start_line": 9,
+     "end_line": 19,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "The secretary problem — the no-information case",
+     "start_line": 20,
+     "end_line": 40,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Variants — each assumption relaxed changes the constant, not the shape",
+     "start_line": 41,
+     "end_line": 55,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Full information — the Threshold Rule",
+     "start_line": 56,
+     "end_line": 74,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "When the goal is value, not the best — house selling",
+     "start_line": 75,
+     "end_line": 98,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Parking — the whole problem is one number",
+     "start_line": 99,
+     "end_line": 113,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "When to quit while ahead — the burglar problem",
+     "start_line": 114,
+     "end_line": 124,
+     "subsections": []
+    },
+    {
+     "key": "8",
+     "number": 8,
+     "title": "The problem with no answer",
+     "start_line": 125,
+     "end_line": 132,
+     "subsections": []
+    },
+    {
+     "key": "9",
+     "number": 9,
+     "title": "What people actually do",
+     "start_line": 133,
+     "end_line": 142,
+     "subsections": []
+    },
+    {
+     "key": "10",
+     "number": 10,
+     "title": "Why this generalises",
+     "start_line": 143,
+     "end_line": 150,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 2 explore/exploit — the same tension where options *can* be revisited · Ch. 5 scheduling — what to do once you have committed · Ch. 6 Bayes's Rule — predicting how much better the next option might be · Ch. 7 overfitting — why more deliberation is not always better. **Named references:** Merrill Flood (first known discovery of the 37% rule, 1958) · Martin Gardner, *Scientific American* (1960) · Seale & Rapoport (experimental studies) · Neil Bearden (endogenous time costs) · Donald Shoup, *The High Cost of Free Parking* · Johannes Kepler (the recall variant, lived) · Michael Trick (the rejection variant, lived).",
+   "problems": [],
+   "id": "ATLB-01",
+   "topics": [
+    "stopping"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 1.",
+   "rule_count": 15
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/02-explore-exploit.md",
+   "pinned_topics": [],
+   "number": 2,
+   "title": "Explore/Exploit",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 2.",
+   "governs": "how to divide effort between trying new options and using the best one you have found, whenever the same choice recurs.",
+   "thesis": "the explore/exploit balance is not a matter of temperament. It is set almost entirely by **the interval** — how long you will be around to enjoy what you learn. Change the interval and the correct behaviour inverts.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Definitions, stripped of connotation",
+     "start_line": 9,
+     "end_line": 19,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "The interval makes the strategy",
+     "start_line": 20,
+     "end_line": 34,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "The algorithms, in increasing order of power",
+     "start_line": 35,
+     "end_line": 81,
+     "subsections": [
+      "Win-Stay, Lose-Shift (Robbins, 1952)",
+      "Backward induction (Bellman)",
+      "The Gittins index",
+      "Upper Confidence Bound"
+     ]
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Regret as the objective",
+     "start_line": 82,
+     "end_line": 95,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Where this is already being run on you",
+     "start_line": 96,
+     "end_line": 109,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "What people actually do — they over-explore",
+     "start_line": 110,
+     "end_line": 121,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "The restless world",
+     "start_line": 122,
+     "end_line": 133,
+     "subsections": []
+    },
+    {
+     "key": "8",
+     "number": 8,
+     "title": "The arc of a life",
+     "start_line": 134,
+     "end_line": 149,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — the same tension where options cannot be revisited · Ch. 6 Bayes's Rule — how to estimate an arm's value from sparse evidence · Ch. 7 overfitting — why more data is not always better · Ch. 9 randomness — deliberate exploration as search strategy. **Named references:** Herbert Robbins (Win-Stay Lose-Shift, 1952; regret with Lai, 1985) · Richard Bellman · John Gittins (dynamic allocation index) · Peter Whittle · Marvin Zelen (adaptive trials, 1969) · Don Berry · Robert Bartlett (ECMO) · Belmont Report (1979) · Tversky & Edwards (1966) · Alison Gopnik · Laura Carstensen · Jeff Bezos (regret minimisation) · Leslie Kaelbling (optimistic robots).",
+   "problems": [],
+   "id": "ATLB-02",
+   "topics": [
+    "explore_exploit"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 2.",
+   "rule_count": 15
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/03-sorting.md",
+   "pinned_topics": [],
+   "number": 3,
+   "title": "Sorting",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 3.",
+   "governs": "whether to impose order at all, and if so at what cost — over information, possessions, and people.",
+   "thesis": "sorting has **dis**economies of scale, and its only justification is the searching it saves later. Since search is often cheap, **the right amount of order is frequently less than none at all**. And when what is being sorted is people, the choice between comparison and measurement is the choice between a fight and a race.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Scale hurts — the one counterintuitive fact",
+     "start_line": 9,
+     "end_line": 18,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Big-O — a yardstick for the worst case",
+     "start_line": 19,
+     "end_line": 34,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "The algorithms",
+     "start_line": 35,
+     "end_line": 55,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "The central trade-off: sort is prophylaxis for search",
+     "start_line": 56,
+     "end_line": 74,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Sorting people — tournaments as algorithms",
+     "start_line": 75,
+     "end_line": 91,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Noise — when efficiency becomes brittleness",
+     "start_line": 92,
+     "end_line": 109,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "Dominance hierarchies are decentralised sorting",
+     "start_line": 110,
+     "end_line": 123,
+     "subsections": []
+    },
+    {
+     "key": "8",
+     "number": 8,
+     "title": "A race instead of a fight — ordinal to cardinal",
+     "start_line": 124,
+     "end_line": 141,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — another explicit cost-of-search calculation · Ch. 4 caching — what to keep near to hand once you stop sorting · Ch. 5 scheduling — ordering work rather than objects · Ch. 8 relaxation — accepting an approximate order to make the problem tractable · Ch. 11 game theory — hierarchies as equilibria. **Named references:** Herman Hollerith (1890 census; the firm that became IBM) · John von Neumann (Mergesort, 1945) · J. C. Hosken (1955) · Charles Dodgson / Lewis Carroll (1883, \"Lawn Tennis Tournaments\") · Michael Trick (MLB/NCAA scheduling) · Dave Ackley (robustness) · Steve Whittaker (email) · Jessica Flack (information hierarchies) · Christof Neumann (macaque displacement) · Isaac Haxton (poker rankings) · Tom Murphy (soccer noise) · Preston Sort Center, King County Library System.",
+   "problems": [],
+   "id": "ATLB-03",
+   "topics": [
+    "ordering"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 3.",
+   "rule_count": 16
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/04-caching.md",
+   "pinned_topics": [],
+   "number": 4,
+   "title": "Caching",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 4.",
+   "governs": "what to keep close to hand, what to evict, and where to put things — across storage, workspaces, supply chains and memory.",
+   "thesis": "forgetting is not failure; it is **cache management**, and it has a provably good policy. The nearest thing available to clairvoyance is to assume **history repeats itself backwards** — what you used most recently is what you will need next.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "The memory hierarchy",
+     "start_line": 9,
+     "end_line": 20,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Eviction — what to throw out",
+     "start_line": 21,
+     "end_line": 47,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Placement — where to put what you keep",
+     "start_line": 48,
+     "end_line": 65,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Arrangement — the pile is optimal",
+     "start_line": 66,
+     "end_line": 87,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Human memory is a cache",
+     "start_line": 88,
+     "end_line": 101,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "The tyranny of experience",
+     "start_line": 102,
+     "end_line": 115,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — deciding when to stop searching · Ch. 3 sorting — when ordering is worth its cost at all, and the complementary case for messiness · Ch. 6 Bayes's Rule — predicting recurrence from history · Ch. 7 overfitting — why remembering everything is not the goal. **Named references:** Burks, Goldstine & von Neumann (1946 memory hierarchy) · Atlas supercomputer (1962) · Maurice Wilkes (the cache idea) · IBM 360/85 (the name) · László Bélády (1966, optimal eviction) · Gordon Moore · John Hennessy · Daniel Sleator & Robert Tarjan (1985, self-organising lists) · Yukio Noguchi (filing system) · Hermann Ebbinghaus (1879, forgetting curve) · John Anderson & Lael Schooler · Michael Ramscar · Akamai (Stephen Ludin) · Aza Raskin · Rik Belew · William Jones, *Keeping Found Things Found*.",
+   "problems": [],
+   "id": "ATLB-04",
+   "topics": [
+    "memory"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 4.",
+   "rule_count": 15
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/05-scheduling.md",
+   "pinned_topics": [],
+   "number": 5,
+   "title": "Scheduling",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 5.",
+   "governs": "what to do, in what order, on a single machine — which is to say, how one person spends a day.",
+   "thesis": "**you cannot have a plan until you have chosen a metric.** Every optimal scheduling rule is optimal *for one objective*, and the popular time-management advice that appears to contradict itself is mostly a set of correct answers to different questions.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "The founding observation",
+     "start_line": 9,
+     "end_line": 22,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Pick the metric, get the algorithm",
+     "start_line": 23,
+     "end_line": 47,
+     "subsections": [
+      "The density rule"
+     ]
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Procrastination is an optimal solution to the wrong problem",
+     "start_line": 48,
+     "end_line": 63,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "When the least important thing is the most important",
+     "start_line": 64,
+     "end_line": 81,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Most scheduling problems have no efficient solution",
+     "start_line": 82,
+     "end_line": 93,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Preemption, uncertainty, and the burden of clairvoyance",
+     "start_line": 94,
+     "end_line": 113,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "Preemption is not free",
+     "start_line": 114,
+     "end_line": 139,
+     "subsections": [
+      "Thrashing"
+     ]
+    },
+    {
+     "key": "8",
+     "number": 8,
+     "title": "Responsiveness versus throughput",
+     "start_line": 140,
+     "end_line": 161,
+     "subsections": [
+      "Interrupt coalescing"
+     ]
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — when to stop deliberating and act · Ch. 4 caching — the working sets whose collision causes thrashing · Ch. 7 overfitting — why more deliberation can hurt · Ch. 8 relaxation — what to do once a problem is proven intractable · Ch. 11 game theory — responsiveness norms as equilibria. **Named references:** Frederick Taylor (Scientific Management) · Henry Gantt · Selmer Johnson (1954) · Moore's Algorithm · Eugene Lawler (1968, precedence constraints) · Jan Karel Lenstra · Mars Pathfinder / JPL (1997 priority inversion) · Peter Denning (thrashing) · Peter Zijlstra (Linux scheduler) · Kirk Pruhs · David Rosenbaum (pre-crastination, 2014) · Laura Albert McLay · Peter Norvig · Donald Knuth · Jason Fried.",
+   "problems": [],
+   "id": "ATLB-05",
+   "topics": [
+    "scheduling"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 5.",
+   "rule_count": 20
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/06-bayes-rule.md",
+   "pinned_topics": [],
+   "number": 6,
+   "title": "Bayes's Rule",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 6.",
+   "governs": "predicting from very little evidence — often a single observation — and knowing which prediction rule the situation calls for.",
+   "thesis": "**the shape of the prior decides the prediction rule.** Three distributions give three completely different, mutually contradictory rules of thumb, and picking the wrong one is the main way single-observation forecasts go wrong. Our days are full of *small* data, and we handle it well only because our priors are quietly rich.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Reasoning backward",
+     "start_line": 9,
+     "end_line": 34,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "The Copernican Principle — and why it sometimes fails",
+     "start_line": 35,
+     "end_line": 50,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Three distributions, three rules — the core of the chapter",
+     "start_line": 51,
+     "end_line": 80,
+     "subsections": [
+      "The surprise structure follows directly",
+      "Gould's case — why the shape matters more than the average"
+     ]
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Small data is big data in disguise",
+     "start_line": 81,
+     "end_line": 94,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "The marshmallow test, re-read",
+     "start_line": 95,
+     "end_line": 108,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Protecting your priors",
+     "start_line": 109,
+     "end_line": 123,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — the full-information case depends on knowing the distribution · Ch. 2 explore/exploit — estimating an option's value from sparse evidence · Ch. 7 overfitting — why a rich prior beats more data · Ch. 9 randomness — sampling when the distribution is unknown. **Named references:** Thomas Bayes (essay published posthumously, 1763, via Richard Price) · Pierre-Simon Laplace (1774; *Philosophical Essay on Probabilities*) · J. Richard Gott III (Copernican Principle) · Harold Jeffreys (tramcars) · the German tank problem · Carl Friedrich Gauss · Agner Krarup Erlang · Stephen Jay Gould (\"The Median Isn't the Message\") · Walter Mischel (marshmallow test) · Joe McGuire & Joe Kable · the Rochester reliability study · Barry Glassner · Tom Griffiths & Josh Tenenbaum (prediction experiments).",
+   "problems": [],
+   "id": "ATLB-06",
+   "topics": [
+    "prediction"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 6.",
+   "rule_count": 14
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/07-overfitting.md",
+   "pinned_topics": [],
+   "number": 7,
+   "title": "Overfitting",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 7.",
+   "governs": "how hard to think, how many factors to weigh, and how much to trust any measurement standing in for what you actually care about.",
+   "thesis": "**a better fit to the data you have is not a better prediction.** Wherever the thing you can measure differs from the thing you care about — which is nearly always — optimising harder makes results worse, not merely less efficient. Deliberately thinking less is often the rational move.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "The demonstration",
+     "start_line": 9,
+     "end_line": 30,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "The idolatry of data",
+     "start_line": 31,
+     "end_line": 57,
+     "subsections": [
+      "The catalogue"
+     ]
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Detecting it: cross-validation",
+     "start_line": 58,
+     "end_line": 70,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Fighting it: penalise complexity",
+     "start_line": 71,
+     "end_line": 87,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Heuristics are not a retreat from rationality",
+     "start_line": 88,
+     "end_line": 103,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Early stopping — regularizing by time",
+     "start_line": 104,
+     "end_line": 125,
+     "subsections": [
+      "History as a regularizer"
+     ]
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "When to think less",
+     "start_line": 126,
+     "end_line": 144,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 2 explore/exploit — the cost of chasing every novelty · Ch. 5 scheduling — metrics dictating behaviour, and the cost of over-deliberating · Ch. 6 Bayes's Rule — good priors substituting for more data · Ch. 8 relaxation — deliberately solving an easier problem · Ch. 9 randomness — sampling as a defence against over-precision. **Named references:** Charles Darwin (1838 marriage diary) · Benjamin Franklin (\"Moral or Prudential Algebra\") · Daniel Gilbert · V. F. Ridgway (1956) · Steve Jobs · Sam Altman · Avinash Kaushik · Dave Grossman (training scars) · Andrey Tikhonov (regularization) · Robert Tibshirani (the Lasso, 1996) · Harry Markowitz · Gerd Gigerenzer & Henry Brighton · Jason Fried & David Heinemeier Hansson · Henry Mintzberg · Samuel Revusky & Erwin Bedarf.",
+   "problems": [],
+   "id": "ATLB-07",
+   "topics": [
+    "overfitting"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 7.",
+   "rule_count": 16
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/08-relaxation.md",
+   "pinned_topics": [],
+   "number": 8,
+   "title": "Relaxation",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 8.",
+   "governs": "what to do once a problem is proven too hard to solve exactly — which is the normal case for real optimisation.",
+   "thesis": "when the perfect answer is unreachable, **neither grind forever nor give up: solve a deliberately easier problem instead.** Relaxation is wishful thinking done *consciously*, with the bonus that it yields bounds telling you how far from optimal you actually are.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Some problems are genuinely hard",
+     "start_line": 9,
+     "end_line": 30,
+     "subsections": [
+      "The formal boundary"
+     ]
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Constraint Relaxation — remove a rule",
+     "start_line": 31,
+     "end_line": 45,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Continuous Relaxation — allow fractions",
+     "start_line": 46,
+     "end_line": 65,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Lagrangian Relaxation — turn rules into costs",
+     "start_line": 66,
+     "end_line": 87,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Why relaxation works",
+     "start_line": 88,
+     "end_line": 101,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 3 sorting — where O(n²) was the enemy rather than the standard of efficiency · Ch. 5 scheduling — where 84% of classified problems are intractable, making relaxation the normal case · Ch. 7 overfitting — accepting a worse fit for a better outcome · Ch. 9 randomness — the other principal strategy for intractable problems · Ch. 11 game theory — constraints as equilibria. **Named references:** Meghan Bellows (wedding seating) · Abraham Lincoln's Eighth Judicial Circuit · Karl Menger · Hassler Whitney · Merrill Flood · Julia Robinson (1949, \"travelling salesman\" in print) · Jack Edmonds & Alan Cobham (Cobham–Edmonds thesis) · Richard Karp (1972) · Jan Karel Lenstra · Joseph-Louis Lagrange · Michael Trick / Sports Scheduling Group · Laura Albert McLay (fire truck coverage) · Christopher Booker.",
+   "problems": [],
+   "id": "ATLB-08",
+   "topics": [
+    "relaxation"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 8.",
+   "rule_count": 13
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/09-randomness.md",
+   "pinned_topics": [],
+   "number": 9,
+   "title": "Randomness",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 9.",
+   "governs": "when to stop reasoning and start sampling — and how much chance to inject, in what form, at what point.",
+   "thesis": "randomness is not surrender. On hard problems it **outperforms** exhaustive reasoning, and often it is the only method that returns an answer at all. But it has to be dosed: front-loaded, proportioned to how bad a move is, and cooled over time.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Sampling beats analysis when the space explodes",
+     "start_line": 11,
+     "end_line": 26,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Randomness works even on questions with no chance in them",
+     "start_line": 27,
+     "end_line": 44,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "In praise of sampling",
+     "start_line": 45,
+     "end_line": 65,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "The third axis: certainty",
+     "start_line": 66,
+     "end_line": 77,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Escaping local maxima",
+     "start_line": 78,
+     "end_line": 106,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Randomness, evolution and creativity",
+     "start_line": 107,
+     "end_line": 120,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "How much randomness — the three rules",
+     "start_line": 121,
+     "end_line": 132,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 2 explore/exploit — deliberate exploration with a different objective · Ch. 6 Bayes's Rule — inference from samples · Ch. 7 overfitting — randomness as a defence against over-precision · Ch. 8 relaxation — the other main strategy for intractable problems, often used alongside this one. **Named references:** Buffon (1777) · Pierre-Simon Laplace (1812) · Stanislaw Ulam, John von Neumann, Nicholas Metropolis (Monte Carlo) · Michael Rabin & Gary Miller (primality) · Vaughan Pratt · Agrawal, Kayal & Saxena (2002) · Michael Mitzenmacher · Burton H. Bloom (Bloom filters) · Scott Kirkpatrick & Dan Gelatt (simulated annealing) · John Rawls · Scott Aaronson · Ursula K. Le Guin (Omelas) · GiveDirectly · Salvador Luria · Horace Walpole (serendipity, 1754) · William James (1880) · Donald Campbell (1960) · Ernst Mach · Brian Eno & Peter Schmidt (Oblique Strategies) · Luke Rhinehart / George Cockcroft (*The Dice Man*).",
+   "problems": [],
+   "id": "ATLB-09",
+   "topics": [
+    "randomness"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 9.",
+   "rule_count": 16
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/10-networking.md",
+   "pinned_topics": [],
+   "number": 10,
+   "title": "Networking",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 10.",
+   "governs": "communication under unreliability and overload — acknowledgment, retry, congestion, and queues, whether between machines or people.",
+   "thesis": "networks solved, formally, the problems people muddle through daily: how to know a message landed, how long to keep trying, how fast to push, and when to refuse work outright. **The most transferable results are exponential backoff (finite patience with infinite mercy) and the recognition that oversized queues destroy the feedback that keeps a system stable.**",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Packets, not circuits",
+     "start_line": 9,
+     "end_line": 25,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Acknowledgment, and why certainty is impossible",
+     "start_line": 26,
+     "end_line": 46,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Exponential Backoff — the algorithm of forgiveness",
+     "start_line": 47,
+     "end_line": 71,
+     "subsections": [
+      "The human application"
+     ]
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Flow control: the sawtooth",
+     "start_line": 72,
+     "end_line": 97,
+     "subsections": [
+      "AIMD against the Peter Principle"
+     ]
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Backchannels — the listener makes the story",
+     "start_line": 98,
+     "end_line": 109,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Bufferbloat — when queues destroy feedback",
+     "start_line": 110,
+     "end_line": 125,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "Better never than late",
+     "start_line": 126,
+     "end_line": 145,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 5 scheduling — responsiveness versus throughput, and interrupt coalescing · Ch. 9 randomness — breaking symmetry, and randomised retry · Ch. 11 game theory — protocols as equilibria among many actors · Ch. 12 computational kindness — reducing the load a protocol places on others. **Named references:** Vint Cerf & Bob Kahn (TCP, 1974) · Leonard Kleinrock · Paul Baran (RAND) · Van Jacobson & Michael Karels (congestion control, 1986) · Stuart Cheshire · Norman Abramson (ALOHAnet) · Judge Steven Alm (HOPE) · Deborah Gordon & Balaji Prabhakar (ants) · Laurence J. Peter · José Ortega y Gasset (1910) · Victor Yngve (back channel, 1970) · Janet Bavelas · Jackson Tolins & Jean Fox Tree (2014) · Jim Gettys (bufferbloat) · Ray Tomlinson (email) · Tyler Treat.",
+   "problems": [],
+   "id": "ATLB-10",
+   "topics": [
+    "congestion"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 10.",
+   "rule_count": 18
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/11-game-theory.md",
+   "pinned_topics": [],
+   "number": 11,
+   "title": "Game Theory",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 11.",
+   "governs": "decisions where the outcome depends on what other people do — and where the cost of strategising is itself part of the price.",
+   "thesis": "a stable equilibrium is not a good one. When the rules produce a bad outcome, **do not try to play better — change the game**. And prefer games where honesty is the dominant strategy, because then you need not model anyone else at all.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Recursion — the hall of mirrors",
+     "start_line": 9,
+     "end_line": 27,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "Equilibrium exists — and cannot be found",
+     "start_line": 28,
+     "end_line": 45,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Stable is not good — and the price of anarchy",
+     "start_line": 46,
+     "end_line": 66,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "The tragedy of the commons",
+     "start_line": 67,
+     "end_line": 81,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Mechanism design — change the game",
+     "start_line": 82,
+     "end_line": 101,
+     "subsections": []
+    },
+    {
+     "key": "6",
+     "number": 6,
+     "title": "Mechanism design by evolution — emotions as commitments",
+     "start_line": 102,
+     "end_line": 125,
+     "subsections": []
+    },
+    {
+     "key": "7",
+     "number": 7,
+     "title": "Information cascades — how bubbles form without villains",
+     "start_line": 126,
+     "end_line": 147,
+     "subsections": []
+    },
+    {
+     "key": "8",
+     "number": 8,
+     "title": "Vickrey auctions and the revelation principle",
+     "start_line": 148,
+     "end_line": 163,
+     "subsections": []
+    },
+    {
+     "key": "9",
+     "number": 9,
+     "title": "The cost of strategising is part of the price",
+     "start_line": 164,
+     "end_line": 177,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 1 optimal stopping — commitment under irreversibility, and the marriage problem revisited here · Ch. 6 Bayes's Rule — reading evidence that others have contaminated · Ch. 7 overfitting — incentives being optimised against · Ch. 10 networking — protocols as equilibria and the price of selfish routing · Ch. 12 computational kindness — reducing the strategising you impose on others. **Named references:** John Maynard Keynes (beauty contest) · Alan Turing (halting problem, 1936) · John Nash (1951) · Roger Myerson (revelation principle) · Christos Papadimitriou · Tim Roughgarden & Éva Tardos (price of anarchy, 2002) · Scott Aaronson · Kamal Jain · Garrett Hardin (1968) · Ken Binmore · Avrim Blum · Robert Frank · Richard Dawkins · Sushil Bikhchandani, David Hirshleifer & Ivo Welch (information cascades) · William Vickrey · Noam Nisan · Paul Milgrom · Dan Smith & Vanessa Rousso (poker) · Hikaru Nakamura vs. Rybka (2008) · Jean-Paul Sartre.",
+   "problems": [],
+   "id": "ATLB-11",
+   "topics": [
+    "strategic"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Ch. 11.",
+   "rule_count": 20
+  },
+  {
+   "file": "domains/decisions/knowledge/atlb/12-computational-kindness.md",
+   "pinned_topics": [],
+   "number": 12,
+   "title": "Computational Kindness",
+   "source": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Conclusion.",
+   "governs": "how to judge your own decisions after the fact, and how to design problems — for yourself and for other people — that are cheap to solve.",
+   "thesis": "three things follow from taking the computational view seriously. Some algorithms transfer directly. **A good process is a defence even when the outcome is bad.** And since we hand each other computational problems constantly, we can choose to hand over easy ones — *\"computation is bad,\"* and reducing someone's mental labour is a form of kindness.",
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Three pieces of wisdom",
+     "start_line": 11,
+     "end_line": 30,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "The paradox that names the principle",
+     "start_line": 31,
+     "end_line": 46,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "The dark underbelly of politeness",
+     "start_line": 47,
+     "end_line": 65,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Kindness as a design principle",
+     "start_line": 66,
+     "end_line": 84,
+     "subsections": []
+    },
+    {
+     "key": "5",
+     "number": 5,
+     "title": "Being kinder to yourself",
+     "start_line": 85,
+     "end_line": 96,
+     "subsections": []
+    }
+   ],
+   "cross_references": "Ch. 0 introduction — the framing this closes · Ch. 1 optimal stopping — the 37% rule and the parking-lot problem · Ch. 2 explore/exploit — Upper Confidence Bound and regret that grows slowly · Ch. 4 caching — LRU · Ch. 5 scheduling — context switching and thrashing, the origin of spinning vs. blocking · Ch. 6 Bayes's Rule — inferring the next bus from the last one · Ch. 8 relaxation and Ch. 9 randomness — where \"good enough\" is formalised · Ch. 11 game theory — mechanism design, of which computational kindness is the everyday form. **Named references:** Merrill Flood · Bertrand Russell · Jeffrey Shallit (University of Waterloo, 2003) · Alan Turing.",
+   "problems": [],
+   "id": "ATLB-12",
+   "topics": [
+    "process_design"
+   ],
+   "citation": "Christian & Griffiths, *Algorithms to Live By* (HarperCollins, 2016), Conclusion.",
+   "rule_count": 16
+  }
+ ],
+ "notes": [],
+ "engines": [],
+ "rules": [
+  {
+   "id": "ATLB-00-R1",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 1,
+   "text": "**Ask first whether the problem has a known structure.** Many everyday dilemmas are recognised, named, and solved classes — not novel personal predicaments.",
+   "topics": [],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R2",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 2,
+   "text": "**Distinguish problems where information can be gathered freely from those where gathering it costs the option.** The second class has entirely different optimal strategies.",
+   "topics": [],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R3",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 3,
+   "text": "**Treat \"find the right balance\" as an unfinished answer.** The useful version specifies where the balance is.",
+   "topics": [],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R4",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 4,
+   "text": "**Do not equate rigour with exhaustiveness.** For hard problems the best available methods use approximation, randomness and early stopping *by design*.",
+   "topics": [
+    "randomness",
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R5",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 5,
+   "text": "**Trade accuracy against time deliberately** rather than treating any shortfall from optimal as failure.",
+   "topics": [],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R6",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 6,
+   "text": "**Read a mistake as evidence about the problem before reading it as evidence about yourself.** Difficulty is a property of problems, and many are provably hard.",
+   "topics": [],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R7",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 7,
+   "text": "**Expect the hard cases.** Uncertainty, deadlines, partial information and a changing world are the normal human condition, not the exception.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R8",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 8,
+   "text": "**Borrow the vocabulary even when you cannot borrow the numbers.** Naming the structure — stopping, explore/exploit, caching, scheduling — is most of the benefit when the situation is too messy to quantify.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-00-R9",
+   "pack": "atlb",
+   "parent": "ATLB-00",
+   "parent_title": "Introduction: Algorithms to Live By",
+   "ordinal": 9,
+   "text": "**Judge process, not only outcome.** A provably optimal method still fails often; that is not evidence against the method.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R1",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 1,
+   "text": "**Ask \"how many options should I consider?\" before \"which option should I pick?\"** The second question is downstream of the first, and only the first has a closed-form answer.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R2",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 2,
+   "text": "**Name both failure modes — stopping early and stopping late — before choosing a policy.** A rule that only guards against one is not a solution.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R3",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 3,
+   "text": "**With ordinal information only, use Look-Then-Leap at ~37%.** Anything between 35% and 40% performs nearly identically, so do not over-tune the constant.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R4",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 4,
+   "text": "**Expect to fail ~63% of the time and do not treat that as evidence the method is broken.** Optimal play still misses the best option most of the time.",
+   "topics": [
+    "stopping",
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R5",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 5,
+   "text": "**Prefer any objective yardstick to a subjective one.** Converting a no-information game into a full-information one raises the success rate from 37% to 58% — a far larger gain than better judgement inside the no-information game.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R6",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 6,
+   "text": "**With full information, drop the look phase entirely and use a declining threshold.** Standards should fall as options run out, and by a computable amount — never below average until you are genuinely out of options.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R7",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 7,
+   "text": "**When maximising value rather than finding the best, set the threshold from the cost of waiting alone**, and note it depends on the *spread* of outcomes, not their level.",
+   "topics": [
+    "stopping",
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R8",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 8,
+   "text": "**A value-maximising threshold never declines with bad luck.** If the odds and the search cost are unchanged, a run of poor offers is not information.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R9",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 9,
+   "text": "**Never reconsider an option you passed on.** What you spent searching is sunk; if it was below threshold then, it is below threshold now.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R10",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 10,
+   "text": "**If offers can be rejected, start offering much earlier** (25% rather than 37%) and keep offering to every best-yet candidate.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R11",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 11,
+   "text": "**If passed options can be recalled, look longer** (61%) and keep an explicit fallback to the best one that got away.",
+   "topics": [
+    "stopping",
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R12",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 12,
+   "text": "**Stop pressing a repeatable gamble at roughly (success odds ÷ failure odds) attempts.**",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R13",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 13,
+   "text": "**Do not target full utilisation of a contended resource.** The last 5% of occupancy can double everyone's search time; slack is what makes the system usable.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R14",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 14,
+   "text": "**When the optimal policy under a model implies certain ruin, reject the model.** Some problems are better avoided than solved.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-01-R15",
+   "pack": "atlb",
+   "parent": "ATLB-01",
+   "parent_title": "Optimal Stopping",
+   "ordinal": 15,
+   "text": "**Before calling behaviour suboptimal, check for an unmodelled cost of time.** A 1% per-observation search cost fully explains apparently premature stopping.",
+   "topics": [
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R1",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 1,
+   "text": "**Establish the interval before choosing a strategy.** Nothing else in this problem matters as much, and it is the input people most often leave implicit.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R2",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 2,
+   "text": "**Explore early, exploit late** — the value of exploring only falls and the value of exploiting only rises.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R3",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 3,
+   "text": "**Never treat a recurring decision as isolated.** Maximising the expected value of this choice alone is correct only if it is genuinely your last.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R4",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 4,
+   "text": "**Read someone's explore/exploit ratio as a statement about their perceived interval**, including your own and your organisation's. A sudden shift to sure things is a horizon signal.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R5",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 5,
+   "text": "**Keep win-stay, drop lose-shift.** A single failure is weak evidence against an option with a long record.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R6",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 6,
+   "text": "**Give untested options a bonus over their expected value.** An unknown is worth more than a known equal, because the upside is still live.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R7",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 7,
+   "text": "**Prefer Upper Confidence Bound in practice**: choose by the best an option could plausibly be, not the best it has been. It needs no discounting assumption and is computable in your head.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R8",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 8,
+   "text": "**Optimism, bounded by evidence, is the rational default** and the best available protection against regret.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R9",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 9,
+   "text": "**Minimise regret rather than maximise payoff** when the horizon is long — and note that regret accrues most heavily from *not trying*.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R10",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 10,
+   "text": "**Expect regret to keep growing even under optimal play**; judge a strategy by the growth *rate*, which should be logarithmic and decelerating.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R11",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 11,
+   "text": "**Do not default to fixed-allocation experiments.** An even split knowingly keeps half your subjects on the worse option for the whole test; adapt allocation as evidence accrues unless a decisive answer is worth that cost.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R12",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 12,
+   "text": "**Watch for over-exploration in recurring choices** — the empirical bias runs opposite to the stopping bias, and people observe far longer than the math warrants.",
+   "topics": [
+    "explore_exploit",
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R13",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 13,
+   "text": "**When the environment is non-stationary, never stop exploring entirely**; periodically revisit options you wrote off, because the world may have changed.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R14",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 14,
+   "text": "**Do not read exploratory behaviour as incompetence.** Judge behaviour against the phase of the interval it belongs to.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-02-R15",
+   "pack": "atlb",
+   "parent": "ATLB-02",
+   "parent_title": "Explore/Exploit",
+   "ordinal": 15,
+   "text": "**Take advice about *what is good* from long explorers; do not copy their current *behaviour*.** Their conclusions transfer; their exploit-phase habits do not.",
+   "topics": [
+    "explore_exploit"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R1",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 1,
+   "text": "**Expect dis-economies of scale in any ordering task.** Doubling the batch more than doubles the work, which inverts the usual instinct to batch things up.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R2",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 2,
+   "text": "**Reduce the batch before optimising the method.** Sorting more often in smaller quantities beats a cleverer algorithm most of the time.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R3",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 3,
+   "text": "**Analyse the worst case, not the average or the best,** whenever you need to make a guarantee.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R4",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 4,
+   "text": "**Judge cost by growth class, not by constants** — but remember Big-O deliberately ignores constants, so it misleads at small n.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R5",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 5,
+   "text": "**Never sort what you will not search.** Sorting the unsearched is total waste; searching the unsorted is merely inefficient. Given uncertainty, **err toward messiness**.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R6",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 6,
+   "text": "**Justify heavy up-front sorting against three conditions**: it will certainly be searched, repeatedly, and sort time is cheaper than search time. Google clears all three; your bookshelf and inbox clear none.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R7",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 7,
+   "text": "**As search gets cheaper, sorting loses value.** Reassess filing habits whenever search improves, rather than carrying them forward.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R8",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 8,
+   "text": "**Use coarse buckets before fine ordering**, and derive the buckets from the known distribution — good buckets split the load evenly, bad ones achieve nothing.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R9",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 9,
+   "text": "**Do not confuse a single-elimination winner with a ranking.** Such a format determines first place and leaves everything else unsorted; second place is not evidence.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R10",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 10,
+   "text": "**Under noisy comparison, prefer robust methods over efficient ones.** Efficiency moves items far per comparison, so early errors become permanent.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R11",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 11,
+   "text": "**Trust accumulated round-robin standings over knockout results.** The long tally is the fault-tolerant measurement; the bracket is a lottery weighted by skill.",
+   "topics": [
+    "ordering",
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R12",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 12,
+   "text": "**Compute how much a series result actually establishes** before treating it as evidence of quality — six 70% rounds confer only ~12% confidence.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R13",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 13,
+   "text": "**Minimising comparisons is not always the objective.** Where the comparisons themselves have value, or where sustained uncertainty is the product, more of them is correct.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R14",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 14,
+   "text": "**Expect conflict to grow super-linearly with group size**, and treat capping group size as a legitimate intervention.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R15",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 15,
+   "text": "**Do not remove a group's means of resolving rank** and expect less conflict; an unfinishable sort produces more.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-03-R16",
+   "pack": "atlb",
+   "parent": "ATLB-03",
+   "parent_title": "Sorting",
+   "ordinal": 16,
+   "text": "**Replace comparison with measurement wherever possible.** Any shared benchmark — however crude — converts a fight into a race and collapses the cost of establishing status from linearithmic to constant.",
+   "topics": [
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R1",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 1,
+   "text": "**Build a hierarchy rather than choosing between fast and large.** Small-and-fast backed by large-and-slow beats either alone, and applies to physical storage as much as digital.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R2",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 2,
+   "text": "**Have a cache even if you cannot manage it well.** Random eviction is far better than nothing; do not let policy debates block the basic structure.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R3",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 3,
+   "text": "**Evict by Least Recently Used, not First In First Out.** \"When did I last use it?\" is a much better question than \"how long have I had it?\", though both sound equally sensible.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R4",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 4,
+   "text": "**Assume temporal locality unless you know otherwise** — what was just used is most likely to be used next, and the longest-untouched is the safest to discard.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R5",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 5,
+   "text": "**Treat recency as your substitute for clairvoyance.** Where the future is unknown, the reversed past is the best available predictor.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R6",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 6,
+   "text": "**Cache by proximity, not just by speed.** When nearness is the scarce resource, keeping copies near the point of use is the whole win.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R7",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 7,
+   "text": "**Place items in the cache closest to where they are used**, even when that violates category logic. Vacuum bags behind the couch beats vacuum bags with the cleaning supplies.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R8",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 8,
+   "text": "**Add levels above and below your main cache**, and demote between them by LRU.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R9",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 9,
+   "text": "**Do not group like with like by default.** Content-based grouping costs sorting time and delivers no retrieval guarantee.",
+   "topics": [
+    "memory",
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R10",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 10,
+   "text": "**Always return a used item to the front.** This bounds your worst-case search time at twice the theoretical optimum — a guarantee no other placement rule provides.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R11",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 11,
+   "text": "**Recognise a working pile as a self-organising structure**, not disorder to be corrected. Reorganising it by category makes retrieval worse.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R12",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 12,
+   "text": "**Display collections by last-accessed rather than alphabetically**, wherever the interface allows it.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R13",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 13,
+   "text": "**Surface what was recently *used*, not what was recently *added*.** Most displays privilege new arrivals; recency of use is the better predictor of demand.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R14",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 14,
+   "text": "**Predict aggregate demand rather than individual demand** when pre-positioning resources — the law of large numbers makes the group tractable where the person is not.",
+   "topics": [
+    "memory",
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-04-R15",
+   "pack": "atlb",
+   "parent": "ATLB-04",
+   "parent_title": "Caching",
+   "ordinal": 15,
+   "text": "**Expect retrieval to slow as expertise grows, and do not read it as decline.** A larger store is a harder search problem; the lag is evidence of the size of the archive, not the failure of the mechanism.",
+   "topics": [
+    "memory"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R1",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 1,
+   "text": "**Choose the metric before choosing the schedule.** Without one, no ordering is better than another, and conflicting productivity advice cannot be adjudicated.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R2",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 2,
+   "text": "**To minimise the worst delay, work by earliest due date** — and note that task durations are irrelevant to this rule, so you need not estimate them.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R3",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 3,
+   "text": "**To minimise how many things are late, drop the largest scheduled item the moment you fall behind**, and stop worrying about the order of anything already late.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R4",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 4,
+   "text": "**To shrink a backlog fastest, do the shortest task first.**",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R5",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 5,
+   "text": "**To act on what matters, order by importance divided by duration** — only prioritise something twice as long if it is twice as important.",
+   "topics": [
+    "scheduling",
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R6",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 6,
+   "text": "**Decide whether you are minimising the amount or the count** before choosing a strategy — it is the difference between the debt avalanche and the debt snowball, and neither is universally right.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R7",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 7,
+   "text": "**Read procrastination as a metric error, not a character flaw.** Clearing trivia is optimal behaviour for minimising task *count*; fix the objective rather than the discipline.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R8",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 8,
+   "text": "**Audit the metrics your tools impose on you.** Unread badges silently weight everything equally; if you cannot change what they count, remove them.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R9",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 9,
+   "text": "**Watch for priority inversion** — if the important thing is stalled, find what is blocking it, and promote the blocker to the priority of the thing it blocks.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R10",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 10,
+   "text": "**Treat a blocking trivial task as the most important task.** \"Never let what matters most be at the mercy of what matters least\" is false under precedence constraints.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R11",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 11,
+   "text": "**Schedule back to front when tasks have prerequisites**, placing last the unblocked task with the latest due date.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R12",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 12,
+   "text": "**Expect most real scheduling problems to be intractable** — 84% of classified ones are — and use these rules as good starting points rather than expecting optimality.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R13",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 13,
+   "text": "**Prefer reacting to planning when the future is uncertain.** Foreknowledge can make the optimal schedule uncomputable while on-the-fly rules stay easy and nearly as good.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R14",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 14,
+   "text": "**Count context switches as pure loss.** Interrupting someone more than a few times an hour can reduce their output to nothing.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R15",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 15,
+   "text": "**Protect blocks long enough to reload context** — for demanding work, anything under about ninety minutes is largely spent on reloading.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R16",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 16,
+   "text": "**Recognise thrashing by its signature**: full effort, no progress, and no spare capacity to reorganise. Performance collapses rather than degrading.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R17",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 17,
+   "text": "**When thrashing, lower the quality of your prioritisation, not your effort.** Choosing what to do next can cost more than doing it; arbitrary order beats paralysis.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R18",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 18,
+   "text": "**Refuse work whose working set will not fit**, before the collapse rather than after.",
+   "topics": [
+    "memory",
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R19",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 19,
+   "text": "**Set a minimum time slice** and honour it, so that responsiveness cannot consume throughput entirely.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-05-R20",
+   "pack": "atlb",
+   "parent": "ATLB-05",
+   "parent_title": "Scheduling",
+   "ordinal": 20,
+   "text": "**Be exactly as responsive as required and no more**, then batch everything else — coalesce bills, mail and messages into scheduled passes rather than servicing each interrupt on arrival.",
+   "topics": [
+    "scheduling"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R1",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 1,
+   "text": "**Identify the distribution before choosing a prediction rule.** Multiplicative, Average and Additive give contradictory answers; nearly all single-observation errors are shape errors, not arithmetic errors.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R2",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 2,
+   "text": "**Use the Multiplicative Rule for scale-free quantities** — grosses, wealth, city sizes, durations of unfamiliar things. The longer it has run, the longer to expect.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R3",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 3,
+   "text": "**Use the Average Rule for quantities with a natural scale** — predict the mean, and a little beyond once the mean is passed.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R4",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 4,
+   "text": "**Use the Additive Rule for memoryless processes** — predict a constant increment, and stop looking for the right moment to quit, because there isn't one.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R5",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 5,
+   "text": "**Apply Laplace's Law, (w+1)/(n+2), for a rate from few trials.** One success from one attempt is 2/3, not certainty.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R6",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 6,
+   "text": "**Never quote a median without the shape of its tail.** A right-skewed distribution turns \"half die within eight months\" into a very different personal forecast.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R7",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 7,
+   "text": "**Use \"it will last as long as it has lasted\" only when you genuinely know nothing** — including not knowing the timescale. Where you have real knowledge, this rule is actively misleading.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R8",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 8,
+   "text": "**Calibrate surprise to the distribution.** Under a power law, be *most* alarmed when a long-running thing has run longest; venerability is not safety.",
+   "topics": [
+    "memory",
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R9",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 9,
+   "text": "**State your prior explicitly, even as a guess.** Bayes cannot run without one, and refusing to name it does not remove it.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R10",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 10,
+   "text": "**Reverse-engineer priors from predictions.** What someone expects reveals the distribution their experience taught them, and is measurable where direct data is not.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R11",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 11,
+   "text": "**Distrust your predictions in domains where you lack exposure.** Failure is not an inference error but an absent prior.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R12",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 12,
+   "text": "**Read apparent impatience as a possible forecast, not a character defect.** Giving up early is rational when waits are scale-free or the source is unreliable.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R13",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 13,
+   "text": "**Treat reliability as an input to other people's patience.** Consistently keeping promises changes what others can rationally afford to wait for.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-06-R14",
+   "pack": "atlb",
+   "parent": "ATLB-06",
+   "parent_title": "Bayes's Rule",
+   "ordinal": 14,
+   "text": "**Guard the inputs that form your priors.** Media frequency is not world frequency; a diet of the unusual will systematically miscalibrate you.",
+   "topics": [
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R1",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 1,
+   "text": "**Judge a model by how it generalises, never by how well it fits what you already have.** Perfect fit is a warning sign, not a result.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R2",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 2,
+   "text": "**Test stability under perturbation.** Re-fit with slight noise or a different sample; a model that swings wildly is overfitted regardless of its fit statistics.",
+   "topics": [
+    "overfitting",
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R3",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 3,
+   "text": "**Add a factor only if it is significantly better, not merely better.** Complexity must earn its place against an explicit penalty.",
+   "topics": [
+    "overfitting",
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R4",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 4,
+   "text": "**Name the gap between your metric and your goal before optimising.** Every measurement is a proxy; the size of that gap determines how hard you should push.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R5",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 5,
+   "text": "**Assume that anything you measure and reward will be optimised — including in ways you did not intend.** Perverse outcomes are usually competent optimisation of a badly chosen target.",
+   "topics": [
+    "overfitting",
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R6",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 6,
+   "text": "**Cross-validate on held-out data**, and additionally **cross-validate the metric itself** against a different, harder-to-game evaluation applied to a small sample.",
+   "topics": [
+    "overfitting",
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R7",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 7,
+   "text": "**Treat divergence between your primary metric and your spot-check as the alarm**: rising scores with falling independent assessment means the target has been gamed.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R8",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 8,
+   "text": "**Drive weak factors to zero rather than shrinking them.** A short list of things that matter beats a long list of things that might.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R9",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 9,
+   "text": "**Prefer a rule that ignores the data when your estimates are unreliable.** A strategy that never fits the data cannot overfit it — which is why 50/50 can beat optimisation.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R10",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 10,
+   "text": "**Run the regularize check explicitly**: are the quantities I am relying on hard to estimate, and does my method put heavy weight on them? If yes, simplify.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R11",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 11,
+   "text": "**Treat time spent deliberating as a complexity knob.** More time means more factors and more overfitting, not automatically a better decision.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R12",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 12,
+   "text": "**Bound deliberation in advance** — to a page, a timebox, a fixed number of factors — and decide when the bound is reached.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R13",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 13,
+   "text": "**Trust the first factors you generate.** If the earliest considerations are the most important, later ones mostly add noise.",
+   "topics": [
+    "overfitting",
+    "ordering"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R14",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 14,
+   "text": "**Match your tool's resolution to your certainty.** Use a blunt instrument early; fine detail invites precision you have not earned.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R15",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 15,
+   "text": "**Value historical constraint as robustness, not as inefficiency.** Being imperfectly adapted to the present is what survives changes in the present.",
+   "topics": [
+    "overfitting",
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-07-R16",
+   "pack": "atlb",
+   "parent": "ATLB-07",
+   "parent_title": "Overfitting",
+   "ordinal": 16,
+   "text": "**Discount fast-moving consensus.** Rapid information flow enables rapid overfitting at the scale of a whole culture.",
+   "topics": [
+    "overfitting"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R1",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 1,
+   "text": "**Establish whether the problem is tractable before committing effort to an exact answer.** Difficulty is a measurable property, and many ordinary problems have no efficient solution.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R2",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 2,
+   "text": "**Treat intractability as a change of method, not as defeat.** The response is to relax, not to abandon or to grind.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R3",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 3,
+   "text": "**Solve the problem you wish you had first**, then bring the constraints back. If you cannot solve what is in front of you, solve an easier version and see whether it offers a starting point.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R4",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 4,
+   "text": "**Use the relaxed answer as a bound.** Knowing the best conceivable outcome tells you how far from optimal your practical answer is, without ever finding the optimum.",
+   "topics": [
+    "relaxation",
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R5",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 5,
+   "text": "**Ask the fantasy questions deliberately** — what would you do without the fear, the money constraint, the travel time — as an analytical step rather than as consolation.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R6",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 6,
+   "text": "**When forced into either/or, imagine the blend, then round.** A fractional solution is not an answer, but converting it back is usually cheap and often provably close.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R7",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 7,
+   "text": "**Convert probabilities into decisions where averages cannot apply**, rather than discarding a fractional result as meaningless.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R8",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 8,
+   "text": "**Accept a bounded multiple of optimal.** Twice the optimal number of invitations or vaccinations, computed quickly, beats an unattainable perfect answer.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R9",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 9,
+   "text": "**Ask \"or else what?\" of every hard constraint.** Turning a prohibition into a priced penalty is what makes an intractable problem tractable.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R10",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 10,
+   "text": "**Audit which constraints are genuinely inviolable.** Stated absolutes frequently turn out to have been violated repeatedly and forgotten — check the record before designing around them.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R11",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 11,
+   "text": "**Consider paying a known penalty rather than accepting a large loss** to satisfy a rule; and note that merely imagining the infraction clarifies the real cost.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R12",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 12,
+   "text": "**Expect a good process to surface options nobody proposed.** The value of optimisation on an intractable problem is often the unconsidered arrangement, not the optimum.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-08-R13",
+   "pack": "atlb",
+   "parent": "ATLB-08",
+   "parent_title": "Relaxation",
+   "ordinal": 13,
+   "text": "**Distinguish conscious from unconscious wishful thinking.** Relaxation works because it is designed to be reconciled with reality; fantasy that is never reconciled ends in the collapse Booker describes.",
+   "topics": [
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R1",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 1,
+   "text": "**Sample when the possibility space is too large to enumerate.** An estimate with known error beats an exact answer you will never compute.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R2",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 2,
+   "text": "**Judge sampling by whether it returns an answer at all**, not by whether it beats exhaustive analysis for precision.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R3",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 3,
+   "text": "**Simulate the process rather than deriving it** when outcomes branch — play the game, run the trial, count what happens.",
+   "topics": [
+    "process_design",
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R4",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 4,
+   "text": "**Use repeated random tests to drive uncertainty arbitrarily low.** Each independent check multiplies down the error; near-certainty is usually cheap.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R5",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 5,
+   "text": "**Decide explicitly what error rate you need** rather than assuming you need none — cryptography settles for one in 10²⁴, and that is a choice.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R6",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 6,
+   "text": "**Trade certainty for time and space deliberately.** Error probability is a third design axis, not a defect.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R7",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 7,
+   "text": "**Prefer random samples to both anecdotes and aggregates.** Selected stories carry no information *because* they were selected; aggregates hide the heterogeneity that matters, and you rarely know which statistic to ask for.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R8",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 8,
+   "text": "**Commit in advance to publishing what the random sample returns**, whatever it says — the pre-commitment is what makes it evidence.",
+   "topics": [
+    "randomness",
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R9",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 9,
+   "text": "**Treat a large quantitative gap as a qualitative one.** \"Possible in principle\" is not a defence when the cost is astronomically large.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R10",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 10,
+   "text": "**Recognise the local maximum**: nothing nearby improves matters, yet you suspect something far better exists. Nearby-optimal is not optimal.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R11",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 11,
+   "text": "**Accept a temporary worsening to escape.** Some traps require moving *away* from the exit before you can reach it.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R12",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 12,
+   "text": "**Match the escape to the landscape** — jitter for small perturbations, full random restart where local maxima are dense, Metropolis-style occasional bad moves for continuous search.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R13",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 13,
+   "text": "**Anneal: be most random early and least random late**, and slow down as you approach a decision rather than after it.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R14",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 14,
+   "text": "**Never decline a clear improvement**, however random your process otherwise is.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R15",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 15,
+   "text": "**Scale willingness to try a bad option inversely to how bad it is** — this keeps exploration cheap rather than reckless.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-09-R16",
+   "pack": "atlb",
+   "parent": "ATLB-09",
+   "parent_title": "Randomness",
+   "ordinal": 16,
+   "text": "**Engineer serendipity deliberately.** Random inputs — cards, articles, unfamiliar ingredients — break context and are a reliable technique, not a happy accident.",
+   "topics": [
+    "randomness"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R1",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 1,
+   "text": "**Prefer many independent paths to one reliable channel.** Redundant routing makes reliability *increase* with scale, where a dedicated channel makes it decrease.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R2",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 2,
+   "text": "**Accept that confirmation is never complete** and fix a practical stopping point, rather than pursuing certainty that provably cannot exist.",
+   "topics": [
+    "congestion",
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R3",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 3,
+   "text": "**Treat acknowledgment as load-bearing.** Backchannel traffic is not overhead; a sender starved of it slows down or stops.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R4",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 4,
+   "text": "**Tune silence-to-alarm thresholds to the medium's round-trip time**, and state them where the other party cannot infer them.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R5",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 5,
+   "text": "**Do not eliminate the signals that prove a channel is alive.** Removing background reassurance forces both parties into constant explicit checking.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R6",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 6,
+   "text": "**Break symmetry with randomness** when two parties keep colliding through polite deference.",
+   "topics": [
+    "randomness",
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R7",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 7,
+   "text": "**Retry with exponentially increasing delays** rather than a fixed number of attempts. Retry rate approaches zero while never becoming refusal.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R8",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 8,
+   "text": "**Replace \"three strikes and you're out\" with backoff** wherever you want finite patience and infinite mercy — it protects you from an endless cycle without declaring anyone beyond redemption.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R9",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 9,
+   "text": "**Prefer immediate small escalating sanctions to delayed large ones.** Predictable and prompt beats severe and rare — HOPE cut new arrests by half and drug use by 72%.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R10",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 10,
+   "text": "**Increase commitment additively, cut it multiplicatively.** Ramp gently, retreat by half — asymmetry is what makes a shared system stable.",
+   "topics": [
+    "stopping",
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R11",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 11,
+   "text": "**Pull back at least as fast as you are being overloaded**, or the system cannot stabilise.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R12",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 12,
+   "text": "**Consider reversible movement in both directions** rather than one-way promotion or termination. Aim for a sawtooth, not an arc.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R13",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 13,
+   "text": "**Push to the point of failure only when your response to failure is sharp and resilient.** Otherwise do not.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R14",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 14,
+   "text": "**Judge listening as participation.** A distracted audience measurably degrades what the speaker produces.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R15",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 15,
+   "text": "**Keep queues small and drain them to empty.** A permanently full buffer delivers all the latency and none of the smoothing.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R16",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 16,
+   "text": "**Preserve the feedback that overload generates.** Refusing work is how a system learns to slow down; absorbing everything hides the signal until far too late.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R17",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 17,
+   "text": "**Make refusal explicit rather than deferring indefinitely.** Rejecting now is often kinder and more useful than a reply guaranteed too late to matter.",
+   "topics": [
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-10-R18",
+   "pack": "atlb",
+   "parent": "ATLB-10",
+   "parent_title": "Networking",
+   "ordinal": 18,
+   "text": "**Distinguish capacity from responsiveness.** For anything interactive, turnaround time matters more than throughput — and only one of them gets advertised.",
+   "topics": [
+    "scheduling",
+    "congestion"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R1",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 1,
+   "text": "**Stop escalating levels of \"what do they think I think.\"** Simulating a system as complex as yourself exhausts your resources by definition.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R2",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 2,
+   "text": "**Play one level above your opponent, not more.** Over-modelling attributes information to people who do not have it, and makes your own signals unreadable.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R3",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 3,
+   "text": "**Watch for opponents who profit from your deliberation.** Where thinking is costly and time-bounded, an adversary can win by giving you nothing worth thinking about.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R4",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 4,
+   "text": "**Compute the equilibrium instead of reading the person** where one is available — but treat \"an equilibrium exists\" as no guarantee anyone can find it.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R5",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 5,
+   "text": "**Discount predictions built on equilibria that are intractable to compute.** If it cannot be found, it cannot be relied on as a forecast of behaviour.",
+   "topics": [
+    "strategic",
+    "prediction"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R6",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 6,
+   "text": "**Never assume a stable outcome is a good one.** Stability is what makes bad equilibria resistant, not what makes them desirable.",
+   "topics": [
+    "strategic",
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R7",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 7,
+   "text": "**Prefer dominant strategies where they exist** — they remove the need to model anyone else at all.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R8",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 8,
+   "text": "**Estimate the price of anarchy before demanding coordination.** Sometimes central control adds only a third; sometimes its absence is ruinous.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R9",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 9,
+   "text": "**Recognise the commons structure**: private gain, diffuse harm, and a race that leaves everyone worse off with no relative advantage gained.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R10",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 10,
+   "text": "**Do not try to fix a bad equilibrium from inside it.** Change the rules, or find an outside authority who can.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R11",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 11,
+   "text": "**Making outcomes worse can make everyone better off** if it moves the equilibrium. Constraints are not merely costs.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R12",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 12,
+   "text": "**Sweetening a payoff without moving the equilibrium accomplishes nothing.** Check whether your incentive changes the *structure* or merely the stakes.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R13",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 13,
+   "text": "**Set floors rather than offering rewards** in races to the bottom — a compulsory minimum costs nothing and works where a bonus fails.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R14",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 14,
+   "text": "**Bind yourself deliberately.** Contracts, schedules, closing times and commitments are equilibrium-shifting devices, not just restrictions.",
+   "topics": [
+    "strategic",
+    "stopping"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R15",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 15,
+   "text": "**Treat involuntary commitment as an asset.** A reputation for responding disproportionately deters exploitation; predictability of feeling substitutes for external enforcement.",
+   "topics": [
+    "stopping",
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R16",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 16,
+   "text": "**Beware when public information exceeds private information** — when you know what others are doing but not why, you may be joining a cascade rather than learning.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R17",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 17,
+   "text": "**Broadcast your doubts even when you act with the crowd**, so your action does not read as confidence and stop being informative.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R18",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 18,
+   "text": "**Remember that a cascade requires no irrationality or malice.** Assigning blame after a collapse may simply be the wrong frame.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R19",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 19,
+   "text": "**Design for truthfulness.** If you do not want people optimising against you, optimise for them — any game requiring strategic misrepresentation can in principle be rebuilt so that honesty dominates.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-11-R20",
+   "pack": "atlb",
+   "parent": "ATLB-11",
+   "parent_title": "Game Theory",
+   "ordinal": 20,
+   "text": "**Count strategising as a cost of the game itself**, and prefer arrangements that let you act on what you actually want.",
+   "topics": [
+    "strategic"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R1",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 1,
+   "text": "**Evaluate decisions by the process, not the outcome.** A provably optimal method still fails often; if you followed the best available process, the loss is not a mistake.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R2",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 2,
+   "text": "**State the failure rate of your method up front.** 37% optimal means 63% failure, and knowing that in advance is what makes a bad outcome bearable rather than evidence against the method.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R3",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 3,
+   "text": "**Recognise that even perfect information would not guarantee success** in many of these problems — the ceiling is lower than intuition assumes.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R4",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 4,
+   "text": "**Accept \"good enough\" on intractable problems** rather than paying unbounded cost for an answer you cannot reach.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R5",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 5,
+   "text": "**Choose tractable problems where you have the choice.** Complexity awareness is a filter on which situations to enter, not only a method for handling them.",
+   "topics": [
+    "process_design",
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R6",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 6,
+   "text": "**Treat every request you make as a computational problem you are imposing**, and minimise its cost — this is the core move.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R7",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 7,
+   "text": "**Prefer verification to search when asking something of someone.** A concrete proposal to accept or decline is far cheaper than an open-ended question.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R8",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 8,
+   "text": "**Offer constrained options, even somewhat arbitrary ones.** \"Tuesday 1–2pm\" gets more yeses than \"any time that works.\"",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R9",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 9,
+   "text": "**State your preferences rather than withholding them.** \"I'm flexible\" passes the cognitive buck and forces others to simulate your mind — the most expensive computation there is.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R10",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 10,
+   "text": "**Reduce the number of options you present**, and let others eliminate rather than construct.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R11",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 11,
+   "text": "**Beware of consensus assembled from mutual inference.** Groups reach decisions nobody wanted when each person mirrors the enthusiasm they read in the others.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R12",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 12,
+   "text": "**Design so the greedy algorithm stays optimal.** A slightly worse arrangement that keeps the decision simple usually beats an optimal one that makes every user solve a hard problem.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R13",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 13,
+   "text": "**Audit designs for the mental labour they impose**, alongside space, materials and money — the cost is real and rarely counted.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R14",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 14,
+   "text": "**Replace spinning with blocking wherever the waiting is done by people.** Notify rather than making people watch; convert a continuous re-decision into a single one.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R15",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 15,
+   "text": "**Publish the information that collapses a repeated inference into one decision** — a countdown, an ETA, a confirmed time.",
+   "topics": [
+    "process_design"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  },
+  {
+   "id": "ATLB-12-R16",
+   "pack": "atlb",
+   "parent": "ATLB-12",
+   "parent_title": "Computational Kindness",
+   "ordinal": 16,
+   "text": "**Stop treating assumption, approximation and chance as compromises.** On hard problems they are what rationality consists of.",
+   "topics": [
+    "process_design",
+    "relaxation"
+   ],
+   "authority": "primary",
+   "domain": "decisions"
+  }
+ ],
+ "topics": {
+  "randomness": [
+   "ATLB-00-R4",
+   "ATLB-07-R2",
+   "ATLB-07-R6",
+   "ATLB-09-R1",
+   "ATLB-09-R10",
+   "ATLB-09-R11",
+   "ATLB-09-R12",
+   "ATLB-09-R13",
+   "ATLB-09-R14",
+   "ATLB-09-R15",
+   "ATLB-09-R16",
+   "ATLB-09-R2",
+   "ATLB-09-R3",
+   "ATLB-09-R4",
+   "ATLB-09-R5",
+   "ATLB-09-R6",
+   "ATLB-09-R7",
+   "ATLB-09-R8",
+   "ATLB-09-R9",
+   "ATLB-10-R6"
+  ],
+  "overfitting": [
+   "ATLB-00-R4",
+   "ATLB-07-R1",
+   "ATLB-07-R10",
+   "ATLB-07-R11",
+   "ATLB-07-R12",
+   "ATLB-07-R13",
+   "ATLB-07-R14",
+   "ATLB-07-R15",
+   "ATLB-07-R16",
+   "ATLB-07-R2",
+   "ATLB-07-R3",
+   "ATLB-07-R4",
+   "ATLB-07-R5",
+   "ATLB-07-R6",
+   "ATLB-07-R7",
+   "ATLB-07-R8",
+   "ATLB-07-R9"
+  ],
+  "scheduling": [
+   "ATLB-00-R7",
+   "ATLB-03-R11",
+   "ATLB-05-R1",
+   "ATLB-05-R10",
+   "ATLB-05-R11",
+   "ATLB-05-R12",
+   "ATLB-05-R13",
+   "ATLB-05-R14",
+   "ATLB-05-R15",
+   "ATLB-05-R16",
+   "ATLB-05-R17",
+   "ATLB-05-R18",
+   "ATLB-05-R19",
+   "ATLB-05-R2",
+   "ATLB-05-R20",
+   "ATLB-05-R3",
+   "ATLB-05-R4",
+   "ATLB-05-R5",
+   "ATLB-05-R6",
+   "ATLB-05-R7",
+   "ATLB-05-R8",
+   "ATLB-05-R9",
+   "ATLB-10-R18"
+  ],
+  "explore_exploit": [
+   "ATLB-00-R8",
+   "ATLB-02-R1",
+   "ATLB-02-R10",
+   "ATLB-02-R11",
+   "ATLB-02-R12",
+   "ATLB-02-R13",
+   "ATLB-02-R14",
+   "ATLB-02-R15",
+   "ATLB-02-R2",
+   "ATLB-02-R3",
+   "ATLB-02-R4",
+   "ATLB-02-R5",
+   "ATLB-02-R6",
+   "ATLB-02-R7",
+   "ATLB-02-R8",
+   "ATLB-02-R9"
+  ],
+  "process_design": [
+   "ATLB-00-R9",
+   "ATLB-01-R7",
+   "ATLB-07-R5",
+   "ATLB-08-R4",
+   "ATLB-09-R3",
+   "ATLB-11-R6",
+   "ATLB-12-R1",
+   "ATLB-12-R10",
+   "ATLB-12-R11",
+   "ATLB-12-R12",
+   "ATLB-12-R13",
+   "ATLB-12-R14",
+   "ATLB-12-R15",
+   "ATLB-12-R16",
+   "ATLB-12-R2",
+   "ATLB-12-R3",
+   "ATLB-12-R4",
+   "ATLB-12-R5",
+   "ATLB-12-R6",
+   "ATLB-12-R7",
+   "ATLB-12-R8",
+   "ATLB-12-R9"
+  ],
+  "stopping": [
+   "ATLB-01-R1",
+   "ATLB-01-R10",
+   "ATLB-01-R11",
+   "ATLB-01-R12",
+   "ATLB-01-R13",
+   "ATLB-01-R14",
+   "ATLB-01-R15",
+   "ATLB-01-R2",
+   "ATLB-01-R3",
+   "ATLB-01-R4",
+   "ATLB-01-R5",
+   "ATLB-01-R6",
+   "ATLB-01-R7",
+   "ATLB-01-R8",
+   "ATLB-01-R9",
+   "ATLB-02-R12",
+   "ATLB-09-R8",
+   "ATLB-10-R10",
+   "ATLB-10-R2",
+   "ATLB-11-R14",
+   "ATLB-11-R15"
+  ],
+  "memory": [
+   "ATLB-01-R11",
+   "ATLB-01-R4",
+   "ATLB-04-R1",
+   "ATLB-04-R10",
+   "ATLB-04-R11",
+   "ATLB-04-R12",
+   "ATLB-04-R13",
+   "ATLB-04-R14",
+   "ATLB-04-R15",
+   "ATLB-04-R2",
+   "ATLB-04-R3",
+   "ATLB-04-R4",
+   "ATLB-04-R5",
+   "ATLB-04-R6",
+   "ATLB-04-R7",
+   "ATLB-04-R8",
+   "ATLB-04-R9",
+   "ATLB-05-R18",
+   "ATLB-06-R8"
+  ],
+  "ordering": [
+   "ATLB-03-R1",
+   "ATLB-03-R10",
+   "ATLB-03-R11",
+   "ATLB-03-R12",
+   "ATLB-03-R13",
+   "ATLB-03-R14",
+   "ATLB-03-R15",
+   "ATLB-03-R16",
+   "ATLB-03-R2",
+   "ATLB-03-R3",
+   "ATLB-03-R4",
+   "ATLB-03-R5",
+   "ATLB-03-R6",
+   "ATLB-03-R7",
+   "ATLB-03-R8",
+   "ATLB-03-R9",
+   "ATLB-04-R9",
+   "ATLB-07-R13"
+  ],
+  "relaxation": [
+   "ATLB-04-R14",
+   "ATLB-07-R15",
+   "ATLB-07-R3",
+   "ATLB-08-R1",
+   "ATLB-08-R10",
+   "ATLB-08-R11",
+   "ATLB-08-R12",
+   "ATLB-08-R13",
+   "ATLB-08-R2",
+   "ATLB-08-R3",
+   "ATLB-08-R4",
+   "ATLB-08-R5",
+   "ATLB-08-R6",
+   "ATLB-08-R7",
+   "ATLB-08-R8",
+   "ATLB-08-R9",
+   "ATLB-12-R16",
+   "ATLB-12-R5"
+  ],
+  "prediction": [
+   "ATLB-05-R5",
+   "ATLB-06-R1",
+   "ATLB-06-R10",
+   "ATLB-06-R11",
+   "ATLB-06-R12",
+   "ATLB-06-R13",
+   "ATLB-06-R14",
+   "ATLB-06-R2",
+   "ATLB-06-R3",
+   "ATLB-06-R4",
+   "ATLB-06-R5",
+   "ATLB-06-R6",
+   "ATLB-06-R7",
+   "ATLB-06-R8",
+   "ATLB-06-R9",
+   "ATLB-11-R5"
+  ],
+  "congestion": [
+   "ATLB-10-R1",
+   "ATLB-10-R10",
+   "ATLB-10-R11",
+   "ATLB-10-R12",
+   "ATLB-10-R13",
+   "ATLB-10-R14",
+   "ATLB-10-R15",
+   "ATLB-10-R16",
+   "ATLB-10-R17",
+   "ATLB-10-R18",
+   "ATLB-10-R2",
+   "ATLB-10-R3",
+   "ATLB-10-R4",
+   "ATLB-10-R5",
+   "ATLB-10-R6",
+   "ATLB-10-R7",
+   "ATLB-10-R8",
+   "ATLB-10-R9"
+  ],
+  "strategic": [
+   "ATLB-11-R1",
+   "ATLB-11-R10",
+   "ATLB-11-R11",
+   "ATLB-11-R12",
+   "ATLB-11-R13",
+   "ATLB-11-R14",
+   "ATLB-11-R15",
+   "ATLB-11-R16",
+   "ATLB-11-R17",
+   "ATLB-11-R18",
+   "ATLB-11-R19",
+   "ATLB-11-R2",
+   "ATLB-11-R20",
+   "ATLB-11-R3",
+   "ATLB-11-R4",
+   "ATLB-11-R5",
+   "ATLB-11-R6",
+   "ATLB-11-R7",
+   "ATLB-11-R8",
+   "ATLB-11-R9"
+  ]
+ },
+ "problems": []
+}
