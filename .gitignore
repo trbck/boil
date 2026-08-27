@@ -30,3 +30,9 @@ venv/
 # --- OS ----------------------------------------------------------------------
 .DS_Store
 Thumbs.db
+
+# --- Bootstrapping review queues ---------------------------------------------
+# Regenerable drafts from suggest_taxonomy.py / suggest_conflicts.py. Promote what
+# survives review into taxonomy.json / conflicts.md; the drafts themselves are noise.
+domains/*/taxonomy.suggested.json
+domains/*/registry.candidates.md

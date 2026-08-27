@@ -75,7 +75,7 @@ each phase is an empty diff against it.
 | 2 | Generated skill surface | M | ✅ Description regenerates from domains; live in registry |
 | 3 | Modes & gates as configuration | M–L | ✅ 5 generic modes; gates + 13-item checklist as data |
 | 4 | Multi-domain routing & ID uniqueness | M | ✅ Verified with a stub domain, then removed |
-| 5 | Bootstrapping tools | M | New domain gets a usable draft taxonomy |
+| 5 | Bootstrapping tools | M | ✅ Validated against the hand-curated registry |
 | 6 | Second domain — *Algorithms to Live By* | — | Full pipeline, **zero edits to `scripts/`** |
 | 7 | Distribution | M | One-command install; bundle within limits |
 | 8 | Evals | M | Triggering measured, not assumed |
@@ -126,13 +126,25 @@ mint colliding rule IDs across domains); `lookup.py` merges all domain indexes a
 stay short. Verified end to end with a throwaway stub domain — cross-domain search, `--domain`
 isolation, description regeneration, and collision rejection — then removed.
 
-### Phase 5 — Bootstrapping tools
+### Phase 5 — Bootstrapping tools — *delivered*
 
-New-domain friction is what stops books getting added, so this is a feature, not polish.
+New-domain friction is what stops books getting added, so this is a feature, not polish. Both tools
+write to a separate review file and never touch `taxonomy.json` or `conflicts.md`.
 
-- `suggest_taxonomy.py` — candidate topics and keywords from chapter titles and `Governs:` lines.
-- `suggest_conflicts.py` — cross-pack rule pairs that are topically adjacent and lexically opposed
-  (`never`/`always`, `prefer`/`avoid`), proposed for human confirmation.
+**`suggest_taxonomy.py`** — tf-idf over chapter title/Governs/Thesis/headings/rules, then
+average-linkage agglomerative clustering; labels preferentially drawn from chapter titles, since
+those are the author's own labels. Validated on trading: clusters were semantically correct
+(ASSP-01/05/06/09 = sizing and allocation, ML4T-02/04 = data, ML4T-14/19 = factors and risk).
+Labels are the weak output and need renaming — which is why the file is a suggestion.
+
+**`suggest_conflicts.py`** — reframed during implementation. It finds *topical adjacency across
+packs* and splits by polarity: opposed pairs are conflict candidates, aligned pairs are convergence
+candidates. The original conflict-only framing was wrong, because the registry holds both and the
+first run returned zero opposed pairs and three genuine convergences.
+
+Validation is the notable result: from 4,302 cross-pack pairs the top three candidates were
+**exactly** hand-curated entries C3, V7 and V6 — and for V6 it produced a more precise citation
+(`ASSP-10-R13`) than the hand-written entry, which had cited the section rather than the rule.
 
 ### Phase 6 — Second domain: *Algorithms to Live By*
 
