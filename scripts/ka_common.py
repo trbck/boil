@@ -53,6 +53,27 @@ def load_domain_packs(domain):
 def load_domain_taxonomy(domain):
     return load_json(domain_path(domain, "taxonomy", "taxonomy.json"))
 
+
+def load_modes(domain):
+    """Domain modes, falling back to the shared default set.
+
+    Modes are generic on purpose; what varies per domain is the gates a plan
+    must satisfy and the checklist a review runs.
+    """
+    path = domain_path(domain, "modes", "modes.json")
+    if not os.path.exists(path):
+        path = os.path.join(ROOT, "templates", "modes.default.json")
+    return load_json(path)["modes"]
+
+
+def load_optional(domain, key):
+    """Load an optional per-domain config file named in domain.json."""
+    name = domain.get(key)
+    if not name:
+        return None
+    path = os.path.join(domain["root"], name)
+    return load_json(path) if os.path.exists(path) else None
+
 # --- format contract regexes -------------------------------------------------
 # Chapter H1 accepts em dash, en dash or hyphen because editors silently swap them.
 CH_RE = re.compile(r"^#\s+Ch\s+(\d+)\s*[—–-]\s*(.+?)\s*$")

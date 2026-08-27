@@ -1,0 +1,50 @@
+{
+  "$schema": "internal://gates.v1",
+  "comment": "Gates are the decisions that must be fixed before downstream work is worth doing. The plan mode refuses to leave one silently unset. This is the domain-specific half of an otherwise generic mode set.",
+  "id": "five-frozen-choices",
+  "label": "The five frozen choices",
+  "source": "ML4T-01",
+  "rationale": "Fix these before iterating. Changing one mid-stream makes results incomparable across attempts, so improvements stop being interpretable as stronger signal and become changed definitions.",
+  "items": [
+    {
+      "name": "Decision-time correctness",
+      "must_state": "What is knowable at each decision point, and how every feature is aligned to its availability."
+    },
+    {
+      "name": "Tradability & universe",
+      "must_state": "What can be traded, liquidity and capacity screens, shorting and borrow rules."
+    },
+    {
+      "name": "Label & horizon",
+      "must_state": "The target and the holding period — this is what the model actually optimises."
+    },
+    {
+      "name": "Cost-model class",
+      "must_state": "Which frictions apply: spread, slippage, financing, impact. The class is frozen; parameters get estimated."
+    },
+    {
+      "name": "Evaluation protocol",
+      "must_state": "Walk-forward structure, holdout design, trial logging."
+    }
+  ],
+  "additional": [
+    {
+      "name": "Archetype",
+      "must_state": "Left-skew (mean reversion) or right-skew (trend following)? Determines the failure mode, the right risk metric, and whether stops even apply.",
+      "rules": ["ASSP-09-R2", "ASSP-09-R3"]
+    },
+    {
+      "name": "Edge as a number",
+      "must_state": "Gain expectancy decomposed into win rate, average win, average loss — and which module you are attacking."
+    },
+    {
+      "name": "Cost sensitivity",
+      "must_state": "Break-even cost against assumed cost.",
+      "rules": ["ML4T-16-R9"]
+    },
+    {
+      "name": "Exposure envelope",
+      "must_state": "Gross, net, net beta, concentration."
+    }
+  ]
+}

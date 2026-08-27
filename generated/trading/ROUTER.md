@@ -95,7 +95,6 @@ Engine content is retrieved by symbol, never loaded whole: `python3 scripts/look
 - **`assp`** — ASSP-06 ships DELIBERATE lookahead bias for pedagogy (signal alignment + P&L computed after resize). Never inherit its P&L ordering without fixing both.
 - **`assp`** — ASSP-05 pairs-trading thresholds are optimized on a single pair and are explicitly not expected to generalize.
 - **`notes`** — Derived material: own research output, agent reports, working conventions. Cite it as such and never let it silently override a book rule -- if it contradicts one, surface the disagreement.
-- **`notes`** — Populated by scripts/ingest.py from inbox/. Categories are subdirectories.
 - **`vbtpro`** — Licensed material. Raw files are gitignored by default; see README before committing them to a public remote.
 - **`vbtpro`** — Docs describe the engine's capabilities, not sound method. Method rules come from the book packs.
 

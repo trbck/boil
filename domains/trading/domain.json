@@ -18,5 +18,7 @@
   "packs": "packs.json",
   "taxonomy": "taxonomy.json",
   "conflicts": "conflicts.md",
-  "notes_pack": "notes"
+  "notes_pack": "notes",
+  "gates": "gates.json",
+  "checklists": "checklists.json"
 }

@@ -9,7 +9,9 @@ Usage:
 """
 
 import argparse
+import json
 import os
+import re
 import subprocess
 import sys
 
@@ -123,6 +125,31 @@ def check_engine(pack):
     return errors, warnings
 
 
+RULE_REF_RE = re.compile(r'"([A-Z][A-Z0-9]*-\d+-R\d+)"')
+
+
+def check_domain_config(domain):
+    """Gates and checklists may cite rule IDs; every one must resolve.
+
+    This is the mechanical half of "never invent an ID" -- config is written by
+    hand, so without this a typo ships as a confident-looking citation.
+    """
+    errors, warnings = [], []
+    index_path = os.path.join(domain["generated"], "index.json")
+    if not os.path.exists(index_path):
+        warnings.append("no built index yet — cannot verify rule references")
+        return errors, warnings
+    known = {r["id"] for r in K.load_json(index_path).get("rules", [])}
+    for key in ("gates", "checklists"):
+        cfg = K.load_optional(domain, key)
+        if not cfg:
+            continue
+        for rid in sorted(set(RULE_REF_RE.findall(json.dumps(cfg)))):
+            if rid not in known:
+                errors.append("%s.json cites unknown rule %s" % (key, rid))
+    return errors, warnings
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -135,10 +162,19 @@ def main():
     if not domains:
         sys.exit("no domains found")
     total_err = total_warn = 0
-
     packs = []
     for dom in domains:
         packs += K.load_domain_packs(dom)
+        errors, warnings = check_domain_config(dom)
+        if errors or warnings:
+            print("%-10s %-8s %-7s %3s          %s"
+                  % (dom["id"], "config", "-", "-", "FAIL" if errors else "ok"))
+            for err in errors:
+                print("   ✗ %s" % err)
+            for warn in warnings:
+                print("   ! %s" % warn)
+            total_err += len(errors)
+            total_warn += len(warnings)
 
     for pack in packs:
         if args.pack and pack["id"] != args.pack:

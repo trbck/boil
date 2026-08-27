@@ -57,8 +57,7 @@
       "recursive": true,
       "authoritative_on": [],
       "caveats": [
-        "Derived material: own research output, agent reports, working conventions. Cite it as such and never let it silently override a book rule -- if it contradicts one, surface the disagreement.",
-        "Populated by scripts/ingest.py from inbox/. Categories are subdirectories."
+        "Derived material: own research output, agent reports, working conventions. Cite it as such and never let it silently override a book rule -- if it contradicts one, surface the disagreement."
       ]
     },
     {
