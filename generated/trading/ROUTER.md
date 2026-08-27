@@ -1,8 +1,10 @@
-# Knowledge Router
+# Knowledge Router — Quantitative trading & investment strategy
 
-Always-loaded map of the corpus. Resolve a question to a small number of chapters, sections or rule shards, then load only those.
+Always-loaded map of this domain's corpus. Resolve a question to a small number of chapters, sections or rule shards, then load only those.
 
-`corpus: 049c7fa15910`
+_Systematic trading: research process, signals, regime detection, position sizing, portfolio construction, risk and drawdown control, transaction costs, backtesting rigour, and live execution._
+
+`domain: trading`  ·  `corpus: ad5d900819a1`
 
 ## Packs
 
@@ -13,7 +15,7 @@ Always-loaded map of the corpus. Resolve a question to a small number of chapter
 | `notes` | notes | Research notes & reports | — |
 | `vbtpro` | engine | VectorBT PRO documentation | `tooling`, `backtesting` |
 
-When packs disagree, prefer the one authoritative on the topic in question — and say that a disagreement existed. See `references/conflicts.md`.
+When packs disagree, prefer the one authoritative on the topic in question — and say that a disagreement existed. See `domains/trading/conflicts.md`.
 
 ## Rule shards
 
@@ -100,7 +102,7 @@ Engine content is retrieved by symbol, never loaded whole: `python3 scripts/look
 ## Retrieval
 
 ```bash
-python3 scripts/lookup.py --search "position sizing under drawdown"
+python3 scripts/lookup.py --domain trading --search "..."
 python3 scripts/lookup.py --rule ASSP-09-R7
 python3 scripts/lookup.py --chapter ASSP-09
 python3 scripts/lookup.py --section ASSP-09§5

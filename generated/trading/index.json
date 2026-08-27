@@ -1,5 +1,20 @@
 {
- "corpus_fingerprint": "049c7fa15910",
+ "domain": "trading",
+ "title": "Quantitative trading & investment strategy",
+ "summary": "Systematic trading: research process, signals, regime detection, position sizing, portfolio construction, risk and drawdown control, transaction costs, backtesting rigour, and live execution.",
+ "scope": [
+  "designing, coding, reviewing or reasoning about a trading or investment strategy",
+  "backtesting, walk-forward validation and lookahead bias",
+  "position sizing, leverage and the Kelly criterion",
+  "regime detection and market state",
+  "portfolio construction, exposure, beta and allocation",
+  "risk, drawdown control and tail behaviour",
+  "transaction costs, borrow, liquidity and capacity",
+  "feature and label engineering for financial machine learning",
+  "live trading operations and MLOps",
+  "auditing strategy code or a research plan"
+ ],
+ "corpus_fingerprint": "ad5d900819a1",
  "packs": [
   {
    "id": "ml4t",
@@ -21,7 +36,8 @@
    ],
    "caveats": [
     "Chapter 20 is absent from the distilled set (numbering jumps 19 -> 21). Treat any Ch. 20 reference as unindexed."
-   ]
+   ],
+   "domain": "trading"
   },
   {
    "id": "assp",
@@ -44,7 +60,8 @@
    "caveats": [
     "ASSP-06 ships DELIBERATE lookahead bias for pedagogy (signal alignment + P&L computed after resize). Never inherit its P&L ordering without fixing both.",
     "ASSP-05 pairs-trading thresholds are optimized on a single pair and are explicitly not expected to generalize."
-   ]
+   ],
+   "domain": "trading"
   },
   {
    "id": "notes",
@@ -58,7 +75,8 @@
    "caveats": [
     "Derived material: own research output, agent reports, working conventions. Cite it as such and never let it silently override a book rule -- if it contradicts one, surface the disagreement.",
     "Populated by scripts/ingest.py from inbox/. Categories are subdirectories."
-   ]
+   ],
+   "domain": "trading"
   },
   {
    "id": "vbtpro",
@@ -80,12 +98,13 @@
    "caveats": [
     "Licensed material. Raw files are gitignored by default; see README before committing them to a public remote.",
     "Docs describe the engine's capabilities, not sound method. Method rules come from the book packs."
-   ]
+   ],
+   "domain": "trading"
   }
  ],
  "chapters": [
   {
-   "file": "knowledge/ml4t/01-process-is-your-edge.md",
+   "file": "domains/trading/knowledge/ml4t/01-process-is-your-edge.md",
    "pinned_topics": [],
    "number": 1,
    "title": "The Process Is Your Edge",
@@ -198,7 +217,7 @@
    "rule_count": 9
   },
   {
-   "file": "knowledge/ml4t/02-financial-data-universe.md",
+   "file": "domains/trading/knowledge/ml4t/02-financial-data-universe.md",
    "pinned_topics": [],
    "number": 2,
    "title": "The Financial Data Universe",
@@ -298,7 +317,7 @@
    "rule_count": 10
   },
   {
-   "file": "knowledge/ml4t/03-market-microstructure.md",
+   "file": "domains/trading/knowledge/ml4t/03-market-microstructure.md",
    "pinned_topics": [],
    "number": 3,
    "title": "Market Microstructure",
@@ -423,7 +442,7 @@
    "rule_count": 13
   },
   {
-   "file": "knowledge/ml4t/04-fundamental-alternative-data.md",
+   "file": "domains/trading/knowledge/ml4t/04-fundamental-alternative-data.md",
    "pinned_topics": [],
    "number": 4,
    "title": "Fundamental and Alternative Data",
@@ -508,7 +527,7 @@
    "rule_count": 11
   },
   {
-   "file": "knowledge/ml4t/05-synthetic-financial-data.md",
+   "file": "domains/trading/knowledge/ml4t/05-synthetic-financial-data.md",
    "pinned_topics": [],
    "number": 5,
    "title": "Synthetic Financial Data",
@@ -597,7 +616,7 @@
    "rule_count": 10
   },
   {
-   "file": "knowledge/ml4t/06-strategy-research-framework.md",
+   "file": "domains/trading/knowledge/ml4t/06-strategy-research-framework.md",
    "pinned_topics": [],
    "number": 6,
    "title": "Strategy Research Framework",
@@ -737,7 +756,7 @@
    "rule_count": 12
   },
   {
-   "file": "knowledge/ml4t/07-defining-the-learning-task.md",
+   "file": "domains/trading/knowledge/ml4t/07-defining-the-learning-task.md",
    "pinned_topics": [],
    "number": 7,
    "title": "Defining the Learning Task",
@@ -857,7 +876,7 @@
    "rule_count": 14
   },
   {
-   "file": "knowledge/ml4t/08-financial-feature-engineering.md",
+   "file": "domains/trading/knowledge/ml4t/08-financial-feature-engineering.md",
    "pinned_topics": [],
    "number": 8,
    "title": "Financial Feature Engineering",
@@ -972,7 +991,7 @@
    "rule_count": 15
   },
   {
-   "file": "knowledge/ml4t/09-model-based-feature-extraction.md",
+   "file": "domains/trading/knowledge/ml4t/09-model-based-feature-extraction.md",
    "pinned_topics": [],
    "number": 9,
    "title": "Model-Based Feature Extraction",
@@ -1088,7 +1107,7 @@
    "rule_count": 17
   },
   {
-   "file": "knowledge/ml4t/10-text-feature-engineering.md",
+   "file": "domains/trading/knowledge/ml4t/10-text-feature-engineering.md",
    "pinned_topics": [],
    "number": 10,
    "title": "Text Feature Engineering",
@@ -1196,7 +1215,7 @@
    "rule_count": 16
   },
   {
-   "file": "knowledge/ml4t/11-the-ml-pipeline.md",
+   "file": "domains/trading/knowledge/ml4t/11-the-ml-pipeline.md",
    "pinned_topics": [],
    "number": 11,
    "title": "The ML Pipeline",
@@ -1312,7 +1331,7 @@
    "rule_count": 19
   },
   {
-   "file": "knowledge/ml4t/12-advanced-models-tabular.md",
+   "file": "domains/trading/knowledge/ml4t/12-advanced-models-tabular.md",
    "pinned_topics": [],
    "number": 12,
    "title": "Advanced Models for Tabular Data",
@@ -1407,7 +1426,7 @@
    "rule_count": 15
   },
   {
-   "file": "knowledge/ml4t/13-deep-learning-time-series.md",
+   "file": "domains/trading/knowledge/ml4t/13-deep-learning-time-series.md",
    "pinned_topics": [],
    "number": 13,
    "title": "Deep Learning for Time Series",
@@ -1516,7 +1535,7 @@
    "rule_count": 17
   },
   {
-   "file": "knowledge/ml4t/14-latent-factor-models.md",
+   "file": "domains/trading/knowledge/ml4t/14-latent-factor-models.md",
    "pinned_topics": [],
    "number": 14,
    "title": "Latent Factor Models",
@@ -1634,7 +1653,7 @@
    "rule_count": 18
   },
   {
-   "file": "knowledge/ml4t/15-causal-machine-learning.md",
+   "file": "domains/trading/knowledge/ml4t/15-causal-machine-learning.md",
    "pinned_topics": [],
    "number": 15,
    "title": "Causal Machine Learning",
@@ -1753,7 +1772,7 @@
    "rule_count": 18
   },
   {
-   "file": "knowledge/ml4t/16-strategy-simulation.md",
+   "file": "domains/trading/knowledge/ml4t/16-strategy-simulation.md",
    "pinned_topics": [],
    "number": 16,
    "title": "Strategy Simulation",
@@ -1864,7 +1883,7 @@
    "rule_count": 19
   },
   {
-   "file": "knowledge/ml4t/17-portfolio-construction.md",
+   "file": "domains/trading/knowledge/ml4t/17-portfolio-construction.md",
    "pinned_topics": [],
    "number": 17,
    "title": "Portfolio Construction",
@@ -1987,7 +2006,7 @@
    "rule_count": 19
   },
   {
-   "file": "knowledge/ml4t/18-transaction-costs.md",
+   "file": "domains/trading/knowledge/ml4t/18-transaction-costs.md",
    "pinned_topics": [],
    "number": 18,
    "title": "Transaction Costs",
@@ -2103,7 +2122,7 @@
    "rule_count": 21
   },
   {
-   "file": "knowledge/ml4t/19-risk-management.md",
+   "file": "domains/trading/knowledge/ml4t/19-risk-management.md",
    "pinned_topics": [],
    "number": 19,
    "title": "Risk Management",
@@ -2221,7 +2240,7 @@
    "rule_count": 23
   },
   {
-   "file": "knowledge/ml4t/21-reinforcement-learning.md",
+   "file": "domains/trading/knowledge/ml4t/21-reinforcement-learning.md",
    "pinned_topics": [],
    "number": 21,
    "title": "Reinforcement Learning",
@@ -2342,7 +2361,7 @@
    "rule_count": 17
   },
   {
-   "file": "knowledge/ml4t/22-rag-financial-research.md",
+   "file": "domains/trading/knowledge/ml4t/22-rag-financial-research.md",
    "pinned_topics": [],
    "number": 22,
    "title": "RAG for Financial Research",
@@ -2457,7 +2476,7 @@
    "rule_count": 18
   },
   {
-   "file": "knowledge/ml4t/23-knowledge-graphs.md",
+   "file": "domains/trading/knowledge/ml4t/23-knowledge-graphs.md",
    "pinned_topics": [],
    "number": 23,
    "title": "Knowledge Graphs",
@@ -2571,7 +2590,7 @@
    "rule_count": 20
   },
   {
-   "file": "knowledge/ml4t/24-autonomous-agents.md",
+   "file": "domains/trading/knowledge/ml4t/24-autonomous-agents.md",
    "pinned_topics": [],
    "number": 24,
    "title": "Autonomous Agents",
@@ -2712,7 +2731,7 @@
    "rule_count": 26
   },
   {
-   "file": "knowledge/ml4t/25-live-trading-systems.md",
+   "file": "domains/trading/knowledge/ml4t/25-live-trading-systems.md",
    "pinned_topics": [],
    "number": 25,
    "title": "Live Trading Systems",
@@ -2824,7 +2843,7 @@
    "rule_count": 21
   },
   {
-   "file": "knowledge/ml4t/26-mlops-and-governance.md",
+   "file": "domains/trading/knowledge/ml4t/26-mlops-and-governance.md",
    "pinned_topics": [],
    "number": 26,
    "title": "MLOps and Governance",
@@ -2931,7 +2950,7 @@
    "rule_count": 22
   },
   {
-   "file": "knowledge/ml4t/27-the-systematic-edge.md",
+   "file": "domains/trading/knowledge/ml4t/27-the-systematic-edge.md",
    "pinned_topics": [],
    "number": 27,
    "title": "The Systematic Edge",
@@ -2999,7 +3018,7 @@
    "rule_count": 10
   },
   {
-   "file": "knowledge/assp/01-the-stock-market-game.md",
+   "file": "domains/trading/knowledge/assp/01-the-stock-market-game.md",
    "pinned_topics": [],
    "number": 1,
    "title": "The Stock Market Game",
@@ -3078,7 +3097,7 @@
    "rule_count": 7
   },
   {
-   "file": "knowledge/assp/02-short-selling-myths.md",
+   "file": "domains/trading/knowledge/assp/02-short-selling-myths.md",
    "pinned_topics": [],
    "number": 2,
    "title": "10 Classic Myths About Short Selling",
@@ -3147,7 +3166,7 @@
    "rule_count": 7
   },
   {
-   "file": "knowledge/assp/03-absolute-vs-relative-methodology.md",
+   "file": "domains/trading/knowledge/assp/03-absolute-vs-relative-methodology.md",
    "pinned_topics": [],
    "number": 3,
    "title": "Long/Short Methodologies: Absolute and Relative",
@@ -3242,7 +3261,7 @@
    "rule_count": 10
   },
   {
-   "file": "knowledge/assp/04-regime-definition.md",
+   "file": "domains/trading/knowledge/assp/04-regime-definition.md",
    "pinned_topics": [],
    "number": 4,
    "title": "Regime Definition",
@@ -3328,7 +3347,7 @@
    "rule_count": 12
   },
   {
-   "file": "knowledge/assp/05-the-trading-edge-formula.md",
+   "file": "domains/trading/knowledge/assp/05-the-trading-edge-formula.md",
    "pinned_topics": [],
    "number": 5,
    "title": "The Trading Edge Is a Number, and Here Is the Formula",
@@ -3414,7 +3433,7 @@
    "rule_count": 13
   },
   {
-   "file": "knowledge/assp/06-position-sizing.md",
+   "file": "domains/trading/knowledge/assp/06-position-sizing.md",
    "pinned_topics": [],
    "number": 6,
    "title": "Position Sizing: Money Is Made in the Money Management Module",
@@ -3495,7 +3514,7 @@
    "rule_count": 15
   },
   {
-   "file": "knowledge/assp/07-refining-the-investment-universe.md",
+   "file": "domains/trading/knowledge/assp/07-refining-the-investment-universe.md",
    "pinned_topics": [],
    "number": 7,
    "title": "Refining the Investment Universe",
@@ -3604,7 +3623,7 @@
    "rule_count": 13
   },
   {
-   "file": "knowledge/assp/08-the-long-short-toolbox.md",
+   "file": "domains/trading/knowledge/assp/08-the-long-short-toolbox.md",
    "pinned_topics": [],
    "number": 8,
    "title": "The Long/Short Toolbox",
@@ -3714,7 +3733,7 @@
    "rule_count": 15
   },
   {
-   "file": "knowledge/assp/09-asset-allocation.md",
+   "file": "domains/trading/knowledge/assp/09-asset-allocation.md",
    "pinned_topics": [],
    "number": 9,
    "title": "Asset Allocation",
@@ -3816,7 +3835,7 @@
    "rule_count": 14
   },
   {
-   "file": "knowledge/assp/10-the-trading-journal.md",
+   "file": "domains/trading/knowledge/assp/10-the-trading-journal.md",
    "pinned_topics": [],
    "number": 10,
    "title": "The Trading Journal",
@@ -3919,12 +3938,12 @@
    "title": "VectorBT PRO documentation",
    "files": {
     "docs": {
-     "file": "knowledge/vbtpro/llms-docs.txt",
+     "file": "domains/trading/knowledge/vbtpro/llms-docs.txt",
      "headings": 820,
      "bytes": 3039779
     },
     "api": {
-     "file": "knowledge/vbtpro/llms-full.txt",
+     "file": "domains/trading/knowledge/vbtpro/llms-full.txt",
      "headings": 9972,
      "bytes": 18680414
     }
@@ -3944,7 +3963,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R2",
@@ -3956,7 +3976,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R3",
@@ -3969,7 +3990,8 @@
     "process",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R4",
@@ -3981,7 +4003,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R5",
@@ -3994,7 +4017,8 @@
     "process",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R6",
@@ -4007,7 +4031,8 @@
     "regime",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R7",
@@ -4020,7 +4045,8 @@
     "execution",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R8",
@@ -4033,7 +4059,8 @@
     "process",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-01-R9",
@@ -4046,7 +4073,8 @@
     "process",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R1",
@@ -4058,7 +4086,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R2",
@@ -4070,7 +4099,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R3",
@@ -4083,7 +4113,8 @@
     "data",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R4",
@@ -4095,7 +4126,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R5",
@@ -4108,7 +4140,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R6",
@@ -4121,7 +4154,8 @@
     "data",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R7",
@@ -4133,7 +4167,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R8",
@@ -4146,7 +4181,8 @@
     "data",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R9",
@@ -4158,7 +4194,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-02-R10",
@@ -4171,7 +4208,8 @@
     "execution",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R1",
@@ -4183,7 +4221,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R2",
@@ -4195,7 +4234,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R3",
@@ -4208,7 +4248,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R4",
@@ -4220,7 +4261,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R5",
@@ -4232,7 +4274,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R6",
@@ -4245,7 +4288,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R7",
@@ -4257,7 +4301,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R8",
@@ -4270,7 +4315,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R9",
@@ -4282,7 +4328,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R10",
@@ -4295,7 +4342,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R11",
@@ -4308,7 +4356,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R12",
@@ -4321,7 +4370,8 @@
     "data",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-03-R13",
@@ -4334,7 +4384,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R1",
@@ -4346,7 +4397,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R2",
@@ -4359,7 +4411,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R3",
@@ -4372,7 +4425,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R4",
@@ -4385,7 +4439,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R5",
@@ -4397,7 +4452,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R6",
@@ -4410,7 +4466,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R7",
@@ -4423,7 +4480,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R8",
@@ -4436,7 +4494,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R9",
@@ -4449,7 +4508,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R10",
@@ -4462,7 +4522,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-04-R11",
@@ -4475,7 +4536,8 @@
     "data",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R1",
@@ -4488,7 +4550,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R2",
@@ -4500,7 +4563,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R3",
@@ -4513,7 +4577,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R4",
@@ -4526,7 +4591,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R5",
@@ -4539,7 +4605,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R6",
@@ -4552,7 +4619,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R7",
@@ -4565,7 +4633,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R8",
@@ -4578,7 +4647,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R9",
@@ -4591,7 +4661,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-05-R10",
@@ -4603,7 +4674,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R1",
@@ -4615,7 +4687,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R2",
@@ -4627,7 +4700,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R3",
@@ -4640,7 +4714,8 @@
     "risk",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R4",
@@ -4653,7 +4728,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R5",
@@ -4665,7 +4741,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R6",
@@ -4678,7 +4755,8 @@
     "features",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R7",
@@ -4691,7 +4769,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R8",
@@ -4704,7 +4783,8 @@
     "process",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R9",
@@ -4717,7 +4797,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R10",
@@ -4730,7 +4811,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R11",
@@ -4743,7 +4825,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-06-R12",
@@ -4755,7 +4838,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R1",
@@ -4768,7 +4852,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R2",
@@ -4780,7 +4865,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R3",
@@ -4792,7 +4878,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R4",
@@ -4804,7 +4891,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R5",
@@ -4817,7 +4905,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R6",
@@ -4830,7 +4919,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R7",
@@ -4843,7 +4933,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R8",
@@ -4856,7 +4947,8 @@
     "costs",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R9",
@@ -4869,7 +4961,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R10",
@@ -4882,7 +4975,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R11",
@@ -4895,7 +4989,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R12",
@@ -4907,7 +5002,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R13",
@@ -4920,7 +5016,8 @@
     "costs",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-07-R14",
@@ -4933,7 +5030,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R1",
@@ -4945,7 +5043,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R2",
@@ -4958,7 +5057,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R3",
@@ -4970,7 +5070,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R4",
@@ -4982,7 +5083,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R5",
@@ -4995,7 +5097,8 @@
     "sizing",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R6",
@@ -5007,7 +5110,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R7",
@@ -5019,7 +5123,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R8",
@@ -5032,7 +5137,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R9",
@@ -5045,7 +5151,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R10",
@@ -5058,7 +5165,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R11",
@@ -5071,7 +5179,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R12",
@@ -5084,7 +5193,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R13",
@@ -5096,7 +5206,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R14",
@@ -5109,7 +5220,8 @@
     "features",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-08-R15",
@@ -5121,7 +5233,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R1",
@@ -5134,7 +5247,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R2",
@@ -5147,7 +5261,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R3",
@@ -5159,7 +5274,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R4",
@@ -5171,7 +5287,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R5",
@@ -5184,7 +5301,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R6",
@@ -5197,7 +5315,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R7",
@@ -5210,7 +5329,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R8",
@@ -5223,7 +5343,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R9",
@@ -5236,7 +5357,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R10",
@@ -5249,7 +5371,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R11",
@@ -5261,7 +5384,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R12",
@@ -5274,7 +5398,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R13",
@@ -5287,7 +5412,8 @@
     "modeling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R14",
@@ -5299,7 +5425,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R15",
@@ -5311,7 +5438,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R16",
@@ -5323,7 +5451,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-09-R17",
@@ -5335,7 +5464,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R1",
@@ -5348,7 +5478,8 @@
     "features",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R2",
@@ -5361,7 +5492,8 @@
     "modeling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R3",
@@ -5373,7 +5505,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R4",
@@ -5386,7 +5519,8 @@
     "features",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R5",
@@ -5398,7 +5532,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R6",
@@ -5411,7 +5546,8 @@
     "features",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R7",
@@ -5423,7 +5559,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R8",
@@ -5435,7 +5572,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R9",
@@ -5447,7 +5585,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R10",
@@ -5460,7 +5599,8 @@
     "features",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R11",
@@ -5473,7 +5613,8 @@
     "features",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R12",
@@ -5486,7 +5627,8 @@
     "features",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R13",
@@ -5499,7 +5641,8 @@
     "features",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R14",
@@ -5512,7 +5655,8 @@
     "features",
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R15",
@@ -5524,7 +5668,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-10-R16",
@@ -5536,7 +5681,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R1",
@@ -5548,7 +5694,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R2",
@@ -5561,7 +5708,8 @@
     "modeling",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R3",
@@ -5573,7 +5721,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R4",
@@ -5585,7 +5734,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R5",
@@ -5598,7 +5748,8 @@
     "process",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R6",
@@ -5611,7 +5762,8 @@
     "modeling",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R7",
@@ -5623,7 +5775,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R8",
@@ -5636,7 +5789,8 @@
     "costs",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R9",
@@ -5649,7 +5803,8 @@
     "modeling",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R10",
@@ -5661,7 +5816,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R11",
@@ -5674,7 +5830,8 @@
     "sizing",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R12",
@@ -5687,7 +5844,8 @@
     "modeling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R13",
@@ -5699,7 +5857,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R14",
@@ -5711,7 +5870,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R15",
@@ -5724,7 +5884,8 @@
     "modeling",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R16",
@@ -5736,7 +5897,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R17",
@@ -5749,7 +5911,8 @@
     "modeling",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R18",
@@ -5762,7 +5925,8 @@
     "modeling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-11-R19",
@@ -5774,7 +5938,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R1",
@@ -5787,7 +5952,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R2",
@@ -5800,7 +5966,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R3",
@@ -5813,7 +5980,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R4",
@@ -5826,7 +5994,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R5",
@@ -5839,7 +6008,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R6",
@@ -5852,7 +6022,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R7",
@@ -5865,7 +6036,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R8",
@@ -5878,7 +6050,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R9",
@@ -5891,7 +6064,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R10",
@@ -5903,7 +6077,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R11",
@@ -5915,7 +6090,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R12",
@@ -5928,7 +6104,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R13",
@@ -5941,7 +6118,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R14",
@@ -5953,7 +6131,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-12-R15",
@@ -5966,7 +6145,8 @@
     "modeling",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R1",
@@ -5979,7 +6159,8 @@
     "modeling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R2",
@@ -5991,7 +6172,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R3",
@@ -6004,7 +6186,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R4",
@@ -6016,7 +6199,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R5",
@@ -6029,7 +6213,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R6",
@@ -6041,7 +6226,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R7",
@@ -6054,7 +6240,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R8",
@@ -6067,7 +6254,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R9",
@@ -6080,7 +6268,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R10",
@@ -6092,7 +6281,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R11",
@@ -6105,7 +6295,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R12",
@@ -6118,7 +6309,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R13",
@@ -6131,7 +6323,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R14",
@@ -6143,7 +6336,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R15",
@@ -6156,7 +6350,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R16",
@@ -6168,7 +6363,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-13-R17",
@@ -6180,7 +6376,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R1",
@@ -6192,7 +6389,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R2",
@@ -6204,7 +6402,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R3",
@@ -6216,7 +6415,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R4",
@@ -6229,7 +6429,8 @@
     "features",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R5",
@@ -6242,7 +6443,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R6",
@@ -6255,7 +6457,8 @@
     "costs",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R7",
@@ -6268,7 +6471,8 @@
     "modeling",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R8",
@@ -6281,7 +6485,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R9",
@@ -6293,7 +6498,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R10",
@@ -6305,7 +6511,8 @@
    "topics": [
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R11",
@@ -6318,7 +6525,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R12",
@@ -6331,7 +6539,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R13",
@@ -6344,7 +6553,8 @@
     "modeling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R14",
@@ -6356,7 +6566,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R15",
@@ -6368,7 +6579,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R16",
@@ -6380,7 +6592,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R17",
@@ -6393,7 +6606,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-14-R18",
@@ -6406,7 +6620,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R1",
@@ -6418,7 +6633,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R2",
@@ -6431,7 +6647,8 @@
     "modeling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R3",
@@ -6444,7 +6661,8 @@
     "modeling",
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R4",
@@ -6457,7 +6675,8 @@
     "modeling",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R5",
@@ -6469,7 +6688,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R6",
@@ -6481,7 +6701,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R7",
@@ -6493,7 +6714,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R8",
@@ -6506,7 +6728,8 @@
     "features",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R9",
@@ -6518,7 +6741,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R10",
@@ -6530,7 +6754,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R11",
@@ -6542,7 +6767,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R12",
@@ -6554,7 +6780,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R13",
@@ -6566,7 +6793,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R14",
@@ -6578,7 +6806,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R15",
@@ -6591,7 +6820,8 @@
     "modeling",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R16",
@@ -6604,7 +6834,8 @@
     "modeling",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R17",
@@ -6617,7 +6848,8 @@
     "modeling",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-15-R18",
@@ -6629,7 +6861,8 @@
    "topics": [
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R1",
@@ -6641,7 +6874,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R2",
@@ -6654,7 +6888,8 @@
     "backtesting",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R3",
@@ -6667,7 +6902,8 @@
     "costs",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R4",
@@ -6680,7 +6916,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R5",
@@ -6692,7 +6929,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R6",
@@ -6705,7 +6943,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R7",
@@ -6718,7 +6957,8 @@
     "backtesting",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R8",
@@ -6731,7 +6971,8 @@
     "backtesting",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R9",
@@ -6743,7 +6984,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R10",
@@ -6755,7 +6997,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R11",
@@ -6768,7 +7011,8 @@
     "backtesting",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R12",
@@ -6781,7 +7025,8 @@
     "backtesting",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R13",
@@ -6793,7 +7038,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R14",
@@ -6806,7 +7052,8 @@
     "backtesting",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R15",
@@ -6819,7 +7066,8 @@
     "backtesting",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R16",
@@ -6831,7 +7079,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R17",
@@ -6844,7 +7093,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R18",
@@ -6856,7 +7106,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-16-R19",
@@ -6868,7 +7119,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R1",
@@ -6880,7 +7132,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R2",
@@ -6892,7 +7145,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R3",
@@ -6904,7 +7158,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R4",
@@ -6917,7 +7172,8 @@
     "portfolio",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R5",
@@ -6930,7 +7186,8 @@
     "portfolio",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R6",
@@ -6943,7 +7200,8 @@
     "modeling",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R7",
@@ -6955,7 +7213,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R8",
@@ -6967,7 +7226,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R9",
@@ -6979,7 +7239,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R10",
@@ -6992,7 +7253,8 @@
     "signals",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R11",
@@ -7004,7 +7266,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R12",
@@ -7017,7 +7280,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R13",
@@ -7030,7 +7294,8 @@
     "sizing",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R14",
@@ -7043,7 +7308,8 @@
     "portfolio",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R15",
@@ -7055,7 +7321,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R16",
@@ -7068,7 +7335,8 @@
     "portfolio",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R17",
@@ -7080,7 +7348,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R18",
@@ -7092,7 +7361,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-17-R19",
@@ -7105,7 +7375,8 @@
     "portfolio",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R1",
@@ -7117,7 +7388,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R2",
@@ -7129,7 +7401,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R3",
@@ -7141,7 +7414,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R4",
@@ -7153,7 +7427,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R5",
@@ -7165,7 +7440,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R6",
@@ -7177,7 +7453,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R7",
@@ -7190,7 +7467,8 @@
     "costs",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R8",
@@ -7202,7 +7480,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R9",
@@ -7215,7 +7494,8 @@
     "costs",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R10",
@@ -7227,7 +7507,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R11",
@@ -7240,7 +7521,8 @@
     "costs",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R12",
@@ -7252,7 +7534,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R13",
@@ -7265,7 +7548,8 @@
     "costs",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R14",
@@ -7278,7 +7562,8 @@
     "costs",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R15",
@@ -7290,7 +7575,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R16",
@@ -7303,7 +7589,8 @@
     "costs",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R17",
@@ -7315,7 +7602,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R18",
@@ -7327,7 +7615,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R19",
@@ -7340,7 +7629,8 @@
     "costs",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R20",
@@ -7352,7 +7642,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-18-R21",
@@ -7364,7 +7655,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R1",
@@ -7377,7 +7669,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R2",
@@ -7390,7 +7683,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R3",
@@ -7402,7 +7696,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R4",
@@ -7415,7 +7710,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R5",
@@ -7428,7 +7724,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R6",
@@ -7441,7 +7738,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R7",
@@ -7453,7 +7751,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R8",
@@ -7465,7 +7764,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R9",
@@ -7477,7 +7777,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R10",
@@ -7489,7 +7790,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R11",
@@ -7502,7 +7804,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R12",
@@ -7515,7 +7818,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R13",
@@ -7528,7 +7832,8 @@
     "portfolio",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R14",
@@ -7541,7 +7846,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R15",
@@ -7554,7 +7860,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R16",
@@ -7566,7 +7873,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R17",
@@ -7578,7 +7886,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R18",
@@ -7590,7 +7899,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R19",
@@ -7602,7 +7912,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R20",
@@ -7614,7 +7925,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R21",
@@ -7627,7 +7939,8 @@
     "backtesting",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R22",
@@ -7639,7 +7952,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-19-R23",
@@ -7651,7 +7965,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R1",
@@ -7664,7 +7979,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R2",
@@ -7677,7 +7993,8 @@
     "backtesting",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R3",
@@ -7690,7 +8007,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R4",
@@ -7703,7 +8021,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R5",
@@ -7716,7 +8035,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R6",
@@ -7728,7 +8048,8 @@
    "topics": [
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R7",
@@ -7741,7 +8062,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R8",
@@ -7754,7 +8076,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R9",
@@ -7766,7 +8089,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R10",
@@ -7779,7 +8103,8 @@
     "execution",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R11",
@@ -7792,7 +8117,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R12",
@@ -7805,7 +8131,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R13",
@@ -7818,7 +8145,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R14",
@@ -7831,7 +8159,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R15",
@@ -7844,7 +8173,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R16",
@@ -7857,7 +8187,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-21-R17",
@@ -7870,7 +8201,8 @@
     "backtesting",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R1",
@@ -7883,7 +8215,8 @@
     "tooling",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R2",
@@ -7895,7 +8228,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R3",
@@ -7907,7 +8241,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R4",
@@ -7920,7 +8255,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R5",
@@ -7932,7 +8268,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R6",
@@ -7945,7 +8282,8 @@
     "tooling",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R7",
@@ -7957,7 +8295,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R8",
@@ -7969,7 +8308,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R9",
@@ -7982,7 +8322,8 @@
     "tooling",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R10",
@@ -7994,7 +8335,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R11",
@@ -8007,7 +8349,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R12",
@@ -8020,7 +8363,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R13",
@@ -8032,7 +8376,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R14",
@@ -8045,7 +8390,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R15",
@@ -8058,7 +8404,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R16",
@@ -8070,7 +8417,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R17",
@@ -8082,7 +8430,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-22-R18",
@@ -8094,7 +8443,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R1",
@@ -8106,7 +8456,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R2",
@@ -8118,7 +8469,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R3",
@@ -8130,7 +8482,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R4",
@@ -8143,7 +8496,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R5",
@@ -8156,7 +8510,8 @@
     "data",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R6",
@@ -8169,7 +8524,8 @@
     "tooling",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R7",
@@ -8181,7 +8537,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R8",
@@ -8194,7 +8551,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R9",
@@ -8207,7 +8565,8 @@
     "tooling",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R10",
@@ -8219,7 +8578,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R11",
@@ -8232,7 +8592,8 @@
     "tooling",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R12",
@@ -8245,7 +8606,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R13",
@@ -8258,7 +8620,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R14",
@@ -8271,7 +8634,8 @@
     "features",
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R15",
@@ -8284,7 +8648,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R16",
@@ -8297,7 +8662,8 @@
     "tooling",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R17",
@@ -8309,7 +8675,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R18",
@@ -8321,7 +8688,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R19",
@@ -8334,7 +8702,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-23-R20",
@@ -8346,7 +8715,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R1",
@@ -8358,7 +8728,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R2",
@@ -8370,7 +8741,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R3",
@@ -8382,7 +8754,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R4",
@@ -8395,7 +8768,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R5",
@@ -8408,7 +8782,8 @@
     "tooling",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R6",
@@ -8421,7 +8796,8 @@
     "tooling",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R7",
@@ -8433,7 +8809,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R8",
@@ -8446,7 +8823,8 @@
     "tooling",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R9",
@@ -8458,7 +8836,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R10",
@@ -8470,7 +8849,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R11",
@@ -8482,7 +8862,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R12",
@@ -8495,7 +8876,8 @@
     "tooling",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R13",
@@ -8507,7 +8889,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R14",
@@ -8520,7 +8903,8 @@
     "tooling",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R15",
@@ -8532,7 +8916,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R16",
@@ -8544,7 +8929,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R17",
@@ -8556,7 +8942,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R18",
@@ -8569,7 +8956,8 @@
     "tooling",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R19",
@@ -8582,7 +8970,8 @@
     "tooling",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R20",
@@ -8594,7 +8983,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R21",
@@ -8606,7 +8996,8 @@
    "topics": [
     "tooling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R22",
@@ -8619,7 +9010,8 @@
     "tooling",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R23",
@@ -8632,7 +9024,8 @@
     "tooling",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R24",
@@ -8645,7 +9038,8 @@
     "tooling",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R25",
@@ -8658,7 +9052,8 @@
     "tooling",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-24-R26",
@@ -8671,7 +9066,8 @@
     "tooling",
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R1",
@@ -8683,7 +9079,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R2",
@@ -8695,7 +9092,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R3",
@@ -8708,7 +9106,8 @@
     "execution",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R4",
@@ -8720,7 +9119,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R5",
@@ -8733,7 +9133,8 @@
     "execution",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R6",
@@ -8745,7 +9146,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R7",
@@ -8757,7 +9159,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R8",
@@ -8769,7 +9172,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R9",
@@ -8781,7 +9185,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R10",
@@ -8793,7 +9198,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R11",
@@ -8805,7 +9211,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R12",
@@ -8818,7 +9225,8 @@
     "execution",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R13",
@@ -8831,7 +9239,8 @@
     "execution",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R14",
@@ -8843,7 +9252,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R15",
@@ -8855,7 +9265,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R16",
@@ -8867,7 +9278,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R17",
@@ -8879,7 +9291,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R18",
@@ -8892,7 +9305,8 @@
     "execution",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R19",
@@ -8904,7 +9318,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R20",
@@ -8916,7 +9331,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-25-R21",
@@ -8928,7 +9344,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R1",
@@ -8940,7 +9357,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R2",
@@ -8952,7 +9370,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R3",
@@ -8965,7 +9384,8 @@
     "features",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R4",
@@ -8978,7 +9398,8 @@
     "execution",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R5",
@@ -8990,7 +9411,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R6",
@@ -9002,7 +9424,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R7",
@@ -9014,7 +9437,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R8",
@@ -9027,7 +9451,8 @@
     "execution",
     "features"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R9",
@@ -9040,7 +9465,8 @@
     "features",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R10",
@@ -9052,7 +9478,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R11",
@@ -9064,7 +9491,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R12",
@@ -9076,7 +9504,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R13",
@@ -9089,7 +9518,8 @@
     "execution",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R14",
@@ -9101,7 +9531,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R15",
@@ -9114,7 +9545,8 @@
     "costs",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R16",
@@ -9126,7 +9558,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R17",
@@ -9138,7 +9571,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R18",
@@ -9151,7 +9585,8 @@
     "execution",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R19",
@@ -9163,7 +9598,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R20",
@@ -9175,7 +9611,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R21",
@@ -9188,7 +9625,8 @@
     "execution",
     "modeling"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-26-R22",
@@ -9200,7 +9638,8 @@
    "topics": [
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R1",
@@ -9212,7 +9651,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R2",
@@ -9224,7 +9664,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R3",
@@ -9237,7 +9678,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R4",
@@ -9249,7 +9691,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R5",
@@ -9262,7 +9705,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R6",
@@ -9275,7 +9719,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R7",
@@ -9288,7 +9733,8 @@
     "execution",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R8",
@@ -9301,7 +9747,8 @@
     "backtesting",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R9",
@@ -9314,7 +9761,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ML4T-27-R10",
@@ -9327,7 +9775,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R1",
@@ -9339,7 +9788,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R2",
@@ -9351,7 +9801,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R3",
@@ -9364,7 +9815,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R4",
@@ -9376,7 +9828,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R5",
@@ -9388,7 +9841,8 @@
    "topics": [
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R6",
@@ -9400,7 +9854,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-01-R7",
@@ -9413,7 +9868,8 @@
     "process",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R1",
@@ -9425,7 +9881,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R2",
@@ -9438,7 +9895,8 @@
     "costs",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R3",
@@ -9450,7 +9908,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R4",
@@ -9462,7 +9921,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R5",
@@ -9475,7 +9935,8 @@
     "costs",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R6",
@@ -9487,7 +9948,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-02-R7",
@@ -9500,7 +9962,8 @@
     "psychology",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R1",
@@ -9512,7 +9975,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R2",
@@ -9524,7 +9988,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R3",
@@ -9537,7 +10002,8 @@
     "data",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R4",
@@ -9549,7 +10015,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R5",
@@ -9561,7 +10028,8 @@
    "topics": [
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R6",
@@ -9573,7 +10041,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R7",
@@ -9586,7 +10055,8 @@
     "data",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R8",
@@ -9599,7 +10069,8 @@
     "data",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R9",
@@ -9612,7 +10083,8 @@
     "signals",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-03-R10",
@@ -9625,7 +10097,8 @@
     "data",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R1",
@@ -9637,7 +10110,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R2",
@@ -9649,7 +10123,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R3",
@@ -9661,7 +10136,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R4",
@@ -9673,7 +10149,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R5",
@@ -9685,7 +10162,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R6",
@@ -9697,7 +10175,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R7",
@@ -9709,7 +10188,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R8",
@@ -9721,7 +10201,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R9",
@@ -9733,7 +10214,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R10",
@@ -9746,7 +10228,8 @@
     "risk",
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R11",
@@ -9759,7 +10242,8 @@
     "regime",
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-04-R12",
@@ -9771,7 +10255,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R1",
@@ -9783,7 +10268,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R2",
@@ -9795,7 +10281,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R3",
@@ -9807,7 +10294,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R4",
@@ -9819,7 +10307,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R5",
@@ -9831,7 +10320,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R6",
@@ -9843,7 +10333,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R7",
@@ -9856,7 +10347,8 @@
     "signals",
     "backtesting"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R8",
@@ -9868,7 +10360,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R9",
@@ -9880,7 +10373,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R10",
@@ -9892,7 +10386,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R11",
@@ -9905,7 +10400,8 @@
     "signals",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R12",
@@ -9917,7 +10413,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-05-R13",
@@ -9929,7 +10426,8 @@
    "topics": [
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R1",
@@ -9941,7 +10439,8 @@
    "topics": [
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R2",
@@ -9953,7 +10452,8 @@
    "topics": [
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R3",
@@ -9965,7 +10465,8 @@
    "topics": [
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R4",
@@ -9978,7 +10479,8 @@
     "backtesting",
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R5",
@@ -9991,7 +10493,8 @@
     "sizing",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R6",
@@ -10004,7 +10507,8 @@
     "sizing",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R7",
@@ -10017,7 +10521,8 @@
     "portfolio",
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R8",
@@ -10029,7 +10534,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R9",
@@ -10041,7 +10547,8 @@
    "topics": [
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R10",
@@ -10054,7 +10561,8 @@
     "sizing",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R11",
@@ -10067,7 +10575,8 @@
     "sizing",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R12",
@@ -10079,7 +10588,8 @@
    "topics": [
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R13",
@@ -10092,7 +10602,8 @@
     "costs",
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R14",
@@ -10105,7 +10616,8 @@
     "sizing",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-06-R15",
@@ -10118,7 +10630,8 @@
     "portfolio",
     "sizing"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R1",
@@ -10131,7 +10644,8 @@
     "costs",
     "signals"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R2",
@@ -10143,7 +10657,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R3",
@@ -10156,7 +10671,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R4",
@@ -10168,7 +10684,8 @@
    "topics": [
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R5",
@@ -10181,7 +10698,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R6",
@@ -10194,7 +10712,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R7",
@@ -10207,7 +10726,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R8",
@@ -10220,7 +10740,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R9",
@@ -10233,7 +10754,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R10",
@@ -10246,7 +10768,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R11",
@@ -10259,7 +10782,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R12",
@@ -10271,7 +10795,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-07-R13",
@@ -10284,7 +10809,8 @@
     "costs",
     "data"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R1",
@@ -10296,7 +10822,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R2",
@@ -10308,7 +10835,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R3",
@@ -10321,7 +10849,8 @@
     "risk",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R4",
@@ -10333,7 +10862,8 @@
    "topics": [
     "regime"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R5",
@@ -10346,7 +10876,8 @@
     "portfolio",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R6",
@@ -10359,7 +10890,8 @@
     "signals",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R7",
@@ -10371,7 +10903,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R8",
@@ -10384,7 +10917,8 @@
     "portfolio",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R9",
@@ -10397,7 +10931,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R10",
@@ -10409,7 +10944,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R11",
@@ -10421,7 +10957,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R12",
@@ -10433,7 +10970,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R13",
@@ -10445,7 +10983,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R14",
@@ -10458,7 +10997,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-08-R15",
@@ -10471,7 +11011,8 @@
     "portfolio",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R1",
@@ -10483,7 +11024,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R2",
@@ -10496,7 +11038,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R3",
@@ -10508,7 +11051,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R4",
@@ -10521,7 +11065,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R5",
@@ -10533,7 +11078,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R6",
@@ -10545,7 +11091,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R7",
@@ -10557,7 +11104,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R8",
@@ -10569,7 +11117,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R9",
@@ -10582,7 +11131,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R10",
@@ -10595,7 +11145,8 @@
     "portfolio",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R11",
@@ -10607,7 +11158,8 @@
    "topics": [
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R12",
@@ -10619,7 +11171,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R13",
@@ -10632,7 +11185,8 @@
     "signals",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-09-R14",
@@ -10645,7 +11199,8 @@
     "signals",
     "portfolio"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R1",
@@ -10658,7 +11213,8 @@
     "psychology",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R2",
@@ -10671,7 +11227,8 @@
     "psychology",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R3",
@@ -10684,7 +11241,8 @@
     "psychology",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R4",
@@ -10697,7 +11255,8 @@
     "risk",
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R5",
@@ -10710,7 +11269,8 @@
     "psychology",
     "costs"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R6",
@@ -10723,7 +11283,8 @@
     "psychology",
     "execution"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R7",
@@ -10735,7 +11296,8 @@
    "topics": [
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R8",
@@ -10747,7 +11309,8 @@
    "topics": [
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R9",
@@ -10760,7 +11323,8 @@
     "psychology",
     "process"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R10",
@@ -10772,7 +11336,8 @@
    "topics": [
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R11",
@@ -10784,7 +11349,8 @@
    "topics": [
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R12",
@@ -10796,7 +11362,8 @@
    "topics": [
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R13",
@@ -10809,7 +11376,8 @@
     "signals",
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R14",
@@ -10821,7 +11389,8 @@
    "topics": [
     "risk"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   },
   {
    "id": "ASSP-10-R15",
@@ -10833,7 +11402,8 @@
    "topics": [
     "psychology"
    ],
-   "authority": "primary"
+   "authority": "primary",
+   "domain": "trading"
   }
  ],
  "topics": {

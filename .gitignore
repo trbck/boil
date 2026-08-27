@@ -1,12 +1,21 @@
-# --- Licensed vendor documentation -------------------------------------------
-# VectorBT PRO docs are proprietary. Redistributing them would breach the vendor
-# licence, so they are excluded by default and each install supplies its own copy.
-# If your remote is private AND your licence permits it, remove these two lines.
-knowledge/vbtpro/*.txt
+# --- Licensed vendor documentation (engine packs) ----------------------------
+# Engine packs hold large proprietary vendor docs. Redistributing them would
+# breach the vendor licence, so they are excluded and each install supplies its
+# own copy. If your remote is private AND your licence permits it, remove these.
+#
+# NOTE: these are path-shaped. Moving a domain moves the corpus with it — after
+# any restructure, re-check with:
+#     git status --porcelain -uall | grep -iE 'llms|\.index\.json'
+domains/*/knowledge/vbtpro/*.txt
 
-# Derived engine index (~3.5 MB). Useless without the sources above, and cheap to
-# regenerate: python3 scripts/build_index.py
-generated/engines/*.index.json
+# Generic guard: any llms*.txt convention file dropped into a knowledge pack.
+domains/*/knowledge/*/llms*.txt
+domains/*/knowledge/**/llms*.txt
+
+# --- Derived engine indexes --------------------------------------------------
+# Multi-MB, useless without the sources above, and cheap to regenerate:
+#     python3 scripts/build_index.py
+generated/*/engines/*.index.json
 
 # --- Ingest archive ----------------------------------------------------------
 # Timestamped originals kept after ingestion. Local safety net, not shared state.

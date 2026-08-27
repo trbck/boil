@@ -60,6 +60,6 @@ section out and let the document be reference prose only.
 
 - **Book chapters without a `pack:` key.** A lone chapter mints IDs that collide or mislead, so
   ingest refuses it. Distil the whole book to `FORMAT.md`'s chapter contract, register a pack in
-  `packs.json`, and place the files directly under `knowledge/<pack>/`.
+  `domains/<domain>/packs.json`, and place the files directly under `domains/<domain>/knowledge/<pack>/`.
 - **Unreviewed model output presented as findings.** Anything ingested becomes citable. If you have
   not checked it, mark it clearly in the title or leave out the findings section.

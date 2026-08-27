@@ -41,7 +41,7 @@ Three sections, and the last two matter more than the first:
   a deliberate violation, it is a bug.
 - **Unresolved** — assumptions still open, particularly any of the five frozen choices left unset.
 
-Record the corpus fingerprint (from `generated/ROUTER.md`). It says which build of the knowledge
+Record the corpus fingerprint (from `generated/<domain>/ROUTER.md`). It says which build of the knowledge
 base the claims were checked against, so a later reader knows whether the corpus has since moved.
 
 ## Scope

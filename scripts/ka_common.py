@@ -10,6 +10,48 @@ import re
 import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DOMAINS_DIR = os.path.join(ROOT, "domains")
+GENERATED = os.path.join(ROOT, "generated")
+
+
+# --- domain registry ---------------------------------------------------------
+
+def load_domains(domain_id=None):
+    """Discover domains by globbing domains/*/domain.json.
+
+    Self-registering on purpose: adding a domain is dropping a directory in,
+    not editing a central list that then drifts out of sync with the tree.
+    """
+    out = []
+    if not os.path.isdir(DOMAINS_DIR):
+        return out
+    for name in sorted(os.listdir(DOMAINS_DIR)):
+        manifest = os.path.join(DOMAINS_DIR, name, "domain.json")
+        if not os.path.exists(manifest) or (domain_id and name != domain_id):
+            continue
+        dom = load_json(manifest)
+        dom.setdefault("id", name)
+        dom["root"] = os.path.join(DOMAINS_DIR, name)
+        dom["generated"] = os.path.join(GENERATED, dom["id"])
+        out.append(dom)
+    return out
+
+
+def domain_path(domain, key, default):
+    return os.path.join(domain["root"], domain.get(key, default))
+
+
+def load_domain_packs(domain):
+    """Packs with paths resolved against the domain root, not the repo root."""
+    packs = load_json(domain_path(domain, "packs", "packs.json"))["packs"]
+    for pack in packs:
+        pack["domain"] = domain["id"]
+        pack["abs_path"] = os.path.join(domain["root"], pack["path"])
+    return packs
+
+
+def load_domain_taxonomy(domain):
+    return load_json(domain_path(domain, "taxonomy", "taxonomy.json"))
 
 # --- format contract regexes -------------------------------------------------
 # Chapter H1 accepts em dash, en dash or hyphen because editors silently swap them.
@@ -197,7 +239,7 @@ def score_topics(text, taxonomy, base=None, title=None, max_topics=2, ratio=0.6)
 
 # --- chapter parsing ---------------------------------------------------------
 
-def parse_chapter(path, prefix):
+def parse_chapter(path, prefix, root=None):
     """Parse one book-pack chapter file into a structured record.
 
     Fenced code blocks are skipped so `# comments` inside Python samples are not
@@ -208,7 +250,7 @@ def parse_chapter(path, prefix):
     lines = body.split("\n")
 
     rec = {
-        "file": os.path.relpath(path, ROOT).replace(os.sep, "/"),
+        "file": os.path.relpath(path, root or ROOT).replace(os.sep, "/"),
         "pinned_topics": front.get("topics") or [],
         "number": None,
         "title": None,

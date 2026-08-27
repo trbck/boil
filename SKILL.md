@@ -23,7 +23,7 @@ These are what make the output trustworthy rather than merely fluent.
   `--rule <ID>` before citing. Fabricated citations are worse than no citations because they
   survive review.
 - **Surface conflicts, never blend them.** The books genuinely disagree. When they do, give both
-  positions with IDs and say which applies here and why. See `references/conflicts.md`.
+  positions with IDs and say which applies here and why. See `domains/<domain>/conflicts.md`.
 - **Respect authority.** `primary` rules come from books; `derived` rules come from the user's own
   notes and research. A derived rule never silently overrides a primary one.
 - **Engines describe capability, not method.** vectorbtpro tells you what the library *can* do.
@@ -33,10 +33,12 @@ These are what make the output trustworthy rather than merely fluent.
 
 ## Start here
 
-Always read the router first — it is small and it tells you where everything lives:
+List the installed domains, then read that domain's router. Both are small and tell you where
+everything lives:
 
 ```bash
-cat generated/ROUTER.md
+python3 scripts/lookup.py --list domains
+cat generated/<domain>/ROUTER.md          # e.g. generated/trading/ROUTER.md
 ```
 
 It lists every pack, every chapter with what it *governs*, every rule shard with its token cost,
@@ -112,7 +114,7 @@ skill or process that produces markdown reports can write to `inbox/`; the contr
 `inbox/README.md`.
 
 **A whole book** — distil it to the chapter contract in `FORMAT.md`, put the files under
-`knowledge/<pack>/`, register the pack in `packs.json`, rebuild. Book packs are never auto-created
+`domains/<domain>/knowledge/<pack>/`, register the pack in `domains/<domain>/packs.json`, rebuild. Book packs are never auto-created
 from a single file, because a lone chapter mints IDs that mislead.
 
 After any change:

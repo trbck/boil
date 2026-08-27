@@ -446,5 +446,5 @@ This file describes **capability, not method**. Whether a technique is sound com
 - **Software License** — Read licensing terms specifying permitted non-commercial use, modification, distribution,…
 - **Repository Remarks** — See rules governing access, modification, and distribution of the private repository's so…
 
-<!-- api: 9972 headings indexed from knowledge/vbtpro/llms-full.txt -->
-<!-- docs: 820 headings indexed from knowledge/vbtpro/llms-docs.txt -->
+<!-- api: 9972 headings indexed from domains/trading/knowledge/vbtpro/llms-full.txt -->
+<!-- docs: 820 headings indexed from domains/trading/knowledge/vbtpro/llms-docs.txt -->

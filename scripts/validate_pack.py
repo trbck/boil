@@ -10,6 +10,7 @@ Usage:
 
 import argparse
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,7 +23,7 @@ MIN_SECTIONS_WARN = 2
 
 
 def collect(pack):
-    base = os.path.join(K.ROOT, pack["path"])
+    base = pack["abs_path"]
     if not os.path.isdir(base):
         return []
     if pack.get("recursive"):
@@ -90,9 +91,19 @@ def check_notes(pack, files):
     return errors, warnings
 
 
+def _git_tracked(path):
+    """True if git currently tracks this path. Used to catch licence leaks."""
+    try:
+        out = subprocess.check_output(["git", "ls-files", "--error-unmatch", path],
+                                      cwd=K.ROOT, stderr=subprocess.DEVNULL)
+        return bool(out.strip())
+    except Exception:
+        return False
+
+
 def check_engine(pack):
     errors, warnings = [], []
-    base = os.path.join(K.ROOT, pack["path"])
+    base = pack["abs_path"]
     sources = pack.get("sources", {})
     if not sources:
         errors.append("engine pack declares no 'sources'")
@@ -103,18 +114,31 @@ def check_engine(pack):
                           "default — see README)" % (role, name))
         elif os.path.getsize(path) == 0:
             errors.append("%s source is empty: %s" % (role, name))
+        elif pack.get("license") == "proprietary" and _git_tracked(path):
+            # A directory move silently un-ignores path-shaped rules, so assert
+            # the outcome rather than trusting .gitignore to still match.
+            errors.append("LICENCE LEAK: %s is proprietary and TRACKED BY GIT (%s). "
+                          "Fix .gitignore and `git rm --cached` it before pushing."
+                          % (name, os.path.relpath(path, K.ROOT)))
     return errors, warnings
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--domain")
     ap.add_argument("--pack")
     ap.add_argument("--strict", action="store_true", help="treat warnings as failures")
     args = ap.parse_args()
 
-    packs = K.load_json(os.path.join(K.ROOT, "packs.json"))["packs"]
+    domains = K.load_domains(args.domain)
+    if not domains:
+        sys.exit("no domains found")
     total_err = total_warn = 0
+
+    packs = []
+    for dom in domains:
+        packs += K.load_domain_packs(dom)
 
     for pack in packs:
         if args.pack and pack["id"] != args.pack:
@@ -131,7 +155,8 @@ def main():
 
         status = "ok" if not errors else "FAIL"
         count = len(files) if pack["kind"] != "engine" else len(pack.get("sources", {}))
-        print("%-8s %-7s %3d file(s)  %s" % (pack["id"], pack["kind"], count, status))
+        print("%-10s %-8s %-7s %3d file(s)  %s"
+              % (pack["domain"], pack["id"], pack["kind"], count, status))
         for err in errors:
             print("   ✗ %s" % err)
         for warn in warnings:

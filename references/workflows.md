@@ -13,11 +13,11 @@ paragraph with no IDs.
 
 *"What does the literature say about X?" · "How should I think about Y?"*
 
-1. `cat generated/ROUTER.md` — locate the governing chapters by their **Governs** line.
+1. `cat generated/<domain>/ROUTER.md` — locate the governing chapters by their **Governs** line.
 2. `lookup.py --search "<question>"` — collect candidate rules and sections.
 3. `lookup.py --topic <topic>` — load the governing shard if the question is topic-shaped.
 4. `lookup.py --section "<ID§n>"` — read the reasoning behind the rules you intend to cite.
-5. Check `references/conflicts.md`. If the question touches an entry, present both positions.
+5. Check `domains/<domain>/conflicts.md`. If the question touches an entry, present both positions.
 
 **Answer shape:** the direct answer first, then the evidence with IDs, then the caveats. Not a
 literature review — the user asked a question.

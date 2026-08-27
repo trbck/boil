@@ -20,7 +20,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import ka_common as K  # noqa: E402
 
-GEN = os.path.join(K.ROOT, "generated")
 ROUTER_GOVERNS_CHARS = 110
 ENGINE_DESC_CHARS = 90
 # Weight a rule inherits from its parent chapter's topics, in units where one
@@ -124,8 +123,8 @@ def build_notes(pack, taxonomy, files):
     return notes, rules
 
 
-def build_engine(pack, quiet=False):
-    base = os.path.join(K.ROOT, pack["path"])
+def build_engine(pack, gen, quiet=False):
+    base = pack["abs_path"]
     sources = pack.get("sources", {})
     record = {"id": pack["id"], "title": pack["title"], "files": {}, "manifest_sections": 0}
     heading_index = {"pack": pack["id"], "files": {}}
@@ -158,9 +157,9 @@ def build_engine(pack, quiet=False):
         }
         log("    %-8s %6d headings  %8.1f MB" % (role, len(entries), os.path.getsize(path) / 1e6), quiet)
 
-    K.write_json(os.path.join(GEN, "engines", "%s.index.json" % pack["id"]), heading_index)
+    K.write_json(os.path.join(gen, "engines", "%s.index.json" % pack["id"]), heading_index)
     if groups:
-        K.write_text(os.path.join(GEN, "engines", "%s.md" % pack["id"]),
+        K.write_text(os.path.join(gen, "engines", "%s.md" % pack["id"]),
                      render_engine_router(pack, groups, record))
     return record
 
@@ -230,12 +229,15 @@ def render_rules_index(topics_used, taxonomy, rules_by_topic):
     return "\n".join(out) + "\n"
 
 
-def render_router(packs, chapters, notes, engines, rules, rules_by_topic, taxonomy, fp):
-    out = ["# Knowledge Router", ""]
-    out.append("Always-loaded map of the corpus. Resolve a question to a small number of "
-               "chapters, sections or rule shards, then load only those.")
+def render_router(domain, packs, chapters, notes, engines, rules, rules_by_topic, taxonomy, fp):
+    out = ["# Knowledge Router — %s" % domain.get("title", domain["id"]), ""]
+    out.append("Always-loaded map of this domain's corpus. Resolve a question to a small number "
+               "of chapters, sections or rule shards, then load only those.")
     out.append("")
-    out.append("`corpus: %s`" % fp)
+    if domain.get("summary"):
+        out.append("_%s_" % domain["summary"])
+        out.append("")
+    out.append("`domain: %s`  ·  `corpus: %s`" % (domain["id"], fp))
     out.append("")
 
     out.append("## Packs")
@@ -247,7 +249,8 @@ def render_router(packs, chapters, notes, engines, rules, rules_by_topic, taxono
         out.append("| `%s` | %s | %s | %s |" % (pack["id"], pack["kind"], pack["title"], auth))
     out.append("")
     out.append("When packs disagree, prefer the one authoritative on the topic in question — "
-               "and say that a disagreement existed. See `references/conflicts.md`.")
+               "and say that a disagreement existed. See `domains/%s/%s`."
+               % (domain["id"], domain.get("conflicts", "conflicts.md")))
     out.append("")
 
     out.append("## Rule shards")
@@ -314,7 +317,7 @@ def render_router(packs, chapters, notes, engines, rules, rules_by_topic, taxono
     out.append("## Retrieval")
     out.append("")
     out.append("```bash")
-    out.append("python3 scripts/lookup.py --search \"position sizing under drawdown\"")
+    out.append("python3 scripts/lookup.py --domain %s --search \"...\"" % domain["id"])
     out.append("python3 scripts/lookup.py --rule ASSP-09-R7")
     out.append("python3 scripts/lookup.py --chapter ASSP-09")
     out.append("python3 scripts/lookup.py --section ASSP-09§5")
@@ -326,7 +329,7 @@ def render_router(packs, chapters, notes, engines, rules, rules_by_topic, taxono
 # --- main --------------------------------------------------------------------
 
 def collect_files(pack):
-    base = os.path.join(K.ROOT, pack["path"])
+    base = pack["abs_path"]
     if not os.path.isdir(base):
         return []
     if pack.get("recursive"):
@@ -341,23 +344,22 @@ def collect_files(pack):
                   if f.endswith(".md") and not f.startswith("_"))
 
 
-def main():
-    quiet = "--quiet" in sys.argv
-    packs = K.load_json(os.path.join(K.ROOT, "packs.json"))["packs"]
-    taxonomy = K.load_json(os.path.join(K.ROOT, "taxonomy.json"))
+def build_domain(domain, quiet=False):
+    """Build every artifact for one domain into generated/<domain-id>/."""
+    packs = K.load_domain_packs(domain)
+    taxonomy = K.load_domain_taxonomy(domain)
     packs_by_id = {p["id"]: p for p in packs}
+    gen = domain["generated"]
 
     chapters, notes, engines, rules = [], [], [], []
-    all_files = []
-    problems = []
+    all_files, problems = [], []
 
     for pack in packs:
-        log("→ %s (%s)" % (pack["id"], pack["kind"]), quiet)
+        log("  → %s (%s)" % (pack["id"], pack["kind"]), quiet)
         if pack["kind"] == "engine":
-            engines.append(build_engine(pack, quiet))
-            base = os.path.join(K.ROOT, pack["path"])
+            engines.append(build_engine(pack, gen, quiet))
             for name in pack.get("sources", {}).values():
-                path = os.path.join(base, name)
+                path = os.path.join(pack["abs_path"], name)
                 if os.path.exists(path):
                     all_files.append(path)
             continue
@@ -365,7 +367,7 @@ def main():
         files = collect_files(pack)
         all_files.extend(files)
         if not files:
-            log("    (no files yet)", quiet)
+            log("      (no files yet)", quiet)
             continue
 
         if pack["kind"] == "book":
@@ -373,38 +375,51 @@ def main():
             chapters.extend(pack_chapters)
             rules.extend(pack_rules)
             for ch in pack_chapters:
-                for prob in ch["problems"]:
-                    problems.append("%s (%s): %s" % (ch["id"], os.path.basename(ch["file"]), prob))
-            log("    %d chapters, %d rules" % (len(pack_chapters), len(pack_rules)), quiet)
+                for problem in ch["problems"]:
+                    problems.append("%s (%s): %s"
+                                    % (ch["id"], os.path.basename(ch["file"]), problem))
+            log("      %d chapters, %d rules" % (len(pack_chapters), len(pack_rules)), quiet)
         elif pack["kind"] == "notes":
             pack_notes, pack_rules = build_notes(pack, taxonomy, files)
             notes.extend(pack_notes)
             rules.extend(pack_rules)
-            log("    %d notes, %d findings" % (len(pack_notes), len(pack_rules)), quiet)
+            log("      %d notes, %d findings" % (len(pack_notes), len(pack_rules)), quiet)
         else:
-            log("    ! unknown kind %r — skipped" % pack["kind"], quiet)
+            log("      ! unknown kind %r — skipped" % pack["kind"], quiet)
 
     rules_by_topic = {}
     for rule in rules:
+        rule["domain"] = domain["id"]
         for topic in rule["topics"]:
             rules_by_topic.setdefault(topic, []).append(rule)
 
-    for path in list(os.listdir(os.path.join(GEN, "rules"))) if os.path.isdir(os.path.join(GEN, "rules")) else []:
-        if path.endswith(".md"):
-            os.remove(os.path.join(GEN, "rules", path))
+    rules_dir = os.path.join(gen, "rules")
+    if os.path.isdir(rules_dir):
+        for name in os.listdir(rules_dir):
+            if name.endswith(".md"):
+                os.remove(os.path.join(rules_dir, name))
 
     for topic in sorted(rules_by_topic):
-        K.write_text(os.path.join(GEN, "rules", "%s.md" % topic),
-                     render_rule_shard(topic, taxonomy["topics"][topic], rules_by_topic[topic], packs_by_id))
-    K.write_text(os.path.join(GEN, "rules", "INDEX.md"),
+        K.write_text(os.path.join(rules_dir, "%s.md" % topic),
+                     render_rule_shard(topic, taxonomy["topics"][topic],
+                                       rules_by_topic[topic], packs_by_id))
+    K.write_text(os.path.join(rules_dir, "INDEX.md"),
                  render_rules_index(sorted(rules_by_topic), taxonomy, rules_by_topic))
 
     fp = fingerprint(all_files)
-    K.write_text(os.path.join(GEN, "ROUTER.md"),
-                 render_router(packs, chapters, notes, engines, rules, rules_by_topic, taxonomy, fp))
-    K.write_json(os.path.join(GEN, "index.json"), {
+    K.write_text(os.path.join(gen, "ROUTER.md"),
+                 render_router(domain, packs, chapters, notes, engines, rules,
+                               rules_by_topic, taxonomy, fp))
+
+    # abs_path is machine-specific scaffolding; keep it out of the committed index.
+    clean_packs = [{k: v for k, v in p.items() if k != "abs_path"} for p in packs]
+    K.write_json(os.path.join(gen, "index.json"), {
+        "domain": domain["id"],
+        "title": domain.get("title"),
+        "summary": domain.get("summary"),
+        "scope": domain.get("scope", []),
         "corpus_fingerprint": fp,
-        "packs": packs,
+        "packs": clean_packs,
         "chapters": chapters,
         "notes": notes,
         "engines": engines,
@@ -412,16 +427,43 @@ def main():
         "topics": {t: sorted(r["id"] for r in rs) for t, rs in rules_by_topic.items()},
         "problems": problems,
     })
+    return {"id": domain["id"], "chapters": len(chapters), "notes": len(notes),
+            "engines": len(engines), "rules": len(rules),
+            "shards": len(rules_by_topic), "fingerprint": fp, "problems": problems}
 
-    log("", quiet)
-    log("built: %d chapters · %d notes · %d engines · %d rules · %d shards"
-        % (len(chapters), len(notes), len(engines), len(rules), len(rules_by_topic)), quiet)
-    log("corpus fingerprint: %s" % fp, quiet)
-    if problems:
+
+def main():
+    quiet = "--quiet" in sys.argv
+    only = None
+    if "--domain" in sys.argv:
+        idx = sys.argv.index("--domain")
+        if idx + 1 < len(sys.argv):
+            only = sys.argv[idx + 1]
+
+    domains = K.load_domains(only)
+    if not domains:
+        sys.exit("no domains found — expected domains/*/domain.json"
+                 + (" matching %r" % only if only else ""))
+
+    results = []
+    for domain in domains:
+        log("→ domain: %s" % domain["id"], quiet)
+        results.append(build_domain(domain, quiet))
         log("", quiet)
-        log("%d format problem(s) — run scripts/validate_pack.py for detail:" % len(problems), quiet)
-        for prob in problems[:10]:
-            log("  - %s" % prob, quiet)
+
+    total_problems = []
+    for res in results:
+        log("%-12s %2d chapters · %2d notes · %d engines · %3d rules · %2d shards · %s"
+            % (res["id"], res["chapters"], res["notes"], res["engines"],
+               res["rules"], res["shards"], res["fingerprint"]), quiet)
+        total_problems += res["problems"]
+
+    if total_problems:
+        log("", quiet)
+        log("%d format problem(s) — run scripts/validate_pack.py for detail:"
+            % len(total_problems), quiet)
+        for problem in total_problems[:10]:
+            log("  - %s" % problem, quiet)
     return 0
 
 

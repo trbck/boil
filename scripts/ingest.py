@@ -37,9 +37,15 @@ PROCESSED = os.path.join(INBOX, "processed")
 RESERVED = {"readme.md", "readme.markdown"}
 
 
-def packs_by_kind():
-    packs = K.load_json(os.path.join(K.ROOT, "packs.json"))["packs"]
-    return {p["id"]: p for p in packs}
+def resolve_domain(domain_id):
+    """Ingestion writes into exactly one domain; refuse to guess when ambiguous."""
+    domains = K.load_domains(domain_id)
+    if not domains:
+        sys.exit("no domains found" + (" matching %r" % domain_id if domain_id else ""))
+    if len(domains) > 1:
+        sys.exit("multiple domains installed — pass --domain <id>: %s"
+                 % ", ".join(d["id"] for d in domains))
+    return domains[0]
 
 
 def unique_path(directory, base, ext=".md"):
@@ -107,6 +113,7 @@ def main():
     ap.add_argument("--no-build", action="store_true", help="skip the index rebuild")
     ap.add_argument("--category", default="general", help="default category for notes")
     ap.add_argument("--source", default="inbox", help="default provenance label")
+    ap.add_argument("--domain", help="target domain (required when more than one exists)")
     args = ap.parse_args()
 
     if not os.path.isdir(INBOX):
@@ -120,7 +127,9 @@ def main():
         print("inbox is empty — nothing to ingest")
         return 0
 
-    registry = packs_by_kind()
+    domain = resolve_domain(args.domain)
+    registry = {p["id"]: p for p in K.load_domain_packs(domain)}
+    print("domain: %s\n" % domain["id"])
     ingested, refused = [], []
 
     for name in candidates:
@@ -140,9 +149,9 @@ def main():
             meta.setdefault("authority", "derived")
             category = K.slug(str(meta.get("category") or args.category), 32)
             meta["category"] = category
-            dest_dir = os.path.join(K.ROOT, pack["path"], category)
+            dest_dir = os.path.join(pack["abs_path"], category)
         else:
-            dest_dir = os.path.join(K.ROOT, pack["path"])
+            dest_dir = pack["abs_path"]
         meta.pop("pack", None)
 
         dest = unique_path(dest_dir, K.slug(title, 60))

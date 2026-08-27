@@ -40,7 +40,7 @@ If you keep the engine pack (see **Licensing**), drop your `llms*.txt` files int
 ## Quickstart
 
 ```bash
-cat generated/ROUTER.md                                            # the map — start here
+cat generated/<domain>/ROUTER.md                                            # the map — start here
 
 python3 scripts/lookup.py --search "position sizing under drawdown"
 python3 scripts/lookup.py --topic sizing                           # one rule shard
@@ -62,7 +62,7 @@ Sections headed *Key findings* / *Recommendations* / *Takeaways* become citable 
 Any skill that emits markdown can write to `inbox/`; the contract is in `inbox/README.md`.
 
 **A whole book** — distil it to the chapter contract in `FORMAT.md`, put the files in
-`knowledge/<pack>/`, register the pack in `packs.json`, rebuild.
+`domains/<domain>/knowledge/<pack>/`, register the pack in `domains/<domain>/packs.json`, rebuild.
 
 ## How it works
 
@@ -70,8 +70,8 @@ Three tiers, so the corpus never loads whole:
 
 | Tier | Artifact | Size | When |
 |---|---|---|---|
-| 1 | `generated/ROUTER.md` | ~2k tokens | always |
-| 2 | `generated/rules/<topic>.md` | 0.4–2k tokens each | per topic |
+| 1 | `generated/<domain>/ROUTER.md` | ~2k tokens | always |
+| 2 | `generated/<domain>/rules/<topic>.md` | 0.4–2k tokens each | per topic |
 | 3 | chapter sections, engine slices | on demand | per question |
 
 The full corpus is ~120k tokens; a typical grounded answer costs 8–15k.
