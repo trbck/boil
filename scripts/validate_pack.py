@@ -176,6 +176,20 @@ def main():
             total_err += len(errors)
             total_warn += len(warnings)
 
+    # Rule IDs embed the pack prefix, so two packs sharing one prefix would mint
+    # colliding IDs across domains and silently corrupt every citation.
+    by_prefix = {}
+    for pack in packs:
+        by_prefix.setdefault(pack.get("prefix", "?"), []).append(
+            "%s/%s" % (pack["domain"], pack["id"]))
+    collisions = {k: v for k, v in by_prefix.items() if len(v) > 1}
+    if collisions:
+        print("%-10s %-8s %-7s %3s          FAIL" % ("(global)", "prefix", "-", "-"))
+        for prefix, owners in sorted(collisions.items()):
+            print("   ✗ prefix %r claimed by %d packs: %s — rule IDs would collide"
+                  % (prefix, len(owners), ", ".join(owners)))
+        total_err += len(collisions)
+
     for pack in packs:
         if args.pack and pack["id"] != args.pack:
             continue

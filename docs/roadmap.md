@@ -70,11 +70,11 @@ each phase is an empty diff against it.
 
 | # | Phase | Size | Acceptance |
 |---|---|---|---|
-| 0 | Repo bootstrap, rename to `advisor`, ID baseline | S | Pushed; 551 IDs recorded |
-| 1 | Domain manifest & extraction | M | `diff tests/rule-ids.baseline` empty |
-| 2 | Generated skill surface | M | Description regenerates; triggering holds |
-| 3 | Modes & gates as configuration | M–L | Trading behaviour unchanged, now data-driven |
-| 4 | Multi-domain routing & ID uniqueness | M | Two domains, zero collisions |
+| 0 | Repo bootstrap, rename to `advisor`, ID baseline | S | ✅ Pushed; 551 IDs recorded |
+| 1 | Domain manifest & extraction | M | ✅ `diff tests/rule-ids.baseline` empty |
+| 2 | Generated skill surface | M | ✅ Description regenerates from domains; live in registry |
+| 3 | Modes & gates as configuration | M–L | ✅ 5 generic modes; gates + 13-item checklist as data |
+| 4 | Multi-domain routing & ID uniqueness | M | ✅ Verified with a stub domain, then removed |
 | 5 | Bootstrapping tools | M | New domain gets a usable draft taxonomy |
 | 6 | Second domain — *Algorithms to Live By* | — | Full pipeline, **zero edits to `scripts/`** |
 | 7 | Distribution | M | One-command install; bundle within limits |
@@ -114,11 +114,17 @@ Default mode set, domain-overridable:
 ml4t's "five frozen choices" generalise to **gates** — a named checklist that must be answered
 before work proceeds — declared in `domains/<id>/gates.json`.
 
-### Phase 4 — Multi-domain routing
+### Phase 4 — Multi-domain routing — *delivered, with one simplification*
 
-`generated/DOMAINS.md` loads before any ROUTER. The validator enforces **globally unique pack
-prefixes**, keeping IDs short (`ASSP-09-R7`); qualify as `trading:ASSP-09-R7` only when genuinely
-ambiguous. `lookup.py` gains `--domain`.
+A separate `generated/DOMAINS.md` proved unnecessary: the generated `{{DOMAINS}}` table in
+`SKILL.md` is always loaded and already serves as the domain index. One artifact fewer to keep in
+sync.
+
+Delivered: the validator enforces **globally unique pack prefixes** (two packs sharing one would
+mint colliding rule IDs across domains); `lookup.py` merges all domain indexes and qualifies IDs as
+`trading:ASSP-09-R7` **only when more than one domain is installed**, so single-domain citations
+stay short. Verified end to end with a throwaway stub domain — cross-domain search, `--domain`
+isolation, description regeneration, and collision rejection — then removed.
 
 ### Phase 5 — Bootstrapping tools
 
