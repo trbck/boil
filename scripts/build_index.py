@@ -38,9 +38,17 @@ def log(msg, quiet=False):
 
 
 def fingerprint(paths):
+    """Hash the corpus, not the machine it lives on.
+
+    Paths arrive absolute, so hashing them verbatim made the fingerprint depend on
+    the checkout directory: the same corpus produced a different id on a clone, in
+    a packaging staging tree, and on another machine — which defeats the one thing
+    the fingerprint is for, telling you whether two builds saw the same corpus.
+    """
     digest = hashlib.sha1()
     for path in sorted(paths):
-        digest.update(path.encode("utf-8"))
+        rel = os.path.relpath(path, K.ROOT).replace(os.sep, "/")
+        digest.update(rel.encode("utf-8"))
         try:
             with open(path, "rb") as fh:
                 digest.update(hashlib.sha1(fh.read()).digest())

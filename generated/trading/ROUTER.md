@@ -4,7 +4,7 @@ Always-loaded map of this domain's corpus. Resolve a question to a small number 
 
 _Systematic trading: research process, signals, regime detection, position sizing, portfolio construction, risk and drawdown control, transaction costs, backtesting rigour, and live execution._
 
-`domain: trading`  ·  `corpus: ad5d900819a1`
+`domain: trading`  ·  `corpus: e0e0746fe442`
 
 ## Packs
 

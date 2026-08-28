@@ -1,13 +1,14 @@
-# knowledge-advisor
+# advisor
 
-A Claude Code skill that answers quantitative-trading questions, designs strategies, writes
-backtests and audits existing code **against an indexed corpus of trading knowledge**, citing a
-stable rule ID for every claim.
+A Claude Code skill that answers questions, designs and produces work, and audits existing
+artefacts **against indexed corpora distilled from books**, citing a stable rule ID for every
+claim. It is multi-domain: each domain carries its own corpus, taxonomy, rule shards and conflict
+registry, and the skill's own description is generated from whichever domains are installed.
 
 The repository root *is* the skill, so installing is a clone into your skills directory.
 
 ```
-551 rules · 36 book chapters · 14 topic shards · 10k indexed engine symbols
+2 domains · 754 rules · 49 book chapters · 26 topic shards · 10k indexed engine symbols
 ```
 
 ## Why it exists
@@ -24,18 +25,50 @@ Because rules are addressable, advising and auditing are the same operation in o
 
 ## Install
 
+One command, on any machine with git and python3:
+
 ```bash
-git clone <your-remote> ~/.claude/skills/knowledge-advisor
-cd ~/.claude/skills/knowledge-advisor
-python3 scripts/build_index.py       # regenerate the index (~0.3 s for books, ~10 s with engines)
-python3 scripts/validate_pack.py     # expect 0 errors
+git clone <your-remote> ~/src/advisor && ~/src/advisor/bin/advisor-sync
 ```
+
+`bin/advisor-sync` clones or fast-forwards, rebuilds the generated surface, validates it, and
+symlinks the result into `~/.claude/skills/advisor`. It is idempotent — run it again to update. It
+refuses to fast-forward over uncommitted work, because the corpus is edited in place.
+
+```bash
+bin/advisor-sync                       # install or update
+bin/advisor-sync --check               # verify an existing install, change nothing
+bin/advisor-sync --copy                # copy instead of symlink, for sandboxes
+bin/advisor-sync --checkout ~/code/advisor --skills-dir /tmp/skills
+```
+
+A `--copy` install is a snapshot: anything ingested into it is lost on the next sync, so ingest in
+the checkout and push.
 
 No dependencies. Python 3.8+, standard library only — deliberately, so it runs identically on a
 laptop and on a remote box with nothing installed.
 
 If you keep the engine pack (see **Licensing**), drop your `llms*.txt` files into
-`knowledge/vbtpro/` before building.
+`domains/trading/knowledge/vbtpro/` before building. Without them the rest of the corpus works
+normally and the validator warns that engine retrieval is unavailable.
+
+### Bundles
+
+For runtimes that cannot clone, export one domain as a self-contained `.skill` zip:
+
+```bash
+python3 scripts/package_domain.py --domain decisions      # → dist/advisor-decisions.skill
+python3 scripts/package_domain.py --all
+```
+
+Engine packs are excluded by default — they are licensed, and they are almost all of the bytes.
+The bundle is rebuilt rather than copied, so its `SKILL.md` describes exactly what shipped rather
+than advertising domains it does not contain. Output is byte-reproducible.
+
+| Bundle | Size | Files |
+|---|---|---|
+| `advisor-decisions.skill` | 197 KB | 48 |
+| `advisor-trading.skill` | 569 KB | 75 |
 
 ## Quickstart
 
@@ -99,8 +132,10 @@ precedence.
 
 ## Licensing
 
-**The VectorBT PRO documentation is proprietary.** `knowledge/vbtpro/*.txt` and its 3.5MB derived
-index are **gitignored by default**. Redistributing them — especially on a public remote — would
+**The VectorBT PRO documentation is proprietary.** `domains/*/knowledge/*/llms*.txt` and the derived
+byte index are **gitignored by default**, and `validate_pack.py` asserts that no proprietary source
+is git-tracked — a directory move silently un-ignores path-shaped rules, so the outcome is checked
+rather than the pattern. Redistributing them — especially on a public remote — would
 breach the vendor's licence.
 
 If your remote is private and your licence permits it, remove those lines from `.gitignore`.
@@ -113,16 +148,17 @@ copyrighted works, so consider whether your remote should be private.
 ## Repo layout
 
 ```
-SKILL.md            the skill: modes, rules of engagement
+SKILL.md            the skill — generated from templates/SKILL.md.tmpl, never hand-edited
 FORMAT.md           chapter / note / engine contracts
-packs.json          pack registry
-taxonomy.json       topic keywords used to shard rules
-knowledge/          the corpus
-generated/          build output — never hand-edit
+domains/<id>/       domain.json · packs.json · taxonomy.json · conflicts.md · knowledge/
+generated/<id>/     build output — ROUTER.md · rules/ · engines/ · index.json
 inbox/              drop zone for new markdown
-scripts/            build_index · ingest · validate_pack · lookup · ka_common
-references/         workflows · compliance · conflicts
-docs/design.md      why it is built this way
+bin/advisor-sync    install or update from git
+scripts/            build_index · ingest · validate_pack · lookup · suggest_* · package_domain
+references/         workflows · compliance
+templates/          SKILL.md.tmpl · modes.default.json
+dist/               exported bundles (gitignored)
+docs/               design.md — why it is built this way · roadmap.md — where it is going
 ```
 
 ## Maintenance
@@ -132,6 +168,7 @@ python3 scripts/build_index.py     # after any corpus change
 python3 scripts/validate_pack.py   # contract check; --strict to fail on warnings
 ```
 
-`ROUTER.md` carries a corpus fingerprint. If it disagrees with what is in `knowledge/`, rebuild
-before trusting an answer. The build is deterministic and timestamp-free, so a clean rebuild
-produces an empty diff.
+Each `ROUTER.md` carries a corpus fingerprint. If it disagrees with the domain's `knowledge/`,
+rebuild before trusting an answer. The build is deterministic and timestamp-free, and the
+fingerprint is computed over repo-relative paths, so the same corpus yields the same id on any
+machine and a clean rebuild produces an empty diff.

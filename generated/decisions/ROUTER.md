@@ -4,7 +4,7 @@ Always-loaded map of this domain's corpus. Resolve a question to a small number 
 
 _Applying computer science to human decisions: when to stop searching, how to balance exploring against exploiting, sorting and caching, scheduling, Bayesian prediction, overfitting, constraint relaxation, deliberate randomness, and strategic interaction._
 
-`domain: decisions`  ·  `corpus: 87eac9868cae`
+`domain: decisions`  ·  `corpus: 5a454ed4bb2b`
 
 ## Packs
 

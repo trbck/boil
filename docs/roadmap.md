@@ -76,8 +76,8 @@ each phase is an empty diff against it.
 | 3 | Modes & gates as configuration | M–L | ✅ 5 generic modes; gates + 13-item checklist as data |
 | 4 | Multi-domain routing & ID uniqueness | M | ✅ Verified with a stub domain, then removed |
 | 5 | Bootstrapping tools | M | ✅ Validated against the hand-curated registry |
-| 6 | Second domain — *Algorithms to Live By* | — | Full pipeline, **zero edits to `scripts/`** |
-| 7 | Distribution | M | One-command install; bundle within limits |
+| 6 | Second domain — *Algorithms to Live By* | — | ✅ Full pipeline ran with zero edits to `scripts/` |
+| 7 | Distribution | M | ✅ One-command install; bundles 197 KB / 569 KB |
 | 8 | Evals | M | Triggering measured, not assumed |
 
 ### Phase 1 — Domain manifest & extraction
@@ -146,6 +146,32 @@ Validation is the notable result: from 4,302 cross-pack pairs the top three cand
 **exactly** hand-curated entries C3, V7 and V6 — and for V6 it produced a more precise citation
 (`ASSP-10-R13`) than the hand-written entry, which had cited the section rather than the rule.
 
+### Phase 7 — Distribution — *delivered*
+
+`bin/advisor-sync` clones or fast-forwards, rebuilds, validates, and symlinks into
+`~/.claude/skills/advisor`. `scripts/package_domain.py` exports one domain as a deterministic
+`.skill` zip, engine packs excluded.
+
+**What the export found that the repo could not.** Every generated surface still carried hardcoded
+trading examples, so a decisions-only bundle shipped a ROUTER instructing the model to run
+`--rule ASSP-09-R7` and `--engine vbtpro` — an instruction to cite an ID that does not exist in
+that bundle, which is precisely the failure the skill exists to prevent. IDs, topics, search
+phrases, the router path and the whole engine section are now derived from the installed index, and
+the engine material is omitted when nothing is indexed. This is the same class of defect Phase 6
+was designed to catch; it survived because a second *domain* does not exercise a second
+*distribution*.
+
+**And what the fresh-clone test found.** Licensed engine sources are gitignored by design, so a
+clone has no `llms*.txt`; the validator called that three errors and `advisor-sync` correctly
+refused to link a failing tree — making one-command install impossible anywhere but this machine.
+Absent sources on a pack marked `license: proprietary` are now warnings. The corpus fingerprint was
+also machine-dependent (it hashed absolute paths), so the same corpus produced different ids in a
+clone and in a packaging staging tree; it now hashes repo-relative paths.
+
+**Accepted, not fixed:** a single-domain bundle carries cross-domain citations in its
+`conflicts.md` that it cannot resolve. Stripping them would lose the registry's most useful
+content, so `package_domain.py` reports them at export time instead.
+
 ### Phase 6 — Second domain: *Algorithms to Live By*
 
 Chosen deliberately: decision-making and computer science, sharing almost no vocabulary with
@@ -163,6 +189,8 @@ adding features until it passes.
 ## Open items carried from v1
 
 - No evals (now Phase 8, and more important with a generated description).
+- `validate_pack.py` does not resolve rule IDs cited in `conflicts.md` — the one hand-written file
+  dense with citations has no machine check. `package_domain.py` checks it at export time only.
 - `--search` over-ranks chapter hits relative to rules.
 - Topic classification is keyword-based; misfilings are cosmetic since IDs do not depend on topics.
 - ml4t chapter 20 absent from the distilled set.
