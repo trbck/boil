@@ -198,6 +198,7 @@ boil/
 ├── commands/boil.md                  /boil slash command
 ├── requirements.txt                   Python dependency for story-run.py
 ├── templates/                        charter, ladder, log, scorecard, CLAUDE.md snippet
+├── examples/governance/              filled charter + ladder showing evidence discipline
 ├── references/
 │   ├── clanker-constitution.md      Baseline conduct layer — the Clanker Constitution
 │   │                                 verbatim (CC BY 4.0) + mapping to boil's hard rules
