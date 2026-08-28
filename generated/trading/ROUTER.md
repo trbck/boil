@@ -102,8 +102,8 @@ Engine content is retrieved by symbol, never loaded whole: `python3 scripts/look
 
 ```bash
 python3 scripts/lookup.py --domain trading --search "..."
-python3 scripts/lookup.py --rule ASSP-09-R7
-python3 scripts/lookup.py --chapter ASSP-09
-python3 scripts/lookup.py --section ASSP-09§5
-python3 scripts/lookup.py --engine vbtpro --search "from_signals stop loss"
+python3 scripts/lookup.py --rule ML4T-01-R1
+python3 scripts/lookup.py --chapter ML4T-01
+python3 scripts/lookup.py --section ML4T-01§1
+python3 scripts/lookup.py --engine vbtpro --search "<capability>"
 ```

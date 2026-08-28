@@ -36,3 +36,4 @@ Thumbs.db
 # survives review into taxonomy.json / conflicts.md; the drafts themselves are noise.
 domains/*/taxonomy.suggested.json
 domains/*/registry.candidates.md
+dist/

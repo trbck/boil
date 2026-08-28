@@ -62,8 +62,7 @@ _None yet. Drop markdown in `inbox/` and run `python3 scripts/ingest.py`._
 
 ```bash
 python3 scripts/lookup.py --domain decisions --search "..."
-python3 scripts/lookup.py --rule ASSP-09-R7
-python3 scripts/lookup.py --chapter ASSP-09
-python3 scripts/lookup.py --section ASSP-09§5
-python3 scripts/lookup.py --engine vbtpro --search "from_signals stop loss"
+python3 scripts/lookup.py --rule ATLB-00-R1
+python3 scripts/lookup.py --chapter ATLB-00
+python3 scripts/lookup.py --section ATLB-00§1
 ```

@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+#
+# Install or update the advisor skill from git.
+#
+# Git is the primary distribution channel: the corpus grows by commits, and a
+# clone is the only form of the skill that can also *write* — ingestion needs a
+# writable tree, so a read-only copy silently loses every report dropped in
+# inbox/. Bundles (scripts/package_domain.py) exist for runtimes that cannot
+# clone; this is for everything else.
+#
+# Idempotent by design. Run it on a fresh machine to install, run it again next
+# week to update. It clones or pulls, rebuilds the generated surface, validates,
+# and links the result into ~/.claude/skills/advisor.
+#
+#   bin/advisor-sync                     # install or update at the default paths
+#   bin/advisor-sync --checkout ~/src/advisor
+#   bin/advisor-sync --copy              # copy instead of symlink (sandboxes)
+#   bin/advisor-sync --check             # verify an existing install, change nothing
+#
+set -euo pipefail
+
+REPO_URL="${ADVISOR_REPO:-https://github.com/trbck/advisor.git}"
+BRANCH="${ADVISOR_BRANCH:-main}"
+CHECKOUT="${ADVISOR_CHECKOUT:-$HOME/src/advisor}"
+SKILLS_DIR="${ADVISOR_SKILLS_DIR:-$HOME/.claude/skills}"
+LINK="$SKILLS_DIR/advisor"
+MODE="link"
+ACTION="sync"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --checkout) CHECKOUT="$2"; shift 2 ;;
+    --skills-dir) SKILLS_DIR="$2"; LINK="$SKILLS_DIR/advisor"; shift 2 ;;
+    --repo) REPO_URL="$2"; shift 2 ;;
+    --branch) BRANCH="$2"; shift 2 ;;
+    --copy) MODE="copy"; shift ;;
+    --check) ACTION="check"; shift ;;
+    -h|--help) awk 'NR>1 && /^#/{sub(/^# ?/,""); print; next} NR>1{exit}' "$0"; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+say() { printf '%s\n' "$*"; }
+die() { printf '! %s\n' "$*" >&2; exit 1; }
+
+need() { command -v "$1" >/dev/null 2>&1 || die "$1 is required but not on PATH"; }
+
+# ---------------------------------------------------------------- check mode
+
+if [ "$ACTION" = "check" ]; then
+  [ -e "$LINK" ] || die "not installed: $LINK does not exist"
+  TARGET="$LINK"
+  [ -L "$LINK" ] && TARGET="$(cd "$(dirname "$LINK")" && cd "$(readlink "$LINK")" && pwd)"
+  say "installed at $LINK"
+  [ -L "$LINK" ] && say "  → symlink to $TARGET"
+  [ -f "$TARGET/SKILL.md" ] || die "SKILL.md missing — the install is incomplete"
+  need python3
+  python3 "$TARGET/scripts/validate_pack.py"
+  python3 "$TARGET/scripts/lookup.py" --list domains
+  exit 0
+fi
+
+# ---------------------------------------------------------------- clone/pull
+
+need git
+need python3
+
+if [ -d "$CHECKOUT/.git" ]; then
+  say "→ updating $CHECKOUT"
+  git -C "$CHECKOUT" fetch --quiet origin "$BRANCH"
+  # Refuse to clobber local work. The corpus is edited in place — a distilled
+  # chapter half-written is exactly the thing a hard reset would destroy.
+  if ! git -C "$CHECKOUT" diff --quiet || ! git -C "$CHECKOUT" diff --cached --quiet; then
+    die "uncommitted changes in $CHECKOUT — commit or stash them, then re-run"
+  fi
+  git -C "$CHECKOUT" merge --ff-only "origin/$BRANCH" \
+    || die "cannot fast-forward $CHECKOUT to origin/$BRANCH — resolve by hand"
+else
+  [ -e "$CHECKOUT" ] && die "$CHECKOUT exists but is not a git checkout"
+  say "→ cloning $REPO_URL"
+  mkdir -p "$(dirname "$CHECKOUT")"
+  git clone --quiet --branch "$BRANCH" "$REPO_URL" "$CHECKOUT"
+fi
+
+say "  $(git -C "$CHECKOUT" log --oneline -1)"
+
+# ---------------------------------------------------------------- build
+
+say "→ building"
+python3 "$CHECKOUT/scripts/build_index.py" --quiet
+python3 "$CHECKOUT/scripts/validate_pack.py" || die "validation failed — not linking a broken tree"
+
+# ---------------------------------------------------------------- install
+
+mkdir -p "$SKILLS_DIR"
+
+if [ "$MODE" = "link" ]; then
+  if [ -L "$LINK" ]; then
+    rm "$LINK"
+  elif [ -e "$LINK" ]; then
+    die "$LINK exists and is not a symlink — move it aside, or re-run with --copy"
+  fi
+  ln -s "$CHECKOUT" "$LINK"
+  say "→ linked $LINK → $CHECKOUT"
+else
+  # A copy is a snapshot: ingestion writes into the copy, and the next --copy
+  # sync overwrites it. Say so rather than letting reports vanish quietly.
+  if [ -e "$LINK" ] && [ ! -d "$LINK" ]; then
+    die "$LINK exists and is not a directory"
+  fi
+  rm -rf "$LINK"
+  mkdir -p "$LINK"
+  ( cd "$CHECKOUT" && git ls-files -z ) | while IFS= read -r -d '' f; do
+    mkdir -p "$LINK/$(dirname "$f")"
+    cp "$CHECKOUT/$f" "$LINK/$f"
+  done
+  say "→ copied $CHECKOUT → $LINK"
+  say "  note: this is a snapshot. Anything ingested here is overwritten by the next --copy sync;"
+  say "        ingest in $CHECKOUT and push instead."
+fi
+
+say ""
+python3 "$LINK/scripts/lookup.py" --list domains
+say ""
+say "Ready. Read $LINK/SKILL.md, then the router for the domain you need."

@@ -321,11 +321,21 @@ def render_router(domain, packs, chapters, notes, engines, rules, rules_by_topic
     out.append("## Retrieval")
     out.append("")
     out.append("```bash")
+    # Examples are drawn from this domain's own index. A router that demonstrates
+    # `--rule ASSP-09-R7` inside the decisions corpus teaches the model to cite an
+    # ID that does not exist here — the one failure this whole design prevents.
+    example_rule = rules[0]["id"] if rules else "<ID>"
+    example_chapter = chapters[0] if chapters else None
+    chap_id = example_chapter["id"] if example_chapter else "<CHAPTER>"
+    sec_id = ("%s§%s" % (chap_id, example_chapter["sections"][0]["key"])
+              if example_chapter and example_chapter.get("sections") else None)
     out.append("python3 scripts/lookup.py --domain %s --search \"...\"" % domain["id"])
-    out.append("python3 scripts/lookup.py --rule ASSP-09-R7")
-    out.append("python3 scripts/lookup.py --chapter ASSP-09")
-    out.append("python3 scripts/lookup.py --section ASSP-09§5")
-    out.append("python3 scripts/lookup.py --engine vbtpro --search \"from_signals stop loss\"")
+    out.append("python3 scripts/lookup.py --rule %s" % example_rule)
+    out.append("python3 scripts/lookup.py --chapter %s" % chap_id)
+    if sec_id:
+        out.append("python3 scripts/lookup.py --section %s" % sec_id)
+    for eng in engines:
+        out.append("python3 scripts/lookup.py --engine %s --search \"<capability>\"" % eng["id"])
     out.append("```")
     return "\n".join(out) + "\n"
 
@@ -596,6 +606,118 @@ def render_workflows(domains, quiet=False):
     log("references/workflows.md regenerated (%d modes)" % len(seen), quiet)
 
 
+TOKENS_PER_BYTE = 0.25   # ~4 bytes per token for English prose; good enough for a load warning
+
+
+def _first(seq, default=None):
+    for item in seq:
+        return item
+    return default
+
+
+def render_id_examples(indexes):
+    """Cite real IDs from the installed corpus, not remembered ones.
+
+    A hardcoded `ASSP-09-R7` in this file is an invitation to cite it in a
+    domain where it does not exist, which is the one failure the skill exists
+    to prevent.
+    """
+    out = []
+    for ix in indexes[:2]:
+        rule = _first(ix.get("rules", []))
+        if rule:
+            out.append("`%s`" % rule["id"])
+        for chapter in ix.get("chapters", []):
+            if chapter.get("sections"):
+                out.append("`%s§%s`" % (chapter["id"], chapter["sections"][0]["key"]))
+                break
+    return ", ".join(out[:3]) if out else "`PACK-01-R1`, `PACK-01§1`"
+
+
+def render_corpus_tokens(indexes):
+    """Size the *loadable* corpus. Engine packs are byte-sliced, never read whole,
+    so counting them here would overstate what a careless `cat` would cost."""
+    total = 0
+    for ix in indexes:
+        for item in list(ix.get("chapters", [])) + list(ix.get("notes", [])):
+            path = os.path.join(K.ROOT, item["file"])
+            if os.path.exists(path):
+                total += os.path.getsize(path)
+    tokens = int(total * TOKENS_PER_BYTE)
+    if tokens >= 1000:
+        return "%dk" % round(tokens / 1000.0)
+    return str(tokens)
+
+
+def render_router_example(indexes):
+    dom = indexes[0]["domain"] if indexes else "<domain>"
+    return "generated/%s/ROUTER.md" % dom
+
+
+def render_retrieval_examples(indexes):
+    """Build the retrieval cheatsheet from real IDs, topics and scope phrases."""
+    if not indexes:
+        return "python3 scripts/lookup.py --search \"<question>\""
+    ix = indexes[0]
+    query = (ix.get("scope") or [ix.get("title", "the topic")])[0]
+    topic = _first(sorted(ix.get("topics", {}) or {}), "<topic>")
+    rule = _first(ix.get("rules", []))
+    rule_id = rule["id"] if rule else "<ID>"
+    chapter = _first([c for c in ix.get("chapters", []) if c.get("sections")],
+                     _first(ix.get("chapters", [])))
+    chap_id = chapter["id"] if chapter else "<CHAPTER>"
+    sec_id = ("%s§%s" % (chap_id, chapter["sections"][0]["key"])
+              if chapter and chapter.get("sections") else "<CHAPTER>§1")
+
+    rows = [
+        ('python3 scripts/lookup.py --search "%s"' % truncate(query, 46),
+         "rank rules+chapters+sections"),
+        ("python3 scripts/lookup.py --topic %s" % topic, "one rule shard"),
+        ("python3 scripts/lookup.py --rule %s" % rule_id, "verify a single rule"),
+        ("python3 scripts/lookup.py --chapter %s" % chap_id, "metadata + section map"),
+        ('python3 scripts/lookup.py --section "%s"' % sec_id, "one section's text"),
+    ]
+    width = max(len(cmd) for cmd, _ in rows)
+    lines = ["%-*s  # %s" % (width, cmd, note) for cmd, note in rows]
+    lines.append("python3 scripts/lookup.py --list domains|chapters|topics|packs|notes")
+    if len(indexes) > 1:
+        lines.append("python3 scripts/lookup.py --domain %s --search \"...\"   "
+                     "# restrict to one domain" % indexes[0]["domain"])
+    return "\n".join(lines)
+
+
+def engine_packs(indexes):
+    return [(ix["domain"], eng) for ix in indexes for eng in ix.get("engines", [])]
+
+
+def render_engine_rule(indexes):
+    """Emitted only when an engine pack is installed — a bundle without one must
+    not carry instructions for slicing documentation it does not ship."""
+    engines = engine_packs(indexes)
+    if not engines:
+        return ""
+    names = join_and(sorted({"`%s`" % eng["id"] for _, eng in engines}))
+    return ("- **Engines describe capability, not method.** %s tells you what the tool *can* do. "
+            "Whether you\n  *should* comes from the book packs.\n" % names)
+
+
+def render_engine_retrieval(indexes):
+    engines = engine_packs(indexes)
+    if not engines:
+        return ""
+    dom, eng = engines[0]
+    lines = ["## Engine packs", "",
+             "Vendor documentation, indexed by byte offset and never loaded whole. `--search` and",
+             "`--symbol` return offsets; `--show-offset` reads that slice and nothing else.", "",
+             "```bash",
+             'python3 scripts/lookup.py --engine %s --search "<capability>"' % eng["id"],
+             "python3 scripts/lookup.py --engine %s --symbol <Symbol.name>" % eng["id"],
+             "python3 scripts/lookup.py --engine %s --show-offset <offset> --max-bytes 8000"
+             % eng["id"],
+             "```", ""]
+    return "\n".join(lines) + "\n"
+
+
 def render_skill(indexes, quiet=False):
     tmpl_path = os.path.join(K.ROOT, "templates", "SKILL.md.tmpl")
     if not os.path.exists(tmpl_path):
@@ -611,6 +733,12 @@ def render_skill(indexes, quiet=False):
     for key, val in (("DESCRIPTION", render_description(indexes)),
                      ("RULE_TOTAL", str(total)),
                      ("DOMAINS", render_domains_table(indexes)),
+                     ("ID_EXAMPLES", render_id_examples(indexes)),
+                     ("CORPUS_TOKENS", render_corpus_tokens(indexes)),
+                     ("ROUTER_EXAMPLE", render_router_example(indexes)),
+                     ("RETRIEVAL_EXAMPLES", render_retrieval_examples(indexes)),
+                     ("ENGINE_RULE", render_engine_rule(indexes)),
+                     ("ENGINE_RETRIEVAL", render_engine_retrieval(indexes)),
                      ("MODES", render_modes_table(list(modes.values()))),
                      ("GATES", render_gates_summary(domains)),
                      ("CAVEATS", render_caveats(indexes))):
