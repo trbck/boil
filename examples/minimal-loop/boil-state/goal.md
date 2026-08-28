@@ -3,8 +3,8 @@
 **One-line:** Demonstrate a minimal boil loop fixture.
 
 ## Success checklist
-- [x] Ticket schema validates.
-- [x] Iteration summary includes proof, demo, and next steps.
+- [x] Ticket schema validates. EVIDENCE: `ticket-lint.py --root .` -> exit 0 | 2026-06-10 | auto
+- [x] Iteration summary includes proof, demo, and next steps. EVIDENCE: `boil-verify-iteration.sh iter-001 .` -> exit 0 | 2026-06-10 | auto
 
 ## Requirements understanding
 

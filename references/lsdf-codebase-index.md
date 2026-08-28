@@ -1,5 +1,7 @@
 # L-SDF — compact codebase index for cheap navigation inside boil
 
+> **Load when:** dispatch context is the measured cost driver of your loop. Skip on small repos and on any non-Python repo, where it currently does nothing.
+
 `boil` runs a lot of subagents. Each subagent that spelunks the
 repository to find a file, a function, or a call edge pays in input
 tokens twice — once when the orchestrator hands it ticket context,

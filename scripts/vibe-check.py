@@ -13,7 +13,10 @@ from pathlib import Path
 IMPLEMENTED_RE = re.compile(r"\b(implemented|built|done|fixed|completed|shipped)\b", re.I)
 TEST_RE = re.compile(r"\b(Tests?|Verification|Proof)\b", re.I)
 DEMO_RE = re.compile(r"\b(Demo|How to see it works|30 seconds|screenshot|localhost|curl)\b", re.I)
-NEXT_RE = re.compile(r"\b(Suggested next steps|Next:|Next focus)\b", re.I)
+# Two accepted shapes: a heading ("## Suggested next steps") and a labelled line
+# ("**Next:** ..."). The old `\bNext:\b` matched neither when bolded — the trailing \b
+# needs a word character after the colon, and markdown bold puts an asterisk there.
+NEXT_RE = re.compile(r"\bSuggested next steps\b|\bNext focus\b|\bNext\s*:", re.I)
 OUTPUT_RE = re.compile(r"\b(passed|failed|exit=|HTTP\s+\d{3}|ok\b|green)\b", re.I)
 
 

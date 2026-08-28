@@ -1,5 +1,7 @@
 # Status logging — boil sessions in helm
 
+> **Load when:** this session is driven by a helm contract, or you are wiring status logging. Not needed for an ordinary local loop — `boil-now.py` already surfaces state.
+
 A long boil run is opaque: the operator sees a wall of tool calls, then a summary. This file defines the layer that fixes that — a status log written at every state transition, rendered two ways:
 
 - **live** — the helm dashboard shows the running session: which ticket, which attempt, which verdict, what the manager decided and why

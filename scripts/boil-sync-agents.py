@@ -45,14 +45,23 @@ https://github.com/kenn-io/constitution
 ## boil loop rules
 
 Follow these rules:
-- Read `.boil/goal.md`, `.boil/memory.md`, and the assigned ticket before editing.
+- Start by running ONE command and reading its output:
+  `python3 <boil-skill>/scripts/boil-now.py --root . --write`
+  It derives `.boil/NOW.md` (~40 lines) from the charter, ladder, goal, ticket pool and
+  brakes. Do not read those files separately. Exit 3 means the project is parked or a
+  brake fired: stop and put the decision to the user before any work.
+- Then read the assigned ticket, plus the goal/memory slices your dispatch packet carries.
 - Do not implement until requirements are understood at >=99/100 confidence.
 - Use proof-first development: RED proof before implementation for behavior/bug work.
 - Do not mark tickets done unless `confidence.requirements_understood`,
   `confidence.implementation_matches`, and `confidence.verification_working`
   are each >=99 with concrete evidence and empty uncertainty.
 - Run the verification commands named in `.boil/memory.md` or the ticket.
-- Your ticket names an `answer_key` — an external test suite, source document, or
+- Your ticket names a `tier`. At **T1** you are expected to make the change, run the
+  project's own tests, and show the diff — no judge, no frozen key. At **T2** a builder
+  works and the orchestrator verifies independently. Only at **T3** does the full
+  adversarial protocol apply. Never lower a tier to get past a failure; raise it.
+- At T3 your ticket names an `answer_key` — an external test suite, source document, or
   checklist. It is READ-ONLY for you. An independent judge measures your work
   against it, and your own confidence scores are not an input to that verdict.
   Editing, skipping, xfailing, loosening, or narrowing the key ends the ticket

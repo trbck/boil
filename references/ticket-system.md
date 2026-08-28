@@ -22,10 +22,20 @@ specialty: frontend | backend | qa | debugger | code-review | design | devops | 
 status: open | in-progress | blocked | done | wontfix
 priority: P0 | P1 | P2 | P3
 proof_strategy: red-green | characterization | verification-only | rendered-doc | research-artifact | perf-baseline
+tier: T1 | T2 | T3                   # REQUIRED. How much ceremony this ticket pays, chosen by
+                                     #   blast radius — what it costs if this is wrong and
+                                     #   nobody notices. T1 direct (default, no subagent),
+                                     #   T2 one builder + your own verification, T3 the full
+                                     #   adversarial protocol below. Money, auth, data loss and
+                                     #   production are T3; so is anything that already failed
+                                     #   twice. Raise a tier after a failure, never lower one.
+                                     #   Full contract: references/effort-tiers.md
 opened_by: orchestrator | T-0040 | agent:frontend
 opened_at: 2026-05-05T14:32:00Z
 blocked_by: []                       # list of ticket IDs that must be done first
-answer_key:                          # the EXTERNAL ground truth the judge measures against.
+answer_key:                          # T3 ONLY. The EXTERNAL ground truth the judge measures
+                                     #   against. T1/T2 tickets use `kind: none` with a reason;
+                                     #   their proof is the project's own tests.
   kind: suite                        #   suite | document | checklist | none
   ref: "tests/e2e/filter-refresh.spec.ts::refetches on date change"
   expect: pass                       #   suite only: pass | fail | <stdout substring>
@@ -34,7 +44,7 @@ answer_key:                          # the EXTERNAL ground truth the judge measu
   frozen_sha: ""                     #   stamped by `boil-loop.py init`; the key's hash at freeze time
   protected: true                    #   the builder may not edit the key's files
   reason: ""                         #   required only when kind is `none`
-loop:                                # mirror of .boil/loops/<id>/loop.json — read-only for agents
+loop:                                # T3 ONLY. Mirror of .boil/loops/<id>/loop.json — read-only for agents
   max_revisions: 3                   #   hard limit; 3 failed revisions escalate to a human
   attempts: 0
   status: ""                         #   running | accepted | escalated | aborted

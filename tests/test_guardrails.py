@@ -53,6 +53,7 @@ specialty: general
 status: blocked
 priority: P0
 proof_strategy: verification-only
+tier: T1
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
@@ -71,7 +72,7 @@ Safe, secret-free blocker.
 """,
                 encoding="utf-8",
             )
-            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--json")
+            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--no-goal", "--json")
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             data = json.loads(proc.stdout)
             self.assertTrue(data["ok"])
@@ -98,6 +99,7 @@ specialty: general
 status: blocked
 priority: P0
 proof_strategy: verification-only
+tier: T1
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
@@ -121,7 +123,7 @@ Safe, secret-free blocker.
                 "This ticket is waiting on you to add an API key on your machine.\n",
                 encoding="utf-8",
             )
-            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--json")
+            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--no-goal", "--json")
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
             data = json.loads(proc.stdout)
             self.assertTrue(data["ok"])
@@ -141,6 +143,7 @@ specialty: backend
 status: open
 priority: P1
 proof_strategy: red-green
+tier: T1
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
@@ -151,7 +154,7 @@ api_key = "abcdefghijklmnopqrstuvwx"
 """,
                 encoding="utf-8",
             )
-            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--json")
+            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--no-goal", "--json")
             self.assertEqual(proc.returncode, 1)
             self.assertIn("possible-secret", proc.stdout)
 
@@ -169,6 +172,7 @@ specialty: backend
 status: done
 priority: P1
 proof_strategy: red-green
+tier: T1
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
@@ -187,7 +191,7 @@ This should fail the confidence gate.
 """,
                 encoding="utf-8",
             )
-            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--json")
+            proc = run_cmd(sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), "--root", str(root), "--no-goal", "--json")
             self.assertEqual(proc.returncode, 1)
             self.assertIn("low-confidence", proc.stdout)
             self.assertIn("missing-confidence-evidence", proc.stdout)
@@ -265,12 +269,19 @@ This should fail the confidence gate.
             (boil / "tickets").mkdir(parents=True)
             (boil / "goal.md").write_text(
                 """# Goal
+**One-line:** Validate a minimal boil workspace.
+
+## Success checklist
+- [ ] Doctor exits 0 on this workspace.
 
 ## Requirements understanding
 
 | Requirement | Interpretation | Acceptance signal | Confidence | Open uncertainty |
 |---|---|---|---:|---|
 | Test doctor | Validate a minimal workspace | doctor exits 0 | 99 | none |
+
+## How the user will see this works
+Run `boil-doctor.py --root .` and read the exit code.
 """,
                 encoding="utf-8",
             )
@@ -285,6 +296,7 @@ specialty: verification
 status: open
 priority: P1
 proof_strategy: verification-only
+tier: T1
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []
@@ -332,6 +344,7 @@ specialty: verification
 status: open
 priority: P1
 proof_strategy: verification-only
+tier: T1
 opened_by: orchestrator
 opened_at: 2026-06-10T09:30:00Z
 blocked_by: []

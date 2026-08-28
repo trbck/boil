@@ -1,9 +1,11 @@
 # Plain-English output — claudish-to-english
 
+> **Load when:** you are wiring the optional claudish-to-english plain-English layer. Purely optional; boil's own report block is already written in plain English.
+
 boil generates a lot of prose for a human: the Step 2f narrative, `demo.md`, `STATUS.md`,
 `escalation.md`, `FINAL.md`, PR bodies. All of it is written by an LLM, and LLM prose has a
 house style — hedged, padded, fond of "comprehensive" and "robust" — that costs the
-operator attention exactly where boil is trying to save it (hard rule 13, hard rule 14, and
+operator attention exactly where boil is trying to save it (the Step 2e report block and
 the ADHD-friendly orientation contract).
 
 [**claudish-to-english**](https://github.com/gvzdv/claudish-to-english) (Georgy Vozdvizhev,
@@ -37,7 +39,7 @@ env-var table are in the plugin's README; this file only covers the boil-specifi
 `CLAUDISH_MODE=append` appends a `💬 In plain English:` block after each assistant message.
 Nothing on disk changes, Claude's own reasoning and the transcript keep the original text,
 and a failed rewrite just means no extra block. For a long unattended boil run this is the
-cheap win: the iteration summary and the `----------` footer arrive twice, once in boil's
+cheap win: the iteration report block arrives twice, once in boil's
 voice and once in plain English.
 
 ```json
@@ -85,9 +87,9 @@ operator, while every file boil's own tooling reads stays byte-identical.
 |---|---|
 | `.boil/tickets/` | Ticket bodies carry `Proof / tests:` output. A paraphrase of a test result is not a test result — hard rule 3. Frontmatter survives (it is re-attached verbatim), the evidence does not. |
 | `.boil/loops/` | Owned exclusively by `boil-loop.py`. Nothing else writes there, ever. A rewritten `escalation.md` is a corrupted human packet. |
-| Anything named by a ticket's `answer_key` | Hard rule 24: the key is read-only for the duration, and "weakening counts as editing." A local model rephrasing a checklist key is tampering, whether or not it meant to be. |
+| Anything named by a ticket's `answer_key` | The T3 answer key is read-only for the duration, and "weakening counts as editing." A local model rephrasing a checklist key is tampering, whether or not it meant to be. |
 | `.boil/stories/`, `.boil/rubrics/` | These are specs and measures. Rewriting a rubric's `eval_steps` or a story's assertions moves the ruler under the thing being measured. |
-| `.boil/goal.md` | Hard rule 7 — `goal.md` is sacred and changes only through an explicit user-confirmed edit. |
+| `.boil/goal.md` | `goal.md` is sacred (Phase 0) and changes only through an explicit user-confirmed edit. |
 | Repo source docs, in `overwrite` mode | The plugin's own README says a weak model can degrade real docs. Same warning, louder, for anything a judge or a reviewer will read. |
 
 **Never use `overwrite` mode anywhere under `.boil/`.** Sibling mode only. The state
@@ -98,7 +100,7 @@ and a reading aid does not get write access to the evidence.
 
 A `.plain.md` sibling is a **rendered copy with no authority**. It closes no checkbox,
 satisfies no `proof_strategy`, and is never what a judge reads — the judge sees the key,
-the artifacts, and the diff (hard rule 23). If a demo or a proof exists only in a rewritten
+the artifacts, and the diff (see `references/self-correcting-loop.md`). If a demo or a proof exists only in a rewritten
 sibling, it does not exist.
 
 `ticket-lint.py` skips any file whose stem contains a dot (`T-0001.plain.md`), so a sibling
@@ -107,8 +109,8 @@ safety net for a misconfigured `CLAUDISH_MD_DIR`, not permission to point the ho
 
 ## What it does not replace
 
-The Step 2f human narrative is still written by boil, in the same message as the machine
-summary. It is a required output (hard rule 13), and its job — *what moved toward the goal,
+The Step 2e report block is still written by boil in plain English itself. It is a required
+output, and its job — *what moved toward the goal,
 what fraction is done, what is next, what went wrong* — is a judgment about the work that a
 downstream rewriter cannot make from the text alone. claudish-to-english makes that
 narrative easier to read. It does not get to be the narrative.
