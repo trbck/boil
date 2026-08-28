@@ -1,5 +1,7 @@
 # The Self-Correcting Loop — builder / judge / manager
 
+> **Load when:** you are running a **tier T3** ticket (money, auth, data loss, production, or a ticket that already failed twice at T1/T2). T1 and T2 tickets do not use this protocol — their proof is the project's own suite via `proof_strategy`. See `references/effort-tiers.md`.
+
 A `boil` ticket used to be a one-shot: dispatch a specialist, read its report, believe it or don't. This file defines the layer that replaces "believe it or don't" with a bounded, evidence-backed correction cycle.
 
 Three roles, one ticket:
@@ -254,7 +256,7 @@ Then, mechanically:
 1. Ticket becomes `type: human-action`, `status: blocked`, `priority: P0`, `working_on: "blocked on user decision: <safe summary>"`.
 2. `human_action.safe_summary` = the "What the human has to decide" sentence. Secret-free — same rules as every other human-action ticket.
 3. Susi bridge sync + Pushover, if the local bridge exists (SKILL.md Step 2d.5).
-4. The escalation becomes the **first `Next:` bullet** in the orientation footer, phrased as an imperative.
+4. The escalation becomes the **first `Next:` item** in the iteration report block, phrased as an imperative.
 5. The goal checkbox stays unchecked. An escalated loop is not a closed loop.
 
 An escalation is a successful outcome of the system. The loop caught something it could not resolve and stopped cleanly with a complete record. That is the whole point — it is not a failure to be papered over with a fourth attempt.
@@ -334,7 +336,7 @@ The events the loop must emit, at minimum:
 
 ## How this relates to the layers you already have
 
-- **`proof_strategy`** (hard rule 11) says *what shape* of proof a ticket needs. The **answer key** says *which specific external artifact* is the ruler and pins its hash. Every behavior ticket has both; they are not alternatives.
+- **`proof_strategy`** says *what shape* of proof a ticket needs. The **answer key** says *which specific external artifact* is the ruler and pins its hash. Every behavior ticket has both; they are not alternatives.
 - **Rubrics** (`references/rubrics.md`) are the `checklist` answer-key kind. A rubric attached to a ticket is that ticket's key; a rubric attached to a goal checkbox stays where it is, evaluated at iteration level in Step 2d Pass 3. Same file format, two scopes.
 - **Stories** (`references/stories.md`) are the user-experience contract and are usually the best `suite` key for user-perceivable work — the runner already produces a re-executable green/red.
 - **Pass 2 (adversarial re-test)** attacks from an angle nobody specified in advance. The judge checks the angle that *was* specified in advance. Keep both: the key catches "didn't do what was asked", Pass 2 catches "did what was asked and broke something else."

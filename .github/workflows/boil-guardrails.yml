@@ -26,3 +26,6 @@ jobs:
           python scripts/ticket-lint.py --root "$tmp"
           python scripts/boil-loop.py audit --root "$tmp"
           bash scripts/boil-verify-iteration.sh iter-001 "$tmp"
+          python scripts/boil-now.py --root "$tmp" --write
+          python scripts/boil-brakes.py check --root "$tmp"
+          python scripts/boil-doctor.py --final --root "$tmp"

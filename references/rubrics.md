@@ -1,5 +1,7 @@
 # Semantic Rubrics — LLM-as-Judge for `boil`
 
+> **Load when:** a goal checkbox that moved this iteration has a rubric attached, inline or in `.boil/rubrics/`. Deterministic criteria (exit codes, latency, schema checks) never need one — direct verification covers them.
+
 Vibe-checking a demo is not verification. When a goal contains a semantic criterion ("the agent honored the user's constraint across turns", "the dashboard is actually readable", "the refactor preserved behavior") string-match and exit codes will tell you nothing. This file defines the rubric layer: how to encode semantic acceptance as code, and how to dispatch a context-isolated judge to evaluate it.
 
 This is the `boil` adaptation of G-Eval / LLM-as-Judge with forced evidence traces. The rubric is the deterministic part. The judge is the non-deterministic engine that executes it.

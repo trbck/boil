@@ -45,9 +45,22 @@ if [[ -d "$PROJECT_ROOT/.boil/iterations/$ITERATION" ]]; then
   bash "$SCRIPT_DIR/boil-verify-iteration.sh" "$ITERATION" "$PROJECT_ROOT"
 fi
 
+# Record this iteration's progress, then evaluate the convergence brakes. The tick is
+# what makes the stall brake able to fire at all, so it runs even when a brake then
+# stops the loop. `check` exits 2 (restrict) or 3 (stop); neither is a gate failure —
+# it is the loop being told to change what it does next, which the caller reports.
+python3 "$SCRIPT_DIR/boil-brakes.py" tick --root "$PROJECT_ROOT" --iteration "$ITERATION"
+BRAKES_EXIT=0
+python3 "$SCRIPT_DIR/boil-brakes.py" check --root "$PROJECT_ROOT" || BRAKES_EXIT=$?
+python3 "$SCRIPT_DIR/boil-now.py" --root "$PROJECT_ROOT" --write >/dev/null || true
+
 # Refresh the operator's status view (and helm's, when helm is installed). Never fatal:
 # a status-logging failure must not fail an iteration that otherwise passed its gates.
 python3 "$SCRIPT_DIR/boil-helm-log.py" emit --root "$PROJECT_ROOT" \
   --kind boil.iteration.gates --status ok --detail "$ITERATION" || true
 
-echo "boil-run-iteration: gates complete for $ITERATION"
+case "$BRAKES_EXIT" in
+  2) echo "boil-run-iteration: gates complete for $ITERATION — BRAKES: RESTRICT (T1 work only, file no new tickets)" ;;
+  3) echo "boil-run-iteration: gates complete for $ITERATION — BRAKES: STOP (put the decision to the user)" ;;
+  *) echo "boil-run-iteration: gates complete for $ITERATION" ;;
+esac

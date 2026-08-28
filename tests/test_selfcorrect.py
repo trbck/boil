@@ -39,6 +39,7 @@ specialty: frontend
 status: in-progress
 priority: P1
 proof_strategy: red-green
+tier: T3
 opened_by: orchestrator
 opened_at: 2026-08-03T09:00:00Z
 blocked_by: []
@@ -350,7 +351,7 @@ class SharedBlindSpotTest(unittest.TestCase):
 
     def test_lint_rejects_a_behavior_ticket_with_no_key(self) -> None:
         h = LoopHarness(self, key='  kind: none\n  reason: "felt obvious"', init=False)
-        proc = run(str(LINT), "--root", str(h.root), "--json")
+        proc = run(str(LINT), "--root", str(h.root), "--no-goal", "--json")
         self.assertEqual(proc.returncode, 1)
         codes = {i["code"] for i in json.loads(proc.stdout)["issues"]}
         self.assertIn("answer-key-none-behavior", codes)
@@ -359,7 +360,7 @@ class SharedBlindSpotTest(unittest.TestCase):
         h = LoopHarness(self, ttype="docs",
                         key='  kind: none\n  reason: "prose only; no external ground truth"',
                         init=False)
-        proc = run(str(LINT), "--root", str(h.root), "--json")
+        proc = run(str(LINT), "--root", str(h.root), "--no-goal", "--json")
         self.assertEqual(proc.returncode, 0, proc.stdout)
 
     def test_a_key_that_cannot_be_read_cannot_be_frozen(self) -> None:

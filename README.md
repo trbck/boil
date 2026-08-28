@@ -1,35 +1,79 @@
 # boil
 
-A Codex/Claude Code skill: a production-grade iterative dev-firm loop with parallel skilled subagents, an inter-agent ticket system, and a **mandatory user-visible demo** at the end of every iteration.
+A Codex/Claude Code skill that builds one thing until it is proven — inside a project that is
+actually converging. It owns three scopes: the **portfolio** (should I be in this project at
+all?), the **ladder** (is this project converging?), and the **run loop** (is this one thing
+built and verified?). Every iteration ends with a **user-visible demo**.
+
+> The outer two scopes used to be a separate skill, `gate`. It was merged in on 2026-08-28,
+> because a separate skill has to be invoked voluntarily — and measurably was not. See
+> [MERGE-PLAN.md](MERGE-PLAN.md) for the evidence and the design.
 
 ## What it does
 
 You say something like:
 
 ```
-boil a better dashboard till the conversion chart loads under 200ms
+boil the /api/orders endpoint until POST returns 201 with a real order_id
 ```
 
 `boil` then:
 
-1. **Crystallizes the goal.** If the request is fuzzy, it inspects the workspace first, then asks targeted questions until the goal, constraints, tradeoffs, and success criteria are clear before writing a `.boil/goal.md` you confirm.
-2. **Bootstraps a workspace** — `.boil/` with `goal.md`, `memory.md`, `implementation.md`, `bugs.md`, a `tickets/` pool, and a `routing.md` mapping specialties to subagent types.
-3. **Loops** — each iteration:
-   - Picks ready tickets from the pool
-   - Dispatches them in parallel to **specialist subagents** (frontend, backend, qa, debugger, …) based on a routing table covering ~60 specialties
-   - Runs a **self-correcting loop** per behavior ticket — a builder attempts it, an independent judge checks it against an external answer key frozen beforehand, and a deterministic manager decides revise / finish / escalate. Three failed revisions stop the loop and hand a human the full history
-   - Verifies with the project's real test/lint/build commands
-   - Re-tests **from a different angle** than the implementer used (adversarial pass)
-   - **Cross-LLM review** via [`roborev`](https://roborev.io) when installed — a different LLM than the implementer critiques the iteration's code; Claude implementations prefer Codex review and Codex implementations prefer Claude review; findings become next-iteration tickets
-   - Produces a **30-second demo** the user can verify (URL, screenshot, curl + response, terminal output, diff snippet, green test)
-   - Posts a 10-line summary and asks: continue / refine / pivot / stop
-4. **Terminates** when the goal checklist is fully green AND the user accepts the demo, OR when the user says stop.
+1. **Reads one file.** `boil-now.py` derives `.boil/NOW.md` — ~40 lines covering project
+   status, ladder position, goal progress, the brakes, and the actionable tickets. Its exit
+   code is the instruction: 0 continue, 2 restrict to cheap work, 3 stop and ask. A parked
+   project refuses work before a line is written.
+2. **Crystallizes the goal** — and keeps it small. **A goal is one ladder criterion, not a
+   project:** max 7 checkboxes, max 2500 bytes, and it must state how you will see it works.
+   This is linted, because goal size predicts failure better than anything else measured
+   (see below).
+3. **Loops.** Each iteration picks ready tickets, dispatches them at **the tier their blast
+   radius earns**, verifies with the project's real commands, re-tests from an angle the
+   implementer did not use, and produces a 30-second demo.
+4. **Reports once.** One block: what changed, goal progress, the real proof output, the demo,
+   the next actions — and the same result appended to `.boil/log.md` as a ladder `EVIDENCE:`
+   line. Written once, used twice.
+5. **Stops itself.** Three brakes are binding and hand the decision to you rather than
+   pressing on: **stall** (three iterations with no checkbox moving), **WIP** (more than 5
+   actionable tickets), and **budget** (the goal's cap is spent).
+6. **Terminates honestly.** `boil-doctor.py --final` refuses to write a `FINAL.md` unless
+   every checkbox is green *and* carries a fresh evidence line. An unfinished goal produces
+   `HANDOFF.md` instead — X of Y done, what is left, why.
 
-The demo at the end of every iteration is the cornerstone — it's what makes this different from a black-box loop. If the iteration's work can't be demoed, the skill files a `demo-prep` ticket and tries again rather than claiming progress.
+## Effort tiers
 
-## The self-correcting loop
+Ceremony is chosen by blast radius, not by habit:
 
-Inside each iteration, every behavior ticket runs a bounded correction cycle with three roles:
+| Tier | What runs | Use for |
+|---|---|---|
+| **T1** direct *(default)* | the orchestrator edits, runs the test, shows the diff | config, copy, docs, deps, small covered refactors |
+| **T2** delegated | one builder subagent + independent orchestrator verification | needs isolation, or parallelisable |
+| **T3** adversarial | frozen answer key + builder + isolated judge in a different model family + deterministic manager + cross-LLM review | money, auth, data loss, production — or anything that already failed twice |
+
+`tier:` is a required ticket field; `ticket-lint.py` warns when a T1/T2 ticket mentions
+payment, auth, migrations or production. Most tickets are T1.
+
+## Why the limits exist
+
+Measured across the 15 projects carrying `.boil/` state on 2026-08-28:
+
+| Project | Iterations | Tickets | goal.md | Checkboxes green |
+|---|---:|---:|---:|---|
+| susi | 13 | 71 | **976 B** | **7/7** |
+| strategies | 21 | 107 | 5.6 KB | 8/8 |
+| ttengine | **65** | **205** | 4.6 KB | **2/7** |
+| fomo2 | 11 | 100 | **8.3 KB** | **0/7** |
+| trtools2 *(archived)* | **69** | **308** | 6.5 KB | **0/13** |
+
+Throughput was never the problem — ttengine closed 156 tickets, trtools2 closed 173.
+Convergence was. Passes that file tickets rather than fix them make the pool a generator
+(156 done / 40 open; 173 done / 104 open), and nothing stopped either run: `escalation.md`
+existed **zero** times across 86 loop directories. Rules that live only in prose do not
+execute. Every limit above is therefore a script with a test.
+
+## The self-correcting loop (tier T3)
+
+Every **T3** ticket runs a bounded correction cycle with three roles:
 
 - **builder** — makes the attempt (a specialist subagent)
 - **judge** — checks it against an **answer key**, and nothing else. Context-isolated: it never sees the builder's chat, self-report, or confidence scores
@@ -74,7 +118,14 @@ The skill auto-triggers on:
 - `ralph this`
 - Any request shaped as: a desired end-state + repeated try-test-fix cycles + the user wanting to see proof at each step
 
-You can also invoke `/boil <goal>` explicitly.
+It also triggers on the outer-loop work absorbed from `gate`:
+
+- "gate this project" / "audit this project" / "review the portfolio"
+- "what should I work on?" / "init project governance"
+- **any session started in a project that contains a `.boil/` directory**
+
+Explicit invocation: `/boil <goal> till <condition>`, or the subcommands
+`/boil init | status | audit | review | migrate`.
 
 ## Install
 
@@ -146,9 +197,14 @@ boil/
 ├── SKILL.md                          Main entry — phases, hard rules, integration
 ├── commands/boil.md                  /boil slash command
 ├── requirements.txt                   Python dependency for story-run.py
+├── templates/                        charter, ladder, log, scorecard, CLAUDE.md snippet
 ├── references/
 │   ├── clanker-constitution.md      Baseline conduct layer — the Clanker Constitution
 │   │                                 verbatim (CC BY 4.0) + mapping to boil's hard rules
+│   ├── outer-loop.md                 Charter, maturity ladder L0-L5, evidence rules,
+│   │                                 the ticket-pool WIP rules, the three brakes,
+│   │                                 portfolio + audit protocol (absorbed from gate)
+│   ├── effort-tiers.md               T1/T2/T3: which ceremony a ticket pays and why
 │   ├── plain-english-output.md      Optional claudish-to-english wiring + scoping rules
 │   ├── brainstorm-questions.md       Phase 0 question pool for fuzzy goals
 │   ├── state-files.md                Templates for goal/memory/implementation/bugs/iter
@@ -175,8 +231,15 @@ boil/
     │                                 decision table, enforces the retry limit,
     │                                 writes escalation packets
     ├── boil-helm-log.py              status logging + the helm session bridge
-    ├── boil-doctor.py                validates a `.boil/` workspace
-    ├── ticket-lint.py                lints ticket schema, answer keys, blockers, secrets
+    ├── boil-now.py                   the session-start read; derives .boil/NOW.md
+    ├── boil-brakes.py                tick per iteration; check stall / WIP / budget
+    ├── boil-portfolio.py             regenerates PORTFOLIO.md; --check for CI/cron
+    ├── boil-migrate.py               folds a legacy .gate/ into .boil/
+    ├── boil_common.py                shared frontmatter/checkbox parsing helpers
+    ├── boil-doctor.py                validates a `.boil/` workspace; --final is the
+    │                                 termination gate (no FINAL.md without evidence)
+    ├── ticket-lint.py                lints ticket schema, tier, goal size, answer keys,
+    │                                 blockers, secrets
     ├── vibe-check.py                 flags summaries without proof/demo/next steps
     ├── boil-verify-iteration.sh      gates one iteration directory
     ├── boil-run-iteration.sh         runs doctor/lint/story/test/iteration gates
@@ -191,28 +254,32 @@ boil/
 
 ## How it works (one-paragraph version)
 
-The skill treats the session as a small software firm. The orchestrator (the main agent session) keeps a ticket pool on disk; each ticket has a `specialty` field. Each iteration the orchestrator picks ready tickets, looks up the right specialist subagent in `routing.md`, dispatches them all in parallel using the current client’s subagent API, collects their reports, verifies the changes really landed, runs tests, runs an adversarial second-angle test, and produces a demo. When agents discover work outside their specialty mid-task they file ticket proposals rather than doing it themselves — the orchestrator routes the new tickets on the next cycle. The loop only stops when the `goal.md` checklist is green and the user has signed off on the latest demo.
+The skill treats the session as a small software firm that knows what it costs. It reads the board once (`NOW.md`), then each iteration picks ready tickets and gives each one only as much process as its blast radius earns: most are handled directly, some go to a specialist subagent, and the expensive minority — money, auth, data loss, production — get the full adversarial protocol with a frozen answer key and an independent judge. It verifies with the project's real commands, re-tests from an angle the implementer did not use, and produces a demo you can check in 30 seconds. When agents find work outside their ticket they file proposals; anything past the WIP limit goes to the icebox unrouted. The loop stops when the checklist is green **and evidenced**, when you say stop, or when a brake fires — three iterations without a checkbox moving, a pool that outran the consumer, or a spent budget. A fired brake hands you the decision; it does not grant itself another attempt.
 
 ## Hard rules
 
-These are non-negotiable inside the loop:
+Eight, each mechanically checkable. Everything else lives in the reference that owns it —
+that is what keeps `SKILL.md` at ~15 KB instead of 65 KB.
 
-1. **Clarity before plan or code.** Inspect available context, then interview until the goal, constraints, tradeoffs, decision dependencies, and observable success criteria are clear. Do not guess or execute while the plan still depends on unresolved ambiguity.
-2. **No iteration without a demo.** If you can't demo, you can't claim progress.
-3. **No completion claims without fresh verification output.** Run the command, paste the line, then claim — see the [`superpowers:verification-before-completion`](https://github.com/obra/superpowers) skill.
-4. **Always re-test from a different angle.** The implementer's own tests don't count as adversarial.
-5. **Parallel dispatch goes in one assistant message.** Multiple `Agent` tool calls in a single turn so they actually run concurrently.
-6. **Agents file ticket proposals, the orchestrator assigns IDs and dispatches them.** Specialists never recruit each other directly.
-7. **`goal.md` is sacred.** Scope changes go through an explicit edit + re-confirm with the user.
-8. **Honesty over progress theater.** If a cycle made no real progress, say so.
-9. **Cross-LLM review every iteration that ships code when a different reviewer is available.** Step 2d Pass 4 (roborev + a non-implementer reviewer; Claude implementations prefer Codex review, Codex implementations prefer Claude review) — findings become next-iteration tickets, never silently dismissed.
-10. **User-perceivable work goes through a story.** Step 2d Pass 0 replays every story this iteration's tickets claim to close via `scripts/story-run.py`. Stories are the spec written *before* the code; the runner is the only authority on "the user can actually do this." A green Playwright + selftest endpoint without a green story is not a finished feature.
-11. **TDD plus 99% evidence confidence.** New behavior starts with RED proof, implementation follows, and a ticket cannot be `done` unless requirements understood, implementation match, and verification working are each `>=99/100` with concrete evidence and no remaining uncertainty.
-12. **No judge without an answer key outside the builder's reasoning.** Every behavior ticket carries a suite / document / checklist key, authored elsewhere and frozen before the first attempt. A key the builder wrote is the builder grading itself.
-13. **The retry limit is three, and it is hard.** Three failed revisions escalate to a human with the full history. No fourth attempt, no reinterpreting the ticket to make attempt 3 pass. An honest escalation is a success of the system.
-14. **The answer key is read-only for the duration.** Editing, skipping, xfailing, loosening, or narrowing it aborts the loop as a tamper event. Whoever is being measured never owns the ruler.
-15. **Every state transition is logged where a human can watch it.** An unreviewable loop can't be trusted to run unattended.
-16. **Baseline conduct is the [Clanker Constitution](references/clanker-constitution.md).** Honor the request, act with judgment, finish the job, protect existing work, verify reality, communicate for humans, learn in the right place — in force for the orchestrator and every dispatched subagent. It's the floor under the loop rules, never a way around them.
+1. **One read at session start.** `boil-now.py`. Exit 3 means stop and ask.
+2. **A goal is one ladder criterion** — max 7 checkboxes, max 2500 B, a demo target required. Enforced by `ticket-lint.py`.
+3. **No claim without fresh output in the same message.** Run it, paste the line, then claim. Never from memory.
+4. **Always re-test from an angle the implementer did not.**
+5. **No iteration without a demo.** If you can't demo it, you can't claim it.
+6. **Tier by blast radius; raise it after two failures, never lower it.** Lowering a tier to get past a failure is the same move as editing the answer key.
+7. **The brakes are binding.** Three flat iterations, more than 5 actionable tickets, or a spent budget stop the loop and hand the decision to the user. The manager never grants itself another attempt.
+8. **Protect the user's work.** Never reset, stash, overwrite, or amend without explicit authorization. Never merge a PR without it — a plan, a green key, or an accepted loop is not merge authority. Never add AI attribution trailers or commit as an AI identity.
+
+Baseline conduct is the [Clanker Constitution](references/clanker-constitution.md) — honor
+the request, act with judgment, finish the job, protect existing work, verify reality,
+communicate for humans, learn in the right place. It is a floor and never an excuse:
+"scale process to the task" governs which *tier* a ticket pays, not whether the clarity
+gate, the demo, or a T3 answer key applies.
+
+The rules that used to be numbered 9-25 have not been deleted — they moved into the
+reference that owns them (`self-correcting-loop.md` for the answer key, retry limit and
+tamper rules; `stories.md` for story coverage; `outer-loop.md` for evidence and the
+portfolio), and are loaded when their trigger fires.
 
 ## Integration with other skills
 
@@ -242,6 +309,15 @@ These scripts are the mechanical layer that pushes boil away from "vibe coding"
 and toward agentic looped development:
 
 ```bash
+# the loop's own gates
+python3 scripts/boil-now.py     --root /path/to/project --write   # THE session-start read
+python3 scripts/boil-brakes.py  tick  --root /path/to/project --iteration iter-001 --spent-usd 0.80
+python3 scripts/boil-brakes.py  check --root /path/to/project     # 0 continue / 2 restrict / 3 stop
+python3 scripts/boil-doctor.py  --final --root /path/to/project --write   # termination gate
+python3 scripts/boil-portfolio.py --root ~/workspace --check      # exits 1 on rule violations
+python3 scripts/boil-migrate.py --root /path/to/project --apply   # fold a legacy .gate/ in
+
+# T3 machinery
 python3 scripts/boil-loop.py init   --root /path/to/project --ticket T-0001   # freeze the key
 python3 scripts/boil-loop.py decide --root /path/to/project --ticket T-0001 --attempt 1
 python3 scripts/boil-loop.py status --root /path/to/project
@@ -262,8 +338,11 @@ python3 scripts/install-codex-skill.py
 python3 -m unittest discover -s tests
 ```
 
-The minimal fixture in `examples/minimal-loop/` shows the expected state shape
-without committing a real `.boil/` workspace to this skill repo.
+The minimal fixture in `examples/minimal-loop/` shows the expected state shape across
+all three scopes — charter/ladder/log, goal/tickets/proof-map, and the brake state
+(`budget.json`, `progress.jsonl`, `icebox.md`) — without committing a real `.boil/`
+workspace to this skill repo. Its README shows what each part demonstrates and how to
+make each gate fail on purpose.
 
 The repository also ships `.github/workflows/boil-guardrails.yml`, which runs
 syntax checks, unit tests, and the minimal fixture guardrails on pushes and PRs.

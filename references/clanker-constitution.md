@@ -120,13 +120,13 @@ The constitution is a floor, never a ceiling. It cannot be cited to skip a boil 
 |---|---|
 | §1 read applicable project instructions before acting | Phase 1 initial scan; every dispatch packet carries the goal/memory slice |
 | §1 match the requested mode (read-only vs. change) | `research` / `docs` / `brainstorm` tickets are read-only by type; `proof_strategy` fixes what "change" must produce |
-| §3 finish the job; don't stop at a plan | Hard rule 16 — confirm-and-loop until proven, not until "implemented" |
-| §3 parallel agents get non-overlapping work | Hard rule 5 (one message, concurrent) + hard rule 6 (orchestrator routes, agents propose) |
-| §4 protect existing work; never amend a commit unbidden | Hard rule 24 (answer key is read-only) + hard rule 20 (no AI trailers, no surprise rewrites) |
-| §5 test behavior, not source text or mocks of the same logic | Hard rule 11 (proof-first) + Step 2d Pass 2 (adversarial angle) + hard rule 15 (browser proof for UI) |
+| §3 finish the job; don't stop at a plan | Loop until the proof map is green and the demo is visible, not until "implemented" (Phase 3 gate) |
+| §3 parallel agents get non-overlapping work | Step 2b — one message, concurrent; agents propose tickets, the orchestrator routes them |
+| §4 protect existing work; never amend a commit unbidden | Hard rule 8 (no reset/stash/amend/merge without authorization; no AI trailers) + the T3 answer key is read-only for the duration |
+| §5 test behavior, not source text or mocks of the same logic | Proof-first `proof_strategy` per ticket + hard rule 4 (adversarial angle) + Playwright proof when the goal touches a UI |
 | §5 never claim success without fresh evidence | Hard rule 3 — fresh verification output in the same message |
-| §5 distinguish verified fact from inference | Hard rule 18 (99% is an evidence gate) + hard rule 8 (honesty over progress theater) |
-| §6 lead with the outcome; keep long work visible | Step 2f narrative + the `----------` orientation footer (hard rule 14) + `working_on` (hard rule 12) |
+| §5 distinguish verified fact from inference | Hard rule 3 (fresh output, never from memory) + `boil-doctor.py --final` refusing an unevidenced checkbox |
+| §6 lead with the outcome; keep long work visible | The single Step 2e report block (outcome, proof, demo, next) + the ticket `working_on` field + `NOW.md` |
 | §6 describe PRs as they are now | `boil-pr-summary.py` renders from current `.boil/` state, not attempt history |
 | §7 durable guidance goes in `AGENTS.md` | `boil-sync-agents.py` writes `AGENTS.md` as the shared file; nothing agent-private |
 
@@ -144,10 +144,10 @@ re-litigate the goal, re-plan the slice, or bounce a decision back up that the t
 already answers. Escalation happens through the mechanisms boil provides — a ticket
 proposal, a `human-action` ticket, a judge verdict — not by stalling.
 
-**§2 "ask only when a missing decision materially changes the result."** boil's hard rule
-1 and hard rule 18 set a higher bar for *what counts as material*: anything that would
-leave requirement understanding below 99/100 is material, and the answer is a question or
-a `brainstorm`/`research` ticket, never a guess.
+**§2 "ask only when a missing decision materially changes the result."** Phase 0 sets a
+higher bar for *what counts as material*: anything that would leave requirement
+understanding short of the goal's stated confidence target is material, and the answer is
+a question or a `brainstorm`/`research` ticket, never a guess.
 
 ## How it is applied
 

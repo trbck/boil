@@ -34,60 +34,70 @@ At the start of each iteration, set `Iteration start SHA` before dispatch. If th
 
 ## `.boil/goal.md`
 
-The contract. Written in Phase 0, edited only when the user explicitly refines scope.
+The contract, and the termination condition. Written in Phase 0, edited only when the
+user explicitly refines scope.
+
+**Hard size limits, enforced by `ticket-lint.py`:** max 7 checkboxes, max 2500 bytes
+(warning above 1800), and a demo target is required. A goal is ONE ladder criterion, not
+a project — measured across 15 projects, a 976-byte goal went 7/7 green while every goal
+between 4.6 KB and 8.3 KB landed at 0/7, 0/13 or 2/7. If it does not fit, the excess
+belongs on the ladder (`references/outer-loop.md`), to be boiled one criterion at a time.
+
+Keep the working detail out of this file: the proof map lives in `.boil/proof-map.md`,
+constraints and stack notes in `.boil/memory.md`. Those can be as long as they need to be.
 
 ```markdown
 # Goal
 
 **One-line:** <restate the goal in one sentence>
 
-**Created:** <ISO timestamp>
-**Last refined:** <ISO timestamp, only update when user changes scope>
-
 ## Success checklist
-<this is the termination condition — every box must be checked to finish>
+<every box must be green AND carry an EVIDENCE line to finish>
 
-- [ ] <criterion 1, observable>
+- [ ] <criterion 1, observable — a command, a URL, a number. Not a feeling.>
 - [ ] <criterion 2, observable>
-- [ ] <criterion 3, observable>
 
 ## Requirements understanding
 
-**Confidence target:** >=99/100 before implementation starts.
-
 | Requirement | Interpretation | Acceptance signal | Confidence | Open uncertainty |
 |---|---|---|---:|---|
-| <user requirement> | <what boil will build/change> | <how this is observed> | <0-100> | <none or question> |
+| <user requirement> | <what boil will build> | <how it is observed> | <0-100> | <none or question> |
 
-## Proof map
-<fill before Phase 1 dispatch; every checkbox needs a proof path>
-
-| Goal checkbox | Proof strategy | Pre-change proof | GREEN proof | Playwright/browser proof | Story/rubric |
-|---|---|---|---|---|---|
-| <criterion 1> | `red-green` | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
-| <criterion 2> | `rendered-doc` | `<section/build target>` | `<cmd/output>` | `<spec or n/a>` | `<story/rubric or n/a>` |
-
-<!--
-  Semantic criteria (behavior, intent, subjective quality) should carry an
-  inline rubric block right under the checkbox — see references/rubrics.md
-  for the YAML shape and the judge dispatch protocol. Deterministic criteria
-  (exit codes, latency, schema checks) do NOT need a rubric — Pass 1 covers them.
--->
-
-## How the user will see this works (demo target)
-
-<concrete: which page, which command, which test, which screenshot. This is what every iteration's demo points toward.>
+## How the user will see this works
+<concrete: which page, which command, which screenshot. Every demo points here.>
 
 ## Out of scope
-- <thing 1 we are NOT doing>
-- <thing 2>
-
-## Constraints
-- **Quality bar:** <prototype | personal | production | paying-users>
-- **Off-limits:** <files, services, APIs we don't touch>
-- **Iteration budget:** <unlimited | N cycles | by <time>>
-- **Verification access:** <test command, dev server command, credentials needed>
+- <the fence>
 ```
+
+A checked box carries its evidence inline, in ladder format, so one green goal is
+paste-ready for the ladder:
+
+```markdown
+- [x] POST /orders returns 201 — EVIDENCE: `pytest tests/api -q` -> 12 passed | 2026-08-28 | auto
+```
+
+`boil-doctor.py --final` refuses to declare the goal done unless **every** checked box
+matches that shape. An unfinished goal gets `HANDOFF.md`, never `FINAL.md`.
+
+---
+
+## `.boil/proof-map.md`
+
+Split out of `goal.md` so the goal stays under its size limit. Fill before Phase 2
+dispatch; every checkbox needs a proof path.
+
+```markdown
+| Goal checkbox | Tier | Proof strategy | Pre-change proof | GREEN proof | Browser proof | Story/rubric |
+|---|---|---|---|---|---|---|
+| <criterion 1> | T1 | `red-green` | `<cmd/test>` | `<cmd/output>` | `<spec or n/a>` | `<or n/a>` |
+| <criterion 2> | T3 | `rendered-doc` | `<build target>` | `<cmd/output>` | `<spec or n/a>` | `<or n/a>` |
+```
+
+Semantic criteria (behavior, intent, subjective quality) carry an inline rubric block —
+see `references/rubrics.md` for the YAML shape and the judge dispatch protocol.
+Deterministic criteria (exit codes, latency, schema checks) do **not** need a rubric;
+direct verification covers them.
 
 ---
 

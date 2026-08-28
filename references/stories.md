@@ -1,5 +1,7 @@
 # User Stories — BPM-style acceptance contracts
 
+> **Load when:** the project has `.boil/stories/` AND a ticket closed this iteration names one in `closes_stories`. Projects without stories skip this cleanly; refactor, dependency and infra work with no user surface is exempt.
+
 A boil iteration that ends "all tests green" but doesn't survive a real user opening the thing is a known failure mode of agentic dev work. Mechanical assertions pass; the user-experienced behavior fails. The stories layer closes that gap by making each user-perceivable behavior a first-class artifact, written **before** the code, and replayed end-to-end by a runner that asserts functional + quant + UX in one pass — no human in the inner loop.
 
 This is the boil adaptation of BDD / acceptance-test-driven-development, fused with the existing rubrics layer for the unavoidably-soft "feels right" checks.
