@@ -112,8 +112,16 @@ def check_engine(pack):
     for role, name in sources.items():
         path = os.path.join(base, name)
         if not os.path.exists(path):
-            errors.append("missing %s source: %s (licensed files are gitignored by "
-                          "default — see README)" % (role, name))
+            # Licensed sources never travel with the repo, so their absence is the
+            # normal state of a fresh clone — an error here would make a one-command
+            # install impossible. Loud warning, because engine retrieval is then off.
+            if pack.get("license") == "proprietary":
+                warnings.append("%s source absent: %s — engine retrieval unavailable for "
+                                "`%s`. Licensed files are gitignored by design; copy them "
+                                "into %s to enable it." % (role, name, pack["id"],
+                                                           os.path.relpath(base, K.ROOT)))
+            else:
+                errors.append("missing %s source: %s" % (role, name))
         elif os.path.getsize(path) == 0:
             errors.append("%s source is empty: %s" % (role, name))
         elif pack.get("license") == "proprietary" and _git_tracked(path):

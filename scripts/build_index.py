@@ -248,9 +248,15 @@ def render_router(domain, packs, chapters, notes, engines, rules, rules_by_topic
     out.append("")
     out.append("| Pack | Kind | Title | Authoritative on |")
     out.append("|---|---|---|---|")
+    unindexed = {e["id"] for e in engines if not e.get("files")}
     for pack in packs:
         auth = ", ".join("`%s`" % t for t in pack.get("authoritative_on", [])) or "—"
-        out.append("| `%s` | %s | %s | %s |" % (pack["id"], pack["kind"], pack["title"], auth))
+        kind = pack["kind"]
+        if pack["id"] in unindexed:
+            # Registered but not retrievable here. Saying so beats a row that reads
+            # like an available pack and a `--engine` call that returns nothing.
+            kind += " · **sources absent**"
+        out.append("| `%s` | %s | %s | %s |" % (pack["id"], kind, pack["title"], auth))
     out.append("")
     out.append("When packs disagree, prefer the one authoritative on the topic in question — "
                "and say that a disagreement existed. See `domains/%s/%s`."
@@ -296,6 +302,7 @@ def render_router(domain, packs, chapters, notes, engines, rules, rules_by_topic
         out.append("_None yet. Drop markdown in `inbox/` and run `python3 scripts/ingest.py`._")
         out.append("")
 
+    engines = [e for e in engines if e.get("files")]   # unindexed == unavailable
     if engines:
         out.append("## Engine packs")
         out.append("")
@@ -687,7 +694,11 @@ def render_retrieval_examples(indexes):
 
 
 def engine_packs(indexes):
-    return [(ix["domain"], eng) for ix in indexes for eng in ix.get("engines", [])]
+    # An engine whose sources are absent (a fresh clone of a repo that gitignores
+    # licensed docs) indexed no headings. Instructions for slicing it would tell the
+    # model to run a command that returns nothing.
+    return [(ix["domain"], eng) for ix in indexes for eng in ix.get("engines", [])
+            if eng.get("files")]
 
 
 def render_engine_rule(indexes):
