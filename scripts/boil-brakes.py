@@ -65,15 +65,40 @@ def tick(root: Path, iteration: str, spent_usd: float | None) -> int:
         "total": total,
         "ts": dt.datetime.now().isoformat(timespec="seconds"),
     }
-    if spent_usd is not None:
-        rec["spent_usd"] = spent_usd
+    ledger = _ledger_spent(root)
+    if spent_usd is not None or ledger is not None:
+        if spent_usd is not None:
+            rec["spent_usd"] = spent_usd
         budget = _budget(root)
-        budget["spent_usd"] = round(float(budget.get("spent_usd", 0.0)) + spent_usd, 4)
+        # Verifier-first: the controller's ledger (attempts + reviews) is the one record of
+        # spend and budget.json is derived from it. Otherwise tick accumulates as before.
+        if ledger is not None:
+            budget["spent_usd"] = round(ledger, 4)
+        else:
+            budget["spent_usd"] = round(float(budget.get("spent_usd", 0.0)) + float(spent_usd or 0), 4)
         (boil / BUDGET).write_text(json.dumps(budget, indent=2) + "\n", encoding="utf-8")
     with (boil / PROGRESS).open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(rec) + "\n")
     print(f"tick {iteration}: {green}/{total} checkboxes green")
     return 0
+
+
+def _ledger_spent(root: Path) -> float | None:
+    """Total spend from the controller's ledgers, or None when the project has no frozen checks."""
+    checks = state_dir(root) / "checks"
+    if not (checks / "attempts.jsonl").is_file() and not (checks / "frozen.json").is_file():
+        return None
+    total = 0.0
+    for name in ("attempts.jsonl", "reviews.jsonl"):
+        p = checks / name
+        if not p.is_file():
+            continue
+        for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                total += float(json.loads(line).get("spent_usd", 0) or 0)
+            except (json.JSONDecodeError, ValueError, AttributeError):
+                continue
+    return total
 
 
 def _milestone_verdicts(root: Path) -> dict[str, str]:

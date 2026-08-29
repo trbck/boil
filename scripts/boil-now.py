@@ -15,6 +15,7 @@ Without --write it prints to stdout. Exit code mirrors the brakes:
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -92,6 +93,22 @@ def _measured(root: Path) -> str:
     return re.sub(r"\s*\|\s*\d{4}-\d{2}-\d{2}T[0-9:]+Z\s*$", "", line)
 
 
+def _next_milestone(root: Path) -> dict | None:
+    """`boil-check.py prepare --dry-run` when the goal has frozen checks: the controller
+    knows the next milestone; NOW.md must not guess."""
+    if not (state_dir(root) / "checks" / "frozen.json").is_file():
+        return None
+    script = Path(__file__).resolve().parent / "boil-check.py"
+    proc = subprocess.run([sys.executable, str(script), "prepare", "--dry-run", "--root", str(root)],
+                          text=True, capture_output=True)
+    if proc.returncode != 0:
+        return None
+    try:
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+    except (json.JSONDecodeError, IndexError):
+        return None
+
+
 def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
     charter = parse_frontmatter(charter_path(root))
     status = charter.get("status", "unknown")
@@ -162,6 +179,13 @@ def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
         L.append("**Next:** a brake fired. Stop and put the decision above to the user.")
     elif result["green"] == result["total"] and result["total"]:
         L.append("**Next:** goal is green — run `boil-doctor.py --final` and hand off.")
+    elif (nxt := _next_milestone(root)):
+        if nxt.get("done"):
+            L.append("**Next:** every milestone is green — run `boil-doctor.py --final` and hand off.")
+        else:
+            L.append(f"**Next:** milestone {nxt['milestone']} (attempt {nxt['attempt']}/{nxt['cap']}) — "
+                     f"`boil-check.py prepare` → dispatch the packet to ONE implementer → "
+                     f"`boil-check.py score --milestone {nxt['milestone']}`.")
     else:
         L.append("**Next:** work the top actionable ticket at its declared tier.")
 

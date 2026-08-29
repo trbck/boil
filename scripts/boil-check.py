@@ -11,6 +11,8 @@ attempting the milestone — and decides nothing. This script owns the rest:
   audit    scan a diff for known gaming signatures (skip markers, protected-path writes, ...)
   status   one machine-generated line: green/total, current attempt, spend
   verify   re-run every frozen check now; --write stamps evidence on {#id}-tagged goal boxes
+  prepare  ONE ITERATION, step 1: next milestone -> packet -> guard check   (then dispatch ONE implementer)
+  score    ONE ITERATION, step 2: audit -> run -> tick the bound box -> review -> tick -> status line
 
 Rules, each traceable to `_research/boil-convergence/PLAN.md`:
   * validate before freeze — a check that passes on the current state is not
@@ -58,6 +60,55 @@ AUDIT_SIGNATURES = [
 CHECKBOX_TAG = re.compile(r"\{#([A-Za-z0-9_.-]+)\}\s*$")
 CHECKBOX_LINE = re.compile(r"^(\s*-\s*)\[( |x|X)\]")
 OLD_EVIDENCE = re.compile(r"\s*[—-]*\s*EVIDENCE:.*$")
+
+
+def _box_text(line: str) -> str:
+    body = CHECKBOX_LINE.sub("", line, count=1)
+    body = CHECKBOX_TAG.sub("", body)
+    return OLD_EVIDENCE.sub("", body).strip().lower()
+
+
+def bind_boxes(goal: Path, milestones: list[dict]) -> tuple[dict[str, int], list[str], list[str]]:
+    """Bind each must-have milestone to one goal checkbox. A box binds by an existing
+    `{#id}` tag, else by the milestone's `box` text, else by its `title`, matched against the
+    box text. Returns (id -> line index, unbound ids, goal lines). Binding is validation:
+    a milestone whose PASS could not tick any box is a milestone the user never asked for."""
+    if not goal.is_file():
+        return {}, [], []
+    lines = goal.read_text(encoding="utf-8").splitlines()
+    boxes = {i: ln for i, ln in enumerate(lines) if CHECKBOX_LINE.match(ln)}
+    if not boxes:
+        return {}, [], lines
+    bound: dict[str, int] = {}
+    for i, ln in boxes.items():
+        tag = CHECKBOX_TAG.search(ln)
+        if tag:
+            bound[tag.group(1)] = i
+    unbound: list[str] = []
+    for m in milestones:
+        mid = m["id"]
+        if mid in bound or not m.get("must_have", True) or m.get("kind") == "review":
+            continue
+        wanted = {str(m.get("box") or "").strip().lower(), str(m.get("title") or "").strip().lower()} - {""}
+        hit = next((i for i, ln in boxes.items() if i not in bound.values() and not CHECKBOX_TAG.search(ln)
+                    and _box_text(ln) in wanted), None)
+        if hit is None:
+            unbound.append(mid)
+        else:
+            bound[mid] = hit
+    return bound, unbound, lines
+
+
+def stamp_tags(goal: Path, bound: dict[str, int], lines: list[str]) -> int:
+    changed = 0
+    for mid, i in bound.items():
+        if CHECKBOX_TAG.search(lines[i]):
+            continue
+        lines[i] = f"{lines[i].rstrip()} {{#{mid}}}"
+        changed += 1
+    if changed:
+        goal.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return changed
 
 
 def now() -> str:
@@ -269,7 +320,14 @@ def cmd_compile(a: argparse.Namespace) -> int:
               # the sha the unreviewed-diff accumulator starts from; never moved by a recompile
               "base_sha": prev_doc.get("base_sha") or _head_sha(root)}
     rejected = 0
+    goal_path = root / ".boil" / "goal.md"
+    bound, unbound, goal_lines = bind_boxes(goal_path, spec["milestones"])
     for m in spec["milestones"]:
+        if m["id"] in unbound:
+            rejected += 1
+            print(f"REJECT {m['id']}: unbound — no goal checkbox matches its `box` or `title`; "
+                  f"add {{#{m['id']}}} to the box it measures (a PASS must be able to tick a box)")
+            continue
         old = prev_records.get(m["id"])
         if old and old["hash"] == harness_hash(root, m):
             # Falsifiability was proven once for this exact check + harness; the tree may
@@ -317,6 +375,10 @@ def cmd_compile(a: argparse.Namespace) -> int:
             changed = sorted({json.loads(ln)["milestone"] for ln in drop})
             print(f"checks changed for {', '.join(changed)} — their attempts archived to {archived.name}")
     save_frozen(root, frozen)
+    frozen_ids = {m["id"] for m in frozen["milestones"]}
+    stamped = stamp_tags(goal_path, {k: v for k, v in bound.items() if k in frozen_ids}, goal_lines)
+    if stamped:
+        print(f"{stamped} goal box(es) tagged {{#id}} — only the controller ticks them from now on")
     print(f"{len(frozen['milestones'])} frozen, {rejected} rejected -> {state_dir(root) / 'frozen.json'}")
     return 60 if rejected else 0
 
@@ -355,55 +417,75 @@ def cmd_run(a: argparse.Namespace) -> int:
     if not m:
         print(f"unknown milestone {a.milestone}", file=sys.stderr)
         return 2
+    code, _ = run_milestone(root, frozen, m, a.spent_usd, a.rerun, a.note)
+    return code
+
+
+def run_milestone(root: Path, frozen: dict, m: dict, spent_usd: float, rerun: bool, note: str,
+                  forced_failure: str = "") -> tuple[int, dict]:
+    """Gates, the check, the verdict, the ledger record. `forced_failure` is a finding from
+    the diff auditor: the attempt is scored FAIL with that finding as its counterexample,
+    whatever the check says — a skip marker that makes a check pass is not a pass."""
+    a = argparse.Namespace(spent_usd=spent_usd, rerun=rerun, note=note)
     ts = now()
     # Pre-call gates, in this order: tamper, budget, cap. None of them runs the check.
     if harness_hash(root, m) != m["hash"]:
-        append(root, {"ts": ts, "milestone": m["id"], "result": "TAMPER", "spent_usd": a.spent_usd})
+        rec = {"ts": ts, "milestone": m["id"], "result": "TAMPER", "spent_usd": a.spent_usd, "check": m["check"]}
+        append(root, rec)
         print(f"TAMPER {m['id']}: check or protected file changed since freeze — loop aborted, human decides")
-        return 50
+        return 50, rec
     if frozen["budget_usd"] and spent_total(root) + a.spent_usd > frozen["budget_usd"]:
-        append(root, {"ts": ts, "milestone": m["id"], "result": "BUDGET", "spent_usd": a.spent_usd})
+        rec = {"ts": ts, "milestone": m["id"], "result": "BUDGET", "spent_usd": a.spent_usd, "check": m["check"]}
+        append(root, rec)
         print(f"BUDGET ${spent_total(root):.2f} > ${frozen['budget_usd']:.2f} — stop, ask the user")
-        return 40
+        return 40, rec
     prior = attempts(root, m["id"])
     n = len(prior) + 1
     if n > frozen["cap"]:
-        append(root, {"ts": ts, "milestone": m["id"], "attempt": n, "result": "CAP", "spent_usd": a.spent_usd})
+        rec = {"ts": ts, "milestone": m["id"], "attempt": n, "result": "CAP", "spent_usd": a.spent_usd,
+               "check": m["check"]}
+        append(root, rec)
         print(f"CAP {m['id']}: {frozen['cap']} attempts used — split the milestone or hand to the user")
-        return 30
+        return 30, rec
 
-    rc, out = run_cmd(root, m["check"], DEFAULT_TIMEOUT)
-    if rc == 0 and a.rerun:  # a pass must repeat: 84% of pass->fail transitions are flakes
-        rc2, out2 = run_cmd(root, m["check"], DEFAULT_TIMEOUT)
-        if rc2 != 0:
-            rc, out = rc2, "FLAKY: passed once then failed\n" + out2
+    if forced_failure:
+        rc, out = 1, f"AUDIT: {forced_failure}"
+    else:
+        rc, out = run_cmd(root, m["check"], DEFAULT_TIMEOUT)
+        if rc == 0 and a.rerun:  # a pass must repeat: 84% of pass->fail transitions are flakes
+            rc2, out2 = run_cmd(root, m["check"], DEFAULT_TIMEOUT)
+            if rc2 != 0:
+                rc, out = rc2, "FLAKY: passed once then failed\n" + out2
     if rc == 0:
-        append(root, {"ts": ts, "milestone": m["id"], "attempt": n, "result": "PASS", "spent_usd": a.spent_usd})
-        print(f"PASS {m['id']} attempt {n} — EVIDENCE: `{m['check']}` -> exit 0 | {ts[:10]} | auto")
-        return 0
+        evidence = f"EVIDENCE: `{m['check']}` -> exit 0 | {ts[:10]} | auto"
+        rec = {"ts": ts, "milestone": m["id"], "attempt": n, "result": "PASS", "spent_usd": a.spent_usd,
+               "check": m["check"], "evidence": evidence}
+        append(root, rec)
+        print(f"PASS {m['id']} attempt {n} — {evidence}")
+        return 0, rec
 
     sig = failure_signature(out, a.note)
     ce = counterexample(out)
     rec = {"ts": ts, "milestone": m["id"], "attempt": n, "result": "FAIL", "signature": sig,
-           "counterexample": ce, "spent_usd": a.spent_usd}
+           "counterexample": ce, "spent_usd": a.spent_usd, "check": m["check"]}
     recent = [x.get("signature") for x in prior if x["result"] in ("FAIL", "STALL")][-(frozen["stall"] - 1):]
     if frozen["stall"] > 1 and len(recent) == frozen["stall"] - 1 and all(s == sig for s in recent):
         rec["result"] = "STALL"
         append(root, rec)
         print(f"STALL {m['id']}: identical failure signature {frozen['stall']}x — split this milestone or ask the user")
         print(f"  counterexample: {ce}")
-        return 20
+        return 20, rec
     if n >= frozen["cap"]:
         rec["result"] = "CAP"
         append(root, rec)
         print(f"CAP {m['id']}: {n} attempts — hand to the user (or split); do not attempt {n + 1}")
         print(f"  counterexample: {ce}")
-        return 30
+        return 30, rec
     append(root, rec)
     print(f"RETRY {m['id']} attempt {n}/{frozen['cap']} failed (sig {sig})")
     print(f"  counterexample: {ce}")
     print("  next: a fresh implementer call gets ONLY the line above + the milestone spec; it may not run the check")
-    return 10
+    return 10, rec
 
 
 # ------------------------------------------------------------------ split
@@ -444,8 +526,18 @@ def cmd_split(a: argparse.Namespace) -> int:
 def cmd_audit(a: argparse.Namespace) -> int:
     root = Path(a.root).resolve()
     frozen = load_frozen(root)
-    protected = sorted({p for m in frozen["milestones"] for p in m.get("protect", [])})
     text = Path(a.diff).read_text(encoding="utf-8", errors="replace")
+    findings = audit_text(frozen, text)
+    if findings:
+        for f in findings:
+            print(f"AUDIT {f}")
+        return 1
+    print("AUDIT clean")
+    return 0
+
+
+def audit_text(frozen: dict, text: str) -> list[str]:
+    protected = sorted({p for m in frozen["milestones"] for p in m.get("protect", [])})
     findings: list[str] = []
     current = ""
     for ln in text.splitlines():
@@ -459,12 +551,135 @@ def cmd_audit(a: argparse.Namespace) -> int:
         for rx, label in AUDIT_SIGNATURES:
             if rx.search(ln):
                 findings.append(f"{label} in {current or '?'}: {ln.strip()[:120]}")
-    if findings:
-        for f in findings:
-            print(f"AUDIT {f}")
-        return 1
-    print("AUDIT clean")
+    return findings
+
+
+# ---------------------------------------------------------- prepare / score
+ITERATION = "iteration.json"
+
+
+def _git(root: Path, *args: str) -> str | None:
+    try:
+        r = subprocess.run(["git", "-C", str(root), *args], text=True, capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def guard_wired(root: Path) -> bool:
+    """True when the project's .claude/settings.json runs boil-guard.py as a PreToolUse hook."""
+    for name in (".claude/settings.json", ".claude/settings.local.json"):
+        p = root / name
+        if not p.is_file():
+            continue
+        try:
+            hooks = json.loads(p.read_text(encoding="utf-8")).get("hooks", {}).get("PreToolUse", [])
+        except (json.JSONDecodeError, AttributeError):
+            continue
+        for entry in hooks:
+            for h in entry.get("hooks", []):
+                if "boil-guard" in str(h.get("command", "")):
+                    return True
+    return False
+
+
+def diff_since(root: Path, head: str | None) -> str:
+    """The attempt's diff: tracked changes since `head` plus every untracked file as added
+    lines, in unified-diff shape so the auditor sees `+++ b/<path>` headers."""
+    if not head:
+        return ""
+    parts = [_git(root, "diff", head) or ""]
+    for rel in (_git(root, "ls-files", "--others", "--exclude-standard") or "").splitlines():
+        if not rel or _is_artifact(Path(rel)):
+            continue
+        try:
+            body = (root / rel).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        parts.append(f"+++ b/{rel}\n" + "".join(f"+{ln}\n" for ln in body.splitlines()))
+    return "\n".join(parts)
+
+
+def cmd_prepare(a: argparse.Namespace) -> int:
+    root = Path(a.root).resolve()
+    frozen = load_frozen(root)
+    m = topo_next(frozen, passed(root))
+    if not m:
+        print(json.dumps({"milestone": None, "done": True}))
+        return 0
+    prior = attempts(root, m["id"])
+    out = {"milestone": m["id"], "title": m["title"], "kind": m["kind"], "tier": m["tier"],
+           "attempt": len(prior) + 1, "cap": frozen["cap"],
+           "last_counterexample": (prior[-1].get("counterexample") if prior else "") or "",
+           "guard": "wired" if guard_wired(root) else "missing",
+           "packet": f".boil/dispatch/{m['id']}.md"}
+    if a.dry_run:
+        print(json.dumps(out))
+        return 0
+    packet = Path(__file__).resolve().parent / "boil-dispatch-packet.py"
+    r = subprocess.run([sys.executable, str(packet), "--root", str(root), "--milestone", m["id"]],
+                       text=True, capture_output=True)
+    if r.returncode != 0:
+        print(r.stdout + r.stderr, file=sys.stderr)
+        return 2
+    head = (_git(root, "rev-parse", "HEAD") or "").strip() or None
+    (state_dir(root) / ITERATION).write_text(json.dumps(
+        {"milestone": m["id"], "attempt": out["attempt"], "prepared_at": now(), "head": head,
+         "packet": out["packet"], "guard": out["guard"]}) + "\n", encoding="utf-8")
+    if out["guard"] == "missing":
+        print(f"warning: boil-guard.py is not wired in {root}/.claude/settings.json — the implementer "
+              "is held off the ruler by prose only (`boil-guard.py --settings-json`)", file=sys.stderr)
+    print(json.dumps(out))
     return 0
+
+
+def cmd_score(a: argparse.Namespace) -> int:
+    root = Path(a.root).resolve()
+    frozen = load_frozen(root)
+    m = next((x for x in frozen["milestones"] if x["id"] == a.milestone), None)
+    if not m:
+        print(f"unknown milestone {a.milestone}", file=sys.stderr)
+        return 2
+    it_path = state_dir(root) / ITERATION
+    it = json.loads(it_path.read_text(encoding="utf-8")) if it_path.is_file() else {}
+    if it.get("milestone") != m["id"] or it.get("scored"):
+        print(f"{m['id']} was not prepared — run `prepare` first (it hands out the packet and marks "
+              "the tree the diff is measured from)")
+        return 2
+    # 1. the diff auditor: findings score the attempt, whatever the check would say
+    findings = audit_text(frozen, diff_since(root, it.get("head")))
+    for f in findings:
+        print(f"AUDIT {f}")
+    forced = "; ".join(findings)
+    # 2. gates, check, verdict, ledger
+    code, rec = run_milestone(root, frozen, m, a.spent_usd, not a.no_rerun, a.note or forced, forced)
+    # 3. on PASS the controller ticks the bound box — nobody else does
+    if code == 0:
+        stamped = stamp_evidence(root / ".boil" / "goal.md",
+                                 [{"milestone": m["id"], "result": "PASS", "check": m["check"]}], rec["ts"][:10])
+        if stamped:
+            print(f"ticked {{#{m['id']}}} in goal.md")
+    # 4. the reviewer decides whether a second model reads the diff (after a PASS only)
+    if code == 0 and not a.no_review:
+        review = Path(__file__).resolve().parent / "boil-review.py"
+        r = subprocess.run([sys.executable, str(review), "review", "--root", str(root), "--milestone", m["id"]],
+                           text=True, capture_output=True)
+        first = (r.stdout.strip().splitlines() or [""])[0]
+        if first:
+            print(first)
+        if r.returncode in (70, 71):
+            code = r.returncode
+    # 5. the iteration record and the brakes' tick
+    it["scored"] = now()
+    it["result"] = rec.get("result")
+    it_path.write_text(json.dumps(it) + "\n", encoding="utf-8")
+    brakes = Path(__file__).resolve().parent / "boil-brakes.py"
+    subprocess.run([sys.executable, str(brakes), "tick", "--root", str(root), "--iteration",
+                    f"{m['id']}#{rec.get('attempt', 0)}", "--spent-usd", str(a.spent_usd)],
+                   text=True, capture_output=True)
+    # 6. the only report
+    cmd_status(argparse.Namespace(root=str(root)))
+    return code
 
 
 # ----------------------------------------------------------------- status
@@ -600,6 +815,18 @@ def main(argv: list[str]) -> int:
     v.add_argument("--json", action="store_true")
     v.add_argument("--write", action="store_true", help="tick + stamp EVIDENCE on {#id}-tagged goal boxes that pass")
     v.set_defaults(fn=cmd_verify)
+    pr = sub.add_parser("prepare", help="one iteration, step 1: next milestone -> packet -> guard check")
+    pr.add_argument("--root", default=".")
+    pr.add_argument("--dry-run", action="store_true", help="print the decision, write nothing")
+    pr.set_defaults(fn=cmd_prepare)
+    sc = sub.add_parser("score", help="one iteration, step 2: audit -> run -> tick the box -> review -> tick -> status")
+    sc.add_argument("--root", default=".")
+    sc.add_argument("--milestone", required=True)
+    sc.add_argument("--spent-usd", type=float, default=0.0)
+    sc.add_argument("--note", default="", help="folded into the failure signature (e.g. the diff hash)")
+    sc.add_argument("--no-rerun", action="store_true", help="skip the flake guard's second run")
+    sc.add_argument("--no-review", action="store_true", help="do not consult boil-review.py after a PASS")
+    sc.set_defaults(fn=cmd_score)
     a = p.parse_args(argv)
     return a.fn(a)
 
