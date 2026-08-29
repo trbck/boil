@@ -348,3 +348,62 @@ class PrepareGuardTest(unittest.TestCase):
             self.assertIn("prose only", r.stderr)
         finally:
             p.close()
+
+
+class ReportTest(unittest.TestCase):
+    """W4: one page per goal, computed from the ledgers — the same numbers the bench records."""
+
+    def _drive(self, p: Project) -> None:
+        self.assertEqual(p.compile().returncode, 0)
+        self.assertEqual(p.check("prepare").returncode, 0)
+        self.assertEqual(p.check("score", "--milestone", "M1", "--no-review", "--spent-usd", "0.30").returncode, 10)
+        (p.root / "one.txt").write_text("x")
+        self.assertEqual(p.check("prepare").returncode, 0)
+        self.assertEqual(p.check("score", "--milestone", "M1", "--no-review", "--spent-usd", "0.20").returncode, 0)
+        (p.root / "two.txt").write_text("x")
+        self.assertEqual(p.check("prepare").returncode, 0)
+        self.assertEqual(p.check("score", "--milestone", "M2", "--no-review", "--spent-usd", "0.10").returncode, 0)
+
+    def test_report_json_carries_the_effectiveness_numbers(self) -> None:
+        p = Project()
+        try:
+            self._drive(p)
+            r = p.check("report", "--json")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            d = json.loads(r.stdout)
+            self.assertEqual(d["green"], 2)
+            self.assertEqual(d["total"], 2)
+            self.assertEqual(d["attempts"], {"M1": 2, "M2": 1})
+            self.assertEqual(d["first_pass_rate"], 0.5)
+            self.assertAlmostEqual(d["spend_usd"], 0.60)
+            self.assertAlmostEqual(d["usd_per_green_box"], 0.30)
+            self.assertEqual(d["first_pass_failed"], ["M1"])
+            self.assertEqual(d["compile"]["rejected"], 0)
+            self.assertIn("review", d)
+        finally:
+            p.close()
+
+    def test_report_markdown_is_one_page_with_a_milestone_table(self) -> None:
+        p = Project()
+        try:
+            self._drive(p)
+            r = p.check("report")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertIn("| M1 |", r.stdout)
+            self.assertIn("first-attempt pass rate", r.stdout)
+            self.assertIn("$ per green box", r.stdout)
+        finally:
+            p.close()
+
+    def test_compile_rejections_are_counted(self) -> None:
+        p = Project(milestones=[{"id": "M1", "title": "the first marker exists", "check": "test -f one.txt"},
+                                {"id": "M9", "title": "nowhere", "check": "test -f nine.txt"}])
+        try:
+            self.assertEqual(p.compile().returncode, 60)
+            p.milestones.pop()
+            self.assertEqual(p.compile().returncode, 0)
+            d = json.loads(p.check("report", "--json").stdout)
+            self.assertEqual(d["compile"]["rejected"], 1)
+            self.assertEqual(d["compile"]["runs"], 2)
+        finally:
+            p.close()

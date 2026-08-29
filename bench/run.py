@@ -220,20 +220,13 @@ def run_project(project: Path, implementer: str, model: str | None, keep: bool) 
     st = check("status")
     result["status"] = st.stdout.strip()
     ledger_path = work / ".boil" / "checks" / "attempts.jsonl"
-    ledger = [json.loads(ln) for ln in ledger_path.read_text().splitlines() if ln.strip()] if ledger_path.is_file() else []
-    result["ledger"] = ledger
-    frozen = json.loads((work / ".boil" / "checks" / "frozen.json").read_text())
-    must = [m["id"] for m in frozen["milestones"] if m.get("must_have", True)]
-    green = {a["milestone"] for a in ledger if a["result"] == "PASS"}
-    result["green"], result["total"] = len([m for m in must if m in green]), len(must)
-    firsts = {}
-    for a in ledger:
-        if a.get("attempt") == 1 and a["milestone"] not in firsts:
-            firsts[a["milestone"]] = a["result"]
-    result["first_pass_failed"] = sorted(m for m, res in firsts.items() if res != "PASS")
-    result["first_pass_rate"] = (round(sum(1 for r_ in firsts.values() if r_ == "PASS") / len(firsts), 3)
-                                 if firsts else None)
-    result["usd_per_green_box"] = (round(result["spend_usd"] / result["green"], 4) if result["green"] else None)
+    result["ledger"] = [json.loads(ln) for ln in ledger_path.read_text().splitlines() if ln.strip()] \
+        if ledger_path.is_file() else []
+    # the same computation a real project gets from `boil-check.py report`
+    rep = json.loads(check("report", "--json").stdout.strip().splitlines()[-1])
+    for key in ("green", "total", "first_pass_rate", "first_pass_failed", "usd_per_green_box", "compile", "review"):
+        result[key] = rep[key]
+    result["report"] = rep
     result["seconds"] = round(time.time() - t0, 1)
     if not keep:
         shutil.rmtree(tmp, ignore_errors=True)

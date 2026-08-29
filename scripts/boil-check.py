@@ -13,6 +13,7 @@ attempting the milestone — and decides nothing. This script owns the rest:
   verify   re-run every frozen check now; --write stamps evidence on {#id}-tagged goal boxes
   prepare  ONE ITERATION, step 1: next milestone -> packet -> guard check   (then dispatch ONE implementer)
   score    ONE ITERATION, step 2: audit -> run -> tick the bound box -> review -> tick -> status line
+  report   one page per goal: attempts per milestone, first-attempt pass rate, $ per green box
 
 Rules, each traceable to `_research/boil-convergence/PLAN.md`:
   * validate before freeze — a check that passes on the current state is not
@@ -387,6 +388,8 @@ def cmd_compile(a: argparse.Namespace) -> int:
             ledger.write_text(("\n".join(keep) + "\n") if keep else "", encoding="utf-8")
             changed = sorted({json.loads(ln)["milestone"] for ln in drop})
             print(f"checks changed for {', '.join(changed)} — their attempts archived to {archived.name}")
+    with (state_dir(root) / "compile.jsonl").open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "frozen": len(frozen["milestones"]), "rejected": rejected}) + "\n")
     if rejected:
         # All or nothing: a spec with a rejected milestone is a spec to fix, and the previous
         # freeze (with its carry-forward records) must survive the attempt to replace it.
@@ -830,6 +833,85 @@ def cmd_verify(a: argparse.Namespace) -> int:
     return {"MET": 0, "GAP": 1, "TAMPER": 50}[verdict]
 
 
+# ----------------------------------------------------------------- report
+def report_data(root: Path) -> dict:
+    """The effectiveness numbers for one goal, from the ledgers only (no check is run).
+    The bench records exactly this, so a real project and the bench are measured alike."""
+    frozen = load_frozen(root)
+    ledger = attempts(root)
+    must = [m for m in frozen["milestones"] if m.get("must_have", True)]
+    green = passed(root)
+    per: dict[str, dict] = {}
+    for m in frozen["milestones"]:
+        recs = [a for a in ledger if a["milestone"] == m["id"]]
+        per[m["id"]] = {
+            "title": m.get("title", ""), "kind": m.get("kind", ""), "tier": m.get("tier", ""),
+            "must_have": bool(m.get("must_have", True)),
+            "attempts": max([a.get("attempt", 0) for a in recs], default=0),
+            "result": recs[-1]["result"] if recs else "-",
+            "spend_usd": round(sum(float(a.get("spent_usd", 0) or 0) for a in recs), 4),
+            "first_attempt": next((a["result"] for a in recs if a.get("attempt") == 1), None),
+            "counterexample": next((a.get("counterexample", "") for a in reversed(recs) if a.get("counterexample")), ""),
+        }
+    firsts = {mid: d["first_attempt"] for mid, d in per.items() if d["first_attempt"]}
+    compile_runs = _jsonl_records(state_dir(root) / "compile.jsonl")
+    reviews = _jsonl_records(state_dir(root) / "reviews.jsonl")
+    review_counts: dict[str, int] = {}
+    for e in reviews:
+        review_counts[e.get("event", "?")] = review_counts.get(e.get("event", "?"), 0) + 1
+    spend = spent_total(root)
+    n_green = len([m for m in must if m["id"] in green])
+    return {
+        "goal": next((ln.split("**One-line:**", 1)[1].strip() for ln in
+                      (root / ".boil" / "goal.md").read_text(encoding="utf-8").splitlines()
+                      if ln.startswith("**One-line:**")), "") if (root / ".boil" / "goal.md").is_file() else "",
+        "green": n_green, "total": len(must), "milestones": per,
+        "attempts": {mid: d["attempts"] for mid, d in per.items() if d["attempts"]},
+        "first_pass_rate": (round(sum(1 for r in firsts.values() if r == "PASS") / len(firsts), 3) if firsts else None),
+        "first_pass_failed": sorted(mid for mid, r in firsts.items() if r != "PASS"),
+        "spend_usd": round(spend, 4), "budget_usd": frozen.get("budget_usd", 0),
+        "usd_per_green_box": (round(spend / n_green, 4) if n_green else None),
+        "compile": {"runs": len(compile_runs), "rejected": sum(int(c.get("rejected", 0)) for c in compile_runs)},
+        "review": review_counts,
+        "verdicts": {mid: d["result"] for mid, d in per.items()},
+    }
+
+
+def _jsonl_records(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+    out = []
+    for ln in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            out.append(json.loads(ln))
+        except json.JSONDecodeError:
+            continue
+    return out
+
+
+def cmd_report(a: argparse.Namespace) -> int:
+    root = Path(a.root).resolve()
+    d = report_data(root)
+    if a.json:
+        print(json.dumps(d))
+        return 0
+    fpr = "n/a" if d["first_pass_rate"] is None else f"{d['first_pass_rate']:.0%}"
+    per_box = "n/a" if d["usd_per_green_box"] is None else f"${d['usd_per_green_box']:.2f}"
+    budget = f" of ${d['budget_usd']:.2f}" if d["budget_usd"] else ""
+    print(f"# boil report — {d['goal'] or root.name}\n")
+    print(f"**{d['green']}/{d['total']} must-have milestones green** · first-attempt pass rate {fpr} · "
+          f"spent ${d['spend_usd']:.2f}{budget} · $ per green box {per_box} · "
+          f"compile {d['compile']['runs']} run(s), {d['compile']['rejected']} rejection(s)\n")
+    print("| milestone | tier | attempts | result | spend | last counterexample |")
+    print("|---|---|---:|---|---:|---|")
+    for mid, m in d["milestones"].items():
+        ce = (m["counterexample"] or "")[:80].replace("|", "\\|")
+        print(f"| {mid} | {m['tier']} | {m['attempts']} | {m['result']} | ${m['spend_usd']:.2f} | {ce} |")
+    if d["review"]:
+        print("\nreview: " + ", ".join(f"{k} {v}" for k, v in sorted(d["review"].items())))
+    return 0
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -881,6 +963,10 @@ def main(argv: list[str]) -> int:
     sc.add_argument("--no-rerun", action="store_true", help="skip the flake guard's second run")
     sc.add_argument("--no-review", action="store_true", help="do not consult boil-review.py after a PASS")
     sc.set_defaults(fn=cmd_score)
+    rp = sub.add_parser("report", help="one page per goal: attempts, first-pass rate, $ per green box, review outcomes")
+    rp.add_argument("--root", default=".")
+    rp.add_argument("--json", action="store_true")
+    rp.set_defaults(fn=cmd_report)
     a = p.parse_args(argv)
     return a.fn(a)
 
