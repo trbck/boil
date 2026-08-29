@@ -18,6 +18,9 @@ from boil_common import checkbox_counts  # noqa: E402
 # green boil checkbox is simultaneously paste-ready evidence for the gate ladder.
 # Format: EVIDENCE: <command -> result | URL | number | path> | <YYYY-MM-DD> | <auto|human>
 EVIDENCE = re.compile(r"EVIDENCE:\s*\S.*\|\s*\d{4}-\d{2}-\d{2}\s*\|\s*(auto|human)\b")
+HUMAN_EVIDENCE = re.compile(r"EVIDENCE:.*\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*human\b")
+HUMAN_MAX_AGE_DAYS = 30
+CHECK_SCRIPT = Path(__file__).resolve().parent / "boil-check.py"
 
 
 def _check(path: Path, ok: bool, code: str, message: str) -> dict[str, str | bool]:
@@ -38,6 +41,45 @@ def _goal_contract_ok(path: Path) -> tuple[bool, str]:
     if missing:
         return False, "goal.md missing requirements contract: " + ", ".join(missing)
     return True, "goal.md requirements contract present"
+
+
+def _reverify(root: Path) -> list[str]:
+    """Re-run every frozen check via `boil-check.py verify --json`. A ticked box whose check
+    fails NOW is a stale claim, not evidence. Returns reasons (empty = all green)."""
+    frozen = root / ".boil" / "checks" / "frozen.json"
+    if not frozen.is_file():
+        return []
+    proc = subprocess.run([sys.executable, str(CHECK_SCRIPT), "verify", "--root", str(root), "--json"],
+                          text=True, capture_output=True)
+    try:
+        out = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return [f"could not re-verify frozen checks (boil-check verify exit {proc.returncode}): "
+                f"{(proc.stderr or proc.stdout).strip()[:200]}"]
+    reasons = []
+    for r in out["results"]:
+        if r["result"] == "TAMPER":
+            reasons.append(f"milestone {r['milestone']} is TAMPER — its check or a protected file changed since freeze")
+        elif r["result"] != "PASS" and r["must_have"]:
+            ce = f" ({r['counterexample']})" if r.get("counterexample") else ""
+            reasons.append(f"milestone {r['milestone']} is {r['result']} now{ce} — re-measured, not remembered")
+    return reasons
+
+
+def _stale_human(goal_text: str, today: dt.date) -> list[str]:
+    reasons = []
+    for line in goal_text.splitlines():
+        s = line.strip()
+        if not s.startswith(("- [x]", "- [X]")):
+            continue
+        m = HUMAN_EVIDENCE.search(s)
+        if not m:
+            continue
+        age = (today - dt.date.fromisoformat(m.group(1))).days
+        if age > HUMAN_MAX_AGE_DAYS:
+            box = s[5:].split("EVIDENCE:")[0].strip(" —-")
+            reasons.append(f'human evidence on "{box[:60]}" is {age} days old (max {HUMAN_MAX_AGE_DAYS}) — re-approve')
+    return reasons
 
 
 def audit_final(root: Path) -> tuple[bool, list[str], list[str]]:
@@ -66,6 +108,8 @@ def audit_final(root: Path) -> tuple[bool, list[str], list[str]]:
         reasons.append(
             f"{len(unevidenced)} checked box(es) carry no EVIDENCE line "
             "(`EVIDENCE: <cmd -> result> | YYYY-MM-DD | auto|human`)")
+    reasons += _reverify(root)
+    reasons += _stale_human(goal.read_text(encoding="utf-8", errors="replace"), dt.date.today())
     return (not reasons), reasons, unevidenced
 
 

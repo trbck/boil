@@ -367,5 +367,68 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
 
 
+class DoctorFinalTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ws = RulerWorkspace()
+        self.root = self.ws.root
+        # doctor --final needs every box ticked with evidence; make the fixture "look done"
+        self.ws.make_pass()
+        (self.root / "never.txt").write_text("x")
+        self.ws.verify("--write")
+        text = self.ws.goal.read_text().replace(
+            "- [ ] an untagged manual box",
+            "- [x] an untagged manual box — EVIDENCE: `ls` -> ok | 2026-08-29 | auto")
+        self.ws.goal.write_text(text)
+
+    def tearDown(self) -> None:
+        self.ws.close()
+
+    def final(self) -> subprocess.CompletedProcess[str]:
+        return run(DOCTOR, "--final", "--root", str(self.root))
+
+    def test_green_and_verified_is_final_ok(self) -> None:
+        r = self.final()
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("FINAL OK", r.stdout)
+
+    def test_a_ticked_box_whose_check_fails_now_is_refused(self) -> None:
+        (self.root / "never.txt").unlink()          # M_FAIL's box stays [x] on disk — a stale claim
+        r = self.final()
+        self.assertEqual(r.returncode, 3, r.stdout)
+        self.assertIn("M_FAIL", r.stdout)
+        self.assertIn("FAIL now", r.stdout)
+
+    def test_tamper_is_refused(self) -> None:
+        (self.root / "tests" / "test_guard.py").write_text("def test_ok():\n    assert 1\n")
+        r = self.final()
+        self.assertEqual(r.returncode, 3)
+        self.assertIn("TAMPER", r.stdout)
+
+    def test_stale_human_evidence_is_refused(self) -> None:
+        text = self.ws.goal.read_text().replace(f"reviewed | {TODAY} | human", "reviewed | 2026-01-01 | human")
+        self.ws.goal.write_text(text)
+        r = self.final()
+        self.assertEqual(r.returncode, 3)
+        self.assertIn("human evidence", r.stdout)
+        self.assertIn("max 30", r.stdout)
+
+
+class NowMeasuredTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ws = RulerWorkspace()
+
+    def tearDown(self) -> None:
+        self.ws.close()
+
+    def test_now_shows_the_measured_line_when_frozen(self) -> None:
+        r = run(NOW, "--root", str(self.ws.root))
+        self.assertIn("**Measured:** milestones 0/2 green", r.stdout)
+
+    def test_now_omits_the_line_without_a_freeze(self) -> None:
+        (self.ws.root / ".boil" / "checks" / "frozen.json").unlink()
+        r = run(NOW, "--root", str(self.ws.root))
+        self.assertNotIn("**Measured:**", r.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
