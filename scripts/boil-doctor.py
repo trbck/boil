@@ -124,9 +124,10 @@ def audit_final(root: Path) -> tuple[bool, list[str], list[str]]:
             f"{len(unevidenced)} checked box(es) carry no EVIDENCE line "
             "(`EVIDENCE: <cmd -> result> | YYYY-MM-DD | auto|human`)")
     reasons += _reverify(root)
-    # UTC, to match the date boil-check.py stamps onto EVIDENCE lines
-    reasons += _stale_human(goal.read_text(encoding="utf-8", errors="replace"),
-                            dt.datetime.now(dt.timezone.utc).date())
+    # The later of the local and UTC dates: boil-check.py stamps auto lines in UTC, an
+    # operator writes a human line in their own day — neither may read as "the future".
+    today = max(dt.date.today(), dt.datetime.now(dt.timezone.utc).date())
+    reasons += _stale_human(goal.read_text(encoding="utf-8", errors="replace"), today)
     return (not reasons), reasons, unevidenced
 
 
