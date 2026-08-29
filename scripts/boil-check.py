@@ -245,20 +245,20 @@ def cmd_compile(a: argparse.Namespace) -> int:
     spec = json.loads(Path(a.spec).read_text(encoding="utf-8"))
     runs = int(spec.get("determinism_runs", a.determinism_runs))
     prev_path = state_dir(root) / "frozen.json"
-    prev_records = {}
+    prev_records, prev_doc = {}, {}
     if prev_path.is_file():
         try:
-            prev_records = {m["id"]: m for m in json.loads(prev_path.read_text(encoding="utf-8")).get("milestones", [])}
+            prev_doc = json.loads(prev_path.read_text(encoding="utf-8"))
+            prev_records = {m["id"]: m for m in prev_doc.get("milestones", [])}
         except (json.JSONDecodeError, KeyError):
-            prev_records = {}
+            prev_records, prev_doc = {}, {}
     prev = {mid: r["hash"] for mid, r in prev_records.items()}
     frozen = {"compiled_at": now(), "budget_usd": float(spec.get("budget_usd", 0) or 0),
               "cap": int(spec.get("cap", DEFAULT_CAP)), "stall": int(spec.get("stall", DEFAULT_STALL)),
               "determinism_runs": runs, "milestones": [],
               "review": spec.get("review", {}),
               # the sha the unreviewed-diff accumulator starts from; never moved by a recompile
-              "base_sha": next((r.get("base_sha") for r in prev_records.values() if r.get("base_sha")), None)
-              or _head_sha(root)}
+              "base_sha": prev_doc.get("base_sha") or _head_sha(root)}
     rejected = 0
     for m in spec["milestones"]:
         old = prev_records.get(m["id"])

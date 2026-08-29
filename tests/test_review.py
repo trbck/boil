@@ -449,3 +449,20 @@ class StatusTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RecompileKeepsBaseShaTest(unittest.TestCase):
+    """Found on the sample: a recompile reset `base_sha` to the new HEAD, which would hide
+    every unreviewed line landed since the first freeze from the accumulator."""
+
+    def test_base_sha_survives_a_recompile_after_commits(self) -> None:
+        p = Project(review={"every_lines": 100})
+        try:
+            first = p.frozen()["base_sha"]
+            self.assertEqual(first, git(p.root, "rev-parse", "HEAD").strip())
+            p.land("M1", lines=10)
+            r = p.check("compile", "--spec", str(p.root / ".boil" / "milestones.json"))
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertEqual(p.frozen()["base_sha"], first)
+        finally:
+            p.close()
