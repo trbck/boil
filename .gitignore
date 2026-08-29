@@ -20,3 +20,4 @@ __pycache__/
 # Keep the whole function out of git and remote GitHub.
 .susi-human-blockers/
 .susi-human-blockers/**
+.worktrees/
