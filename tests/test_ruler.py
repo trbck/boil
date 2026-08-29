@@ -23,6 +23,7 @@ DOCTOR = SCRIPTS / "boil-doctor.py"
 NOW = SCRIPTS / "boil-now.py"
 LINT = SCRIPTS / "ticket-lint.py"
 TODAY = dt.date.today().isoformat()   # human evidence in fixtures is dated today, so it never goes stale
+UTC_TODAY = dt.datetime.now(dt.timezone.utc).date().isoformat()   # what boil-check.py stamps
 
 
 def run(script: Path, *args: str, cwd: Path | None = None, stdin: str | None = None
@@ -187,8 +188,16 @@ class VerifyTest(unittest.TestCase):
 
     def test_write_is_idempotent_and_refreshes_the_date(self) -> None:
         self.ws.make_pass()
+        # pre-seed the tagged box with a STALE auto EVIDENCE stamp: --write must re-date it.
+        self.ws.goal.write_text(self.ws.goal.read_text().replace(
+            "- [ ] the marker file exists {#M_PASS}",
+            "- [x] the marker file exists — EVIDENCE: `test -f out.txt` -> exit 0 "
+            "| 2026-01-01 | auto {#M_PASS}"))
         self.ws.verify("--write")
         first = self.ws.goal.read_text()
+        passed = next(ln for ln in first.splitlines() if "{#M_PASS}" in ln)
+        self.assertIn(f"| {UTC_TODAY} | auto", passed)
+        self.assertNotIn("2026-01-01", passed)
         self.ws.verify("--write")
         self.assertEqual(first, self.ws.goal.read_text())
         self.assertEqual(first.count("EVIDENCE: `test -f out.txt`"), 1)
@@ -366,6 +375,93 @@ class GuardTest(unittest.TestCase):
                  {"command": "/usr/bin/python3 -c \"open('tests/x.py','w').write('x')\""})
         self.assertEqual(r.returncode, 2)
 
+    # --- C1: redirect parsing — a read-only command that merely contains ">" is not a write
+    def test_bash_read_only_commands_with_redirections_are_allowed(self) -> None:
+        for cmd in ("pytest -q tests/ 2>&1 | tail -20",
+                    "python3 -m unittest discover -s tests 2>&1 | tail -3",
+                    "pytest tests/ > /dev/null",
+                    "ls tests/ 2>/dev/null",
+                    "cat .boil/checks/frozen.json 2>&1",
+                    "grep -n -- '->' tests/test_guard.py",
+                    "git diff HEAD~1 -- tests/ > /tmp/out.diff"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 0, f"{cmd!r} was blocked: {r.stderr}")
+
+    def test_bash_redirect_onto_a_protected_target_is_blocked(self) -> None:
+        for cmd in ("echo x >> tests/t.py",
+                    "echo x > .boil/checks/frozen.json",
+                    "cat foo > tests/x.py"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 2, f"{cmd!r} was allowed")
+
+    # --- C2a: goal.md / ladder.md are never writable from the shell
+    def test_bash_write_to_an_evidence_target_is_blocked_outright(self) -> None:
+        for cmd in ("sed -i 's/2026-01-01/2026-08-29/' .boil/goal.md",
+                    "echo '- [ ] x' >> .boil/goal.md"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 2, f"{cmd!r} was allowed")
+            self.assertIn("operator", r.stderr)
+
+    # --- C2b: the human gate cannot be removed or downgraded either
+    def test_edit_removing_a_human_evidence_line_is_blocked(self) -> None:
+        goal = str(self.root / ".boil" / "goal.md")
+        r = hook(self.root, "Edit", {"file_path": goal,
+                                     "old_string": f"reviewed | {TODAY} | human",
+                                     "new_string": "reviewed | 2026-08-29 | auto"})
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("operator", r.stderr)
+
+    def test_write_dropping_an_existing_human_line_is_blocked(self) -> None:
+        goal = self.root / ".boil" / "goal.md"
+        content = "\n".join(ln for ln in goal.read_text().splitlines()
+                            if "| human" not in ln) + "\n"
+        r = hook(self.root, "Write", {"file_path": str(goal), "content": content})
+        self.assertEqual(r.returncode, 2)
+
+    def test_write_keeping_the_human_line_verbatim_is_allowed(self) -> None:
+        goal = self.root / ".boil" / "goal.md"
+        content = goal.read_text() + "- [x] extra — EVIDENCE: `ls` -> exit 0 | 2026-08-29 | auto\n"
+        r = hook(self.root, "Write", {"file_path": str(goal), "content": content})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    # --- C2c: an alias onto goal.md is still goal.md
+    def test_evidence_target_through_a_symlink_alias_is_blocked(self) -> None:
+        alias = self.root / "src" / "goal_alias.md"
+        alias.symlink_to(Path("..") / ".boil" / "goal.md")
+        r = hook(self.root, "Edit", {"file_path": str(alias),
+                                     "old_string": "- [ ] an untagged manual box",
+                                     "new_string": "- [x] done — EVIDENCE: looked | 2026-08-29 | human"})
+        self.assertEqual(r.returncode, 2, r.stderr)
+        r = hook(self.root, "Bash", {
+            "command": "echo '- [x] ok — EVIDENCE: x | 2026-08-29 | human' >> src/goal_alias.md"})
+        self.assertEqual(r.returncode, 2, r.stderr)
+
+    # --- I3: everyday write forms
+    def test_bash_everyday_write_forms_are_recognised(self) -> None:
+        heredoc = ("python3 - <<'EOF'\nfrom pathlib import Path\n"
+                   "Path('tests/x').write_text('p')\nEOF")
+        for cmd in ("git checkout HEAD~3 -- tests/",
+                    "sed -Ei 's/a/b/' tests/x.py",
+                    "touch tests/test_new.py",
+                    "curl -o tests/x https://e.com",
+                    heredoc):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 2, f"{cmd!r} was allowed")
+
+    def test_bash_read_only_git_subcommands_on_tests_are_allowed(self) -> None:
+        for cmd in ("git log -- tests/", "git diff -- tests/"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 0, f"{cmd!r} was blocked: {r.stderr}")
+
+    # --- I4: an unresolvable path must not become an internal-error refusal
+    def test_a_symlink_loop_does_not_trip_the_fail_closed_path(self) -> None:
+        (self.root / "loop.py").symlink_to("loop.py")
+        r = hook(self.root, "Bash", {"command": "echo x > loop.py"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("internal error", r.stderr)
+        r = hook(self.root, "Bash", {"command": "echo x > tests/t.py"})
+        self.assertEqual(r.returncode, 2)
+
 
 class DoctorFinalTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -412,6 +508,13 @@ class DoctorFinalTest(unittest.TestCase):
         self.assertIn("human evidence", r.stdout)
         self.assertIn("max 30", r.stdout)
 
+    def test_future_human_date_is_refused_as_unparseable(self) -> None:
+        text = self.ws.goal.read_text().replace(f"reviewed | {TODAY} | human", "reviewed | 2099-01-01 | human")
+        self.ws.goal.write_text(text)
+        r = self.final()
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
+        self.assertIn("unparseable date", r.stdout)
+
     def test_unparseable_human_date_is_refused_not_a_crash(self) -> None:
         text = self.ws.goal.read_text().replace(f"reviewed | {TODAY} | human", "reviewed | 2026-13-45 | human")
         self.ws.goal.write_text(text)
@@ -431,6 +534,14 @@ class NowMeasuredTest(unittest.TestCase):
     def test_now_shows_the_measured_line_when_frozen(self) -> None:
         r = run(NOW, "--root", str(self.ws.root))
         self.assertIn("**Measured:** milestones 0/2 green", r.stdout)
+
+    def test_measured_line_carries_no_timestamp_and_is_stable(self) -> None:
+        def measured() -> str:
+            out = run(NOW, "--root", str(self.ws.root)).stdout
+            return next(ln for ln in out.splitlines() if ln.startswith("**Measured:**"))
+        line = measured()
+        self.assertNotRegex(line, r"\d{4}-\d{2}-\d{2}T")   # a clock makes every call a diff
+        self.assertEqual(line, measured())
 
     def test_now_omits_the_line_without_a_freeze(self) -> None:
         (self.ws.root / ".boil" / "checks" / "frozen.json").unlink()
@@ -452,6 +563,13 @@ class LintBindingTest(unittest.TestCase):
         codes = [i["code"] for i in json.loads(r.stdout)["issues"]]
         self.assertIn("goal-tag-unfrozen", codes)
         self.assertIn("goal-milestone-unbound", codes)
+
+    def test_a_tag_on_a_prose_line_is_not_a_checkbox_binding(self) -> None:
+        self.ws.goal.write_text(self.ws.goal.read_text()
+                                + "\nSee the retired marker {#M_RETIRED}\n")
+        r = run(LINT, "--root", str(self.ws.root), "--json")
+        codes = [i["code"] for i in json.loads(r.stdout)["issues"]]
+        self.assertNotIn("goal-tag-unfrozen", codes)
 
     def test_bound_goal_has_no_binding_warnings(self) -> None:
         r = run(LINT, "--root", str(self.ws.root), "--json")

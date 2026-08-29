@@ -88,6 +88,10 @@ def _stale_human(goal_text: str, today: dt.date) -> list[str]:
                            f'"{m.group(1)}" — fix the EVIDENCE line')
             continue
         age = (today - evidence_date).days
+        if age < 0:   # dated in the future: not "fresh", just wrong
+            reasons.append(f'human evidence on "{box[:60]}" has an unparseable date '
+                           f'"{m.group(1)}" (it is in the future) — fix the EVIDENCE line')
+            continue
         if age > HUMAN_MAX_AGE_DAYS:
             reasons.append(f'human evidence on "{box[:60]}" is {age} days old (max {HUMAN_MAX_AGE_DAYS}) — re-approve')
     return reasons
@@ -120,7 +124,9 @@ def audit_final(root: Path) -> tuple[bool, list[str], list[str]]:
             f"{len(unevidenced)} checked box(es) carry no EVIDENCE line "
             "(`EVIDENCE: <cmd -> result> | YYYY-MM-DD | auto|human`)")
     reasons += _reverify(root)
-    reasons += _stale_human(goal.read_text(encoding="utf-8", errors="replace"), dt.date.today())
+    # UTC, to match the date boil-check.py stamps onto EVIDENCE lines
+    reasons += _stale_human(goal.read_text(encoding="utf-8", errors="replace"),
+                            dt.datetime.now(dt.timezone.utc).date())
     return (not reasons), reasons, unevidenced
 
 

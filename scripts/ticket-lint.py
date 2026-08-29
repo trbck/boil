@@ -17,6 +17,9 @@ except ImportError:  # pragma: no cover
     sys.exit(2)
 
 
+# Same shape as boil_common.CHECKBOX (kept local: ticket-lint has no boil_common import).
+CHECKBOX = re.compile(r"^\s*-\s*\[( |x|X)\]")
+
 REQUIRED = {
     "id",
     "title",
@@ -308,9 +311,14 @@ def lint_goal(path: Path) -> list[dict[str, str]]:
             frozen = json.loads(frozen_path.read_text(encoding="utf-8")).get("milestones", [])
         except (json.JSONDecodeError, AttributeError):
             frozen = []
+        if not isinstance(frozen, list):
+            frozen = []
+        frozen = [m for m in frozen if isinstance(m, dict)]
         frozen_ids = {m.get("id") for m in frozen}
         must_ids = {m.get("id") for m in frozen if m.get("must_have", True)}
-        tags = set(re.findall(r"\{#([A-Za-z0-9_.-]+)\}\s*$", text, flags=re.M))
+        # Only a CHECKBOX carries a binding — a {#id} in prose is a reference, not a claim.
+        tags = {mo.group(1) for ln in text.splitlines() if CHECKBOX.match(ln)
+                for mo in [re.search(r"\{#([A-Za-z0-9_.-]+)\}\s*$", ln)] if mo}
         for t in sorted(tags - frozen_ids):
             issues.append(_issue(path, "warning", "goal-tag-unfrozen",
                                  f"checkbox tag {{#{t}}} has no frozen milestone — re-run boil-check.py compile"))

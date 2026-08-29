@@ -15,6 +15,7 @@ Without --write it prints to stdout. Exit code mirrors the brakes:
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -83,7 +84,12 @@ def _measured(root: Path) -> str:
     script = Path(__file__).resolve().parent / "boil-check.py"
     proc = subprocess.run([sys.executable, str(script), "status", "--root", str(root)],
                           text=True, capture_output=True)
-    return proc.stdout.strip() if proc.returncode == 0 else ""
+    if proc.returncode != 0:
+        return ""
+    line = proc.stdout.strip()
+    # Drop the trailing ` | <timestamp>`: NOW.md is regenerated constantly and a clock in it
+    # makes every call a diff.
+    return re.sub(r"\s*\|\s*\d{4}-\d{2}-\d{2}T[0-9:]+Z\s*$", "", line)
 
 
 def render(root: Path, wip: int, stall: int) -> tuple[str, int]:

@@ -302,7 +302,9 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
   launches ONE headless boil session per click with `boil-guard.py --settings-json` wired in.
   It measures nothing — `boil-check.py verify` is the ruler, and `boil-doctor.py --final`
   re-runs it before any FINAL. A `| human` evidence line is the operator's sign-off; a worker
-  may never write one.
+  may never write one. Compile the ruler (`boil-check.py compile`) BEFORE wiring the guard: a
+  guarded session can never write `.boil/milestones.json` or `.boil/checks/`; helm's
+  goal-creation step owns draft → compile before the first Run.
 - `/loop` wraps boil for unattended runs; `/schedule` for recurring ones.
 - `hound` MCP over `WebFetch` for JS-heavy or bot-walled research fetches.
 
