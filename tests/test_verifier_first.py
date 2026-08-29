@@ -448,3 +448,18 @@ class RecompileArchivesAttemptsTest(unittest.TestCase):
             self.assertEqual(len(archived), 1)
         finally:
             ws.close()
+
+
+class RejectionHintTest(unittest.TestCase):
+    """Found by dogfooding: a milestone implemented before its check was frozen is
+    rejected as not falsifiable, and the message gave the driver no way forward."""
+
+    def test_green_rejection_names_the_already_green_escape_hatch(self):
+        ws = Workspace()
+        try:
+            ws.spec([PASSING])
+            r = ws.compile()
+            self.assertEqual(r.returncode, 60)
+            self.assertIn("already_green", r.stdout)
+        finally:
+            ws.close()

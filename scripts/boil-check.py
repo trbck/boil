@@ -186,7 +186,9 @@ def validate(root: Path, m: dict, runs: int) -> tuple[dict | None, str]:
         return None, f"check is not deterministic across {runs} runs — not frozen"
     fails_now = outcomes[0]
     if not fails_now and not m.get("already_green"):
-        return None, "check passes on the current state — not falsifiable, not frozen"
+        return None, ("check passes on the current state — not falsifiable, not frozen "
+                      "(tighten the check; if the milestone already landed, set already_green: true "
+                      "to freeze it as a regression guard)")
     gold = m.get("gold")
     if gold:
         grc, _ = run_cmd(root, gold, timeout)
