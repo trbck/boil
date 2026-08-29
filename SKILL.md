@@ -333,6 +333,10 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
   may never write one. Compile the ruler (`boil-check.py compile`) BEFORE wiring the guard: a
   guarded session can never write `.boil/milestones.json` or `.boil/checks/`; helm's
   goal-creation step owns draft → compile before the first Run.
+- **If a `helm_status` tool is available** (helm's MCP server is registered), call it at the start and
+  end of every iteration (`phase`, `iteration`, `ticket`, one-line `message`), `helm_demo` when the demo
+  exists, and `helm_blocked` when only the operator can unblock you. If the tool is absent, do nothing —
+  boil never depends on helm.
 - `/loop` wraps boil for unattended runs; `/schedule` for recurring ones.
 - `hound` MCP over `WebFetch` for JS-heavy or bot-walled research fetches.
 
