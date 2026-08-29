@@ -56,8 +56,13 @@ def _reverify(root: Path) -> list[str]:
     except json.JSONDecodeError:
         return [f"could not re-verify frozen checks (boil-check verify exit {proc.returncode}): "
                 f"{(proc.stderr or proc.stdout).strip()[:200]}"]
+    if not isinstance(out, dict) or not isinstance(out.get("results"), list):
+        return ["could not re-verify: malformed verify output"]
     reasons = []
     for r in out["results"]:
+        if not isinstance(r, dict) or "milestone" not in r or "result" not in r or "must_have" not in r:
+            reasons.append("could not re-verify: malformed verify output")
+            continue
         if r["result"] == "TAMPER":
             reasons.append(f"milestone {r['milestone']} is TAMPER — its check or a protected file changed since freeze")
         elif r["result"] != "PASS" and r["must_have"]:
@@ -75,9 +80,15 @@ def _stale_human(goal_text: str, today: dt.date) -> list[str]:
         m = HUMAN_EVIDENCE.search(s)
         if not m:
             continue
-        age = (today - dt.date.fromisoformat(m.group(1))).days
+        box = s[5:].split("EVIDENCE:")[0].strip(" —-")
+        try:
+            evidence_date = dt.date.fromisoformat(m.group(1))
+        except ValueError:
+            reasons.append(f'human evidence on "{box[:60]}" has an unparseable date '
+                           f'"{m.group(1)}" — fix the EVIDENCE line')
+            continue
+        age = (today - evidence_date).days
         if age > HUMAN_MAX_AGE_DAYS:
-            box = s[5:].split("EVIDENCE:")[0].strip(" —-")
             reasons.append(f'human evidence on "{box[:60]}" is {age} days old (max {HUMAN_MAX_AGE_DAYS}) — re-approve')
     return reasons
 

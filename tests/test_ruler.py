@@ -412,6 +412,14 @@ class DoctorFinalTest(unittest.TestCase):
         self.assertIn("human evidence", r.stdout)
         self.assertIn("max 30", r.stdout)
 
+    def test_unparseable_human_date_is_refused_not_a_crash(self) -> None:
+        text = self.ws.goal.read_text().replace(f"reviewed | {TODAY} | human", "reviewed | 2026-13-45 | human")
+        self.ws.goal.write_text(text)
+        r = self.final()
+        self.assertEqual(r.returncode, 3, r.stdout + r.stderr)
+        self.assertIn("unparseable date", r.stdout)
+        self.assertNotIn("Traceback", r.stdout + r.stderr)
+
 
 class NowMeasuredTest(unittest.TestCase):
     def setUp(self) -> None:
