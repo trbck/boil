@@ -16,6 +16,10 @@ Whoever is being measured never owns the ruler. FAILS CLOSED: any internal error
 exits 2, because every other exit code is read as ALLOW. Denials are appended to
 .boil/guard.jsonl so a worker probing the sensor surface is visible to the operator.
 
+This is a heuristic pre-emptive layer, not the binding gate: it can be evaded by
+write techniques it does not recognize, so the frozen hash checked by
+`boil-check verify` remains the actual tamper detector of record.
+
 Ported from helm's guard_hook.py (2026-08-29). Stdlib only.
 """
 from __future__ import annotations
@@ -31,7 +35,16 @@ from pathlib import Path
 ALWAYS_PROTECTED = (".boil/checks", ".boil/milestones.json", "tests")
 EVIDENCE_TARGETS = (".boil/goal.md", ".boil/ladder.md")
 HUMAN_EVIDENCE = re.compile(r"\|\s*human\b")
-WRITE_OPS = (">", ">>", "tee ", "sed -i", "truncate ", "dd ", "cp ", "mv ", "rm ", "rsync ")
+WRITE_REDIRECTS = (">", ">>")
+# Word-bounded write operators: matched only as standalone tokens (see mentioned()'s
+# boundary trick below) so "git add" is not "dd ", and "echo confirm results" is not "rm ".
+WRITE_OP_WORDS = ("tee", "sed -i", "truncate", "dd", "cp", "mv", "rm", "rsync",
+                  "install", "patch", "ln -s",
+                  "python -c", "python3 -c", "perl -e", "ruby -e", "node -e")
+_WRITE_OP_WORD_RE = re.compile("|".join(
+    rf"(?<![A-Za-z0-9_./-]){re.escape(op)}(?![A-Za-z0-9_-])" for op in WRITE_OP_WORDS))
+# open('path', 'w'/'a'/'w+'/... ) — a bare inline write even without a recognized interpreter flag.
+_OPEN_WRITE_RE = re.compile(r"""open\(\s*['"][^'"]*['"]\s*,\s*['"][wa]""")
 
 
 def protected_paths(root: Path) -> list[Path]:
@@ -57,14 +70,19 @@ def _under(child: Path, parent: Path) -> bool:
 
 def is_protected(target: Path, root: Path, prots: list[Path]) -> str | None:
     t = target if target.is_absolute() else root / target
-    t = Path(os.path.normpath(t))
+    # Compare both the lexical path and its resolved (symlink-following) realpath, so an
+    # alias like src/alias.py -> ../tests/secret.py cannot be used to edit a protected
+    # file under a name that itself looks unprotected.
+    t_variants = {Path(os.path.normpath(t)), t.resolve()}
     for p in prots:
-        p = Path(os.path.normpath(p))
-        if t == p or _under(t, p):
-            try:
-                return str(p.relative_to(root))
-            except ValueError:
-                return str(p)
+        p_variants = {Path(os.path.normpath(p)), p.resolve()}
+        for t_v in t_variants:
+            for p_v in p_variants:
+                if t_v == p_v or _under(t_v, p_v):
+                    try:
+                        return str(p.relative_to(root))
+                    except ValueError:
+                        return str(p)
     return None
 
 
@@ -82,7 +100,13 @@ def mentioned(cmd: str, prot: Path, root: Path) -> bool:
 
 
 def has_write_op(cmd: str) -> bool:
-    return any(op in cmd for op in WRITE_OPS)
+    if any(op in cmd for op in WRITE_REDIRECTS):
+        return True
+    if _WRITE_OP_WORD_RE.search(cmd):
+        return True
+    if _OPEN_WRITE_RE.search(cmd):
+        return True
+    return False
 
 
 def new_text_of(tool: str, tinput: dict) -> str:

@@ -309,6 +309,38 @@ class GuardTest(unittest.TestCase):
         self.assertIn("boil-guard.py", cmd)
         self.assertIn(str(self.root), cmd)
 
+    def test_bash_git_add_is_not_treated_as_a_dd_write(self) -> None:
+        r = hook(self.root, "Bash", {"command": "git add tests/"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_bash_confirm_results_is_not_treated_as_an_rm_write(self) -> None:
+        r = hook(self.root, "Bash", {"command": "pytest tests/ && echo confirm results"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_bash_module_pytest_invocation_is_allowed(self) -> None:
+        r = hook(self.root, "Bash", {"command": "python3 -m pytest tests/"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_edit_through_a_symlink_alias_is_blocked(self) -> None:
+        (self.root / "tests" / "secret.py").write_text("x = 1\n")
+        (self.root / "src" / "alias.py").symlink_to(Path("..") / "tests" / "secret.py")
+        r = hook(self.root, "Edit", {"file_path": str(self.root / "src" / "alias.py"),
+                                     "old_string": "x = 1", "new_string": "x = 2"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_python_inline_write_is_blocked(self) -> None:
+        r = hook(self.root, "Bash",
+                 {"command": "python3 -c \"open('tests/x.py','w').write('x')\""})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_ln_s_creating_an_alias_into_tests_is_blocked(self) -> None:
+        r = hook(self.root, "Bash", {"command": "ln -s tests/secret.py src/alias.py"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_patch_touching_tests_is_blocked(self) -> None:
+        r = hook(self.root, "Bash", {"command": "patch -p1 tests/test_guard.py < fix.diff"})
+        self.assertEqual(r.returncode, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
