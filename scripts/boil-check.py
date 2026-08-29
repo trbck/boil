@@ -152,7 +152,40 @@ def passed(root: Path) -> set[str]:
 
 
 def spent_total(root: Path) -> float:
-    return round(sum(float(a.get("spent_usd", 0) or 0) for a in attempts(root)), 4)
+    reviews = state_dir(root) / "reviews.jsonl"
+    review_cost = 0.0
+    if reviews.is_file():
+        for ln in reviews.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                review_cost += float(json.loads(ln).get("spent_usd", 0) or 0)
+            except (json.JSONDecodeError, ValueError):
+                continue
+    return round(sum(float(a.get("spent_usd", 0) or 0) for a in attempts(root)) + review_cost, 4)
+
+
+def _head_sha(root: Path) -> str | None:
+    try:
+        r = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], text=True, capture_output=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return r.stdout.strip() or None if r.returncode == 0 else None
+
+
+def open_review(root: Path) -> str:
+    """`review OPEN job N (M)` when boil-review.py handed findings to the user, else ''."""
+    reviews = state_dir(root) / "reviews.jsonl"
+    if not reviews.is_file():
+        return ""
+    last: dict[str, dict] = {}
+    for ln in reviews.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            e = json.loads(ln)
+        except json.JSONDecodeError:
+            continue
+        if e.get("milestone"):
+            last[e["milestone"]] = e
+    opens = [e for e in last.values() if e.get("event") in ("OPEN", "PENDING")]
+    return "; ".join(f"review {e['event']} job {e.get('job', '?')} ({e['milestone']})" for e in opens)
 
 
 # ---------------------------------------------------------------- compile
@@ -221,7 +254,11 @@ def cmd_compile(a: argparse.Namespace) -> int:
     prev = {mid: r["hash"] for mid, r in prev_records.items()}
     frozen = {"compiled_at": now(), "budget_usd": float(spec.get("budget_usd", 0) or 0),
               "cap": int(spec.get("cap", DEFAULT_CAP)), "stall": int(spec.get("stall", DEFAULT_STALL)),
-              "determinism_runs": runs, "milestones": []}
+              "determinism_runs": runs, "milestones": [],
+              "review": spec.get("review", {}),
+              # the sha the unreviewed-diff accumulator starts from; never moved by a recompile
+              "base_sha": next((r.get("base_sha") for r in prev_records.values() if r.get("base_sha")), None)
+              or _head_sha(root)}
     rejected = 0
     for m in spec["milestones"]:
         old = prev_records.get(m["id"])
@@ -243,6 +280,15 @@ def cmd_compile(a: argparse.Namespace) -> int:
             continue
         frozen["milestones"].append(fm)
         print(f"FROZEN {m['id']} hash={fm['hash']} baseline={fm['baseline']}")
+    # Fix nodes were created by boil-review.py, not by the spec; a recompile keeps them
+    # under their parent as long as the parent survived.
+    ids = [m["id"] for m in frozen["milestones"]]
+    for old in prev_records.values():
+        if old.get("kind") == "review" and old["id"] not in ids:
+            parent = old["id"].rsplit("-fix", 1)[0]
+            if parent in ids:
+                frozen["milestones"].insert(ids.index(parent) + 1, old)
+                ids.insert(ids.index(parent) + 1, old["id"])
     # A re-authored check is a new ruler: attempts made against the old one do not count
     # toward the cap or the stall, so those records are archived. Attempts against a
     # milestone whose hash did not move — including its PASS — are carried over.
@@ -426,8 +472,9 @@ def cmd_status(a: argparse.Namespace) -> int:
     else:
         cur_s = "current - (done)"
     budget = f"/${frozen['budget_usd']:.2f}" if frozen["budget_usd"] else ""
+    rv = open_review(root)
     print(f"milestones {green}/{len(must)} green | delta {len(must) - green} | {cur_s} | "
-          f"spent ${spent_total(root):.2f}{budget} | {now()}")
+          f"spent ${spent_total(root):.2f}{budget}{' | ' + rv if rv else ''} | {now()}")
     return 0
 
 

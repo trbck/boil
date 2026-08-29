@@ -366,3 +366,27 @@ only file the loop reads. A drafted spec without a frozen counterpart is a lint 
 outcome that differs across `determinism_runs`. The controller's ledger is
 `checks/attempts.jsonl` — one record per attempt with `result`, `signature`,
 `counterexample`, `spent_usd` — and `boil-check.py status` renders it as one line.
+A recompile carries an unchanged frozen check (same hash) forward without re-validating
+it, and archives only the attempts of checks that changed.
+
+### `review` — milestone-wise second-model review (optional, top-level in `milestones.json`)
+
+```json
+"review": {"enabled": true, "agent": "codex", "every_lines": 150, "fix_min_severity": "high",
+           "always_tiers": ["T3", "T4"], "risk_paths": ["**/auth/**", "**/migrations/**"],
+           "cost_usd": 0.0, "timeout_s": 900, "reasoning": ""}
+```
+
+| Field | Meaning |
+|---|---|
+| `every_lines` | fire once this many unreviewed *source* lines have accumulated since the last review (docs, lockfiles, `.boil/` never count); `0` = every milestone with a diff |
+| `always_tiers` / `risk_paths` | milestones that are always reviewed regardless of size; globs are matched against changed paths |
+| `fix_min_severity` | findings at or above this become the `<M>-fix` node; lower ones are deferred into `.boil/log.md` |
+| `agent` | the reviewer — pick a different model family from the implementer |
+| `cost_usd` | charged per review against `budget_usd`; a review that would overrun is skipped |
+
+`compile` also records `base_sha` (HEAD at first freeze — the accumulator's origin, never
+moved by a recompile) and keeps `<M>-fix` nodes across recompiles. The reviewer's ledger is
+`checks/reviews.jsonl`: `SKIP` (with the reason), `CLEAN`, `DEFERRED`, `FIX-NODE`,
+`PENDING`, `CLOSED`, `OPEN`. The final milestone is always reviewed once, so a goal never
+finishes without a second model having read its whole diff.

@@ -96,6 +96,22 @@ def _milestone_verdicts(root: Path) -> dict[str, str]:
     return last
 
 
+def _review_events(root: Path) -> dict[str, str]:
+    """Last boil-review.py event per milestone from `.boil/checks/reviews.jsonl`."""
+    path = state_dir(root) / "checks" / "reviews.jsonl"
+    if not path.is_file():
+        return {}
+    last: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if rec.get("milestone") and rec.get("event"):
+            last[rec["milestone"]] = rec["event"]
+    return last
+
+
 def evaluate(root: Path, wip_limit: int, stall_limit: int) -> dict:
     """Run all three brakes. Returns a verdict dict; never raises."""
     green, total = checkbox_counts(state_dir(root) / "goal.md")
@@ -147,6 +163,20 @@ def evaluate(root: Path, wip_limit: int, stall_limit: int) -> dict:
     # decision: STALL / CAP / TAMPER / BUDGET hand the loop to the user until a
     # later PASS clears it. This is the brake that would have stopped a 65-iteration
     # run at iteration ten: nothing external was measuring per-milestone progress.
+    # Brake 5 — the reviewer's verdict. boil-review.py allows one fix round per review;
+    # findings that survive it are OPEN and the loop never grants itself a second round.
+    for mid, ev in _review_events(root).items():
+        if ev == "OPEN":
+            verdict = "STOP"
+            findings.append({
+                "brake": "review",
+                "level": "stop",
+                "message": (
+                    f"review findings on {mid} remain after the one fix round — the user decides: "
+                    "fix by hand, defer with a note in .boil/log.md, or close the roborev job"
+                ),
+            })
+
     for mid, last in _milestone_verdicts(root).items():
         if last in ("STALL", "CAP", "TAMPER", "BUDGET"):
             verdict = "STOP"

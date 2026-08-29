@@ -140,6 +140,8 @@ and decides nothing. The script decides. Its exit code is the instruction:
 | 30 | CAP — attempt ceiling (4) spent | split or ask the user; **never attempt again** |
 | 40 | BUDGET — goal budget spent | stop; report cost against progress |
 | 50 | TAMPER — a frozen check or protected file changed | abort; the user decides |
+| 70 | REVIEW — a second model's must-fix findings (from `boil-review.py`) | `next` returns the `<M>-fix` node; after it passes, `close`; if 70 again, the user decides |
+| 71 | PENDING — the review is still running | continue the loop; re-run `review` later |
 
 One iteration:
 
@@ -151,6 +153,7 @@ python3 <skill>/scripts/boil-dispatch-packet.py --milestone M3 --root <project>
 python3 <skill>/scripts/boil-check.py audit --root <project> --diff <the attempt's diff>
 python3 <skill>/scripts/boil-check.py run --root <project> --milestone M3 --spent-usd <n> --rerun \
         --note <sha of the diff>
+python3 <skill>/scripts/boil-review.py review --root <project> --milestone M3     # only after exit 0
 ```
 
 ### 2a — The attempt ladder is the retry policy
@@ -190,6 +193,19 @@ Append the milestone's `EVIDENCE:` line to `.boil/log.md` (ladder format,
 `references/outer-loop.md`). Do not write a narrative, a next-steps block, or a footer:
 the ledger is the report, and prose about work whose truth value the script already
 holds is the most expensive output in the loop.
+
+### 2f — A second model reads the code, when the script says so
+
+`boil-review.py review` runs after a PASS and *decides* whether a roborev review is worth
+its cost — it is not fired per commit. It fires on a T3/T4 milestone, a `risk_paths` hit,
+the final milestone, or once `every_lines` (default 150) unreviewed source lines have
+accumulated; docs and `.boil/` never count, a job the post-commit hook already enqueued
+for HEAD is adopted, and a milestone gets **one review round and one fix round**, never
+more. Findings at or above `fix_min_severity` (default high) become a `<M>-fix` node whose
+gate is the parent's frozen check; lower ones are deferred into `.boil/log.md` and the job
+is closed — never silently dismissed. When the fix node passes, `boil-review.py close
+--milestone <M>-fix` re-reviews once: clean closes both jobs; anything left is `OPEN`, the
+brakes say STOP, and the user decides. The reviewer never replaces a green check.
 
 ### 2e — Continue or stop
 
@@ -281,7 +297,8 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 |---|---|
 | `boil-check.py` | **the controller**: `compile` (validate → freeze), `next`, `run` (decide), `split`, `audit`, `status` |
 | `boil-now.py` | the session-start read; writes `NOW.md` |
-| `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's last verdict |
+| `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's and the reviewer's last verdict |
+| `boil-review.py` | milestone-wise roborev: `review` (decide by risk score, one round, route findings), `close` (one re-review) |
 | `boil-doctor.py` | state validation; `--final` is the termination gate |
 | `boil-portfolio.py` | regenerate `PORTFOLIO.md`; `--check` exits 1 on violations |
 | `boil-migrate.py` | fold `.gate/` into `.boil/`; bootstrap the new files |

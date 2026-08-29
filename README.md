@@ -53,6 +53,8 @@ python3 scripts/boil-check.py run     --root P --milestone M3 --rerun          #
 python3 scripts/boil-check.py split   --root P --milestone M3 --spec '[...]'   # 2-4 sub-checks, once
 python3 scripts/boil-check.py audit   --root P --diff attempt.diff             # skip markers, protected-path writes, monkey-patching
 python3 scripts/boil-check.py status  --root P                                 # one line, zero LLM tokens
+python3 scripts/boil-review.py review --root P --milestone M3                  # after PASS: script decides if a 2nd model reads the diff
+python3 scripts/boil-review.py close  --root P --milestone M3-fix              # one re-review; clean closes, else the user decides
 ```
 
 Rules the script enforces, each with a test: a check that already passes is **not
@@ -310,7 +312,7 @@ portfolio), and are loaded when their trigger fires.
 
 - **[`superpowers`](https://github.com/obra/superpowers)** — `brainstorming`, `verification-before-completion`, `dispatching-parallel-agents`, `systematic-debugging`, `test-driven-development` are all referenced from inside the loop.
 - **[`ralph-wiggum`](https://github.com/obra/ralph-wiggum)** — `boil` does the iteration internally rather than relying on a stop-hook loop, but you can wrap it with `/loop` for unattended runs.
-- **[`roborev`](https://roborev.io)** — Step 2d Pass 4 enqueues a `roborev review --agent <different-reviewer>` per iteration when roborev is installed in the repo and a reviewable diff exists, so a second LLM critiques each iteration's code. Claude implementations prefer `--agent codex`; Codex implementations prefer `--agent claude-code`. Findings become next-iteration tickets, never silently dismissed.
+- **[`roborev`](https://roborev.io)** — `scripts/boil-review.py` runs it *milestone-wise, on the script's decision*, not per commit: after a milestone PASS it fires only for a T3/T4 tier, a `risk_paths` hit, the final milestone, or `every_lines` accumulated unreviewed source lines; it adopts a job the post-commit hook already enqueued for HEAD; one review round + one fix round per milestone, never a ratchet. Must-fix findings become a `<M>-fix` DAG node gated by the parent's frozen check; the rest are deferred into `.boil/log.md` with the job closed — never silently dismissed. Claude implementations set `"agent": "codex"`; Codex implementations `"agent": "claude-code"`.
 - **`gate` + `helm` — the full setup.** Three loops, one chain, none duplicating another:
   - **gate** owns the OUTER loop — *is this project worth finishing, and is it converging?* Maturity ladder L0–L5, evidence rules, todo discipline, portfolio WIP limit. One open ladder criterion is one valid boil goal.
   - **helm** is the CONTROLLER — *what is the measured gap, and is it closing?* It turns the goal into machine-checkable subgoals (test / data / human), steers a boil session at the first open one under hard guardrails (budget, stall, WIP, kill-by), re-measures, and ticks the gate ladder box with a formatted EVIDENCE line once the goal measures MET.

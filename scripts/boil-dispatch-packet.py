@@ -62,6 +62,20 @@ def milestone_packet(root: Path, mid: str, out_dir: Path) -> int:
     goal_line = next((ln for ln in _read(root / ".boil" / "goal.md").splitlines()
                       if ln.startswith("**One-line:**")), "")
     memory = _read(root / ".boil" / "memory.md", "(no memory.md)")
+    review = ""
+    if m.get("kind") == "review" and m.get("review"):
+        rv = m["review"]
+        items = "\n".join(f"- [{f.get('severity', '?')}] {f.get('location', '')} — {f.get('problem', '')}"
+                          + (f"\n  suggested: {f['fix']}" if f.get("fix") else "") for f in rv.get("findings", []))
+        review = f"""## Review findings to address (roborev job {rv.get('job')})
+
+{items}
+
+Address each finding or say in one line why it is wrong. The frozen check still guards
+regression; a second model re-reads the change once after you declare done. There is no
+third round: what it still flags goes to the user.
+
+"""
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{mid}.md"
     out.write_text(
@@ -78,7 +92,7 @@ def milestone_packet(root: Path, mid: str, out_dir: Path) -> int:
 
 What the check does NOT measure (proxy gap): {m.get('proxy_gap') or 'not stated'}
 
-## Last counterexample
+{review}## Last counterexample
 
 {last or '(none yet — this is the first attempt)'}
 
