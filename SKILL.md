@@ -104,6 +104,20 @@ Creates `.boil/` with `icebox.md`, `budget.json`, and `progress.jsonl`, and fold
 in any legacy `.gate/`. Then write `memory.md`, `implementation.md`, `bugs.md`,
 `routing.md`, and `tickets/`. Templates: `references/state-files.md`.
 
+Then **compile the goal into checks** — this is the one LLM call that drafts:
+
+```bash
+# one LLM call writes .boil/milestones.json: one milestone per goal checkbox, each with a
+# deterministic `check` command, `after:` dependencies, `protect:` paths, a `proxy_gap`
+python3 <skill>/scripts/boil-check.py compile --root <project> --spec <project>/.boil/milestones.json
+```
+
+`compile` validates before it freezes: a check that already passes is rejected as
+unfalsifiable, a `gold` command must pass, the outcome must repeat across runs; on
+brownfield milestones pair a new-behaviour assertion with an `already_green` regression
+guard. Only validated checks get a hash. A drafted-but-unfrozen spec is a lint error.
+Milestone schema: `references/state-files.md`.
+
 Set `budget.json` `goal_usd` to arm the budget brake. A goal with no budget has
 no cost ceiling, and that is how 65-iteration runs happen.
 
@@ -114,116 +128,75 @@ inside an ungoverned project is how effort stops converting into progress.
 
 ## Phase 2 — The loop
 
-One iteration: pick → dispatch at tier → verify → demo → tick → ask.
+The controller is `boil-check.py`; you are the driver. Per milestone the LLM is called for
+exactly two things — **drafting the check** (Phase 1) and **attempting the milestone** —
+and decides nothing. The script decides. Its exit code is the instruction:
 
-Record `Iteration start SHA` (`git rev-parse --short HEAD`) in `.boil/run.md`.
-That is the diff boundary for demos and review.
-
-### 2a — Pick
-
-From `NOW.md`'s actionable list: unblocked, highest priority, preferring tickets
-that would close a `goal.md` checkbox. Pick 1–4. **If the WIP brake says
-RESTRICT, close tickets before opening any.**
-
-### 2b — Dispatch at the declared tier
-
-`tier:` is a required ticket field, chosen by blast radius — what it costs if
-this is wrong and nobody notices.
-
-| Tier | What runs | Use for |
+| Exit | Meaning | You do |
 |---|---|---|
-| **T1** direct *(default)* | you edit, you run the test, you show the diff. No subagent. | config, copy, docs, deps, small covered refactors |
-| **T2** delegated | one builder subagent + **your own** independent verification | needs isolation, or parallelisable |
-| **T3** adversarial | frozen answer key + builder + isolated judge in another model family + manager + cross-LLM review | money, auth, data loss, production — **or anything that failed twice at T1/T2** |
+| 0 | PASS — an `EVIDENCE:` line was printed | copy the line onto the goal checkbox; `next` |
+| 10 | RETRY — new failure signature | one fresh implementer call with the packet (below) |
+| 20 | STALL — identical failure twice | `split` the milestone into 2–4 sub-checks, once; then ask |
+| 30 | CAP — attempt ceiling (4) spent | split or ask the user; **never attempt again** |
+| 40 | BUDGET — goal budget spent | stop; report cost against progress |
+| 50 | TAMPER — a frozen check or protected file changed | abort; the user decides |
 
-Most tickets are T1. Paying T3 everywhere is what produced 205 tickets for 2
-checkboxes — and zero escalations across 86 loop directories, so it was not
-buying rigor either. Full contract: `references/effort-tiers.md`.
+One iteration:
 
-**Only T3 tickets carry a frozen `answer_key`.** At T1 and T2 the proof is the
-project's own suite via `proof_strategy` — a one-line fix does not need an
-externally-authored, hash-protected ruler. `ticket-lint.py` enforces the key at
-T3 and treats a *missing* tier as T3, so a ticket cannot dodge the key by
-omitting the field.
+```bash
+python3 <skill>/scripts/boil-check.py next --root <project>            # {"milestone": "M3", ...}
+python3 <skill>/scripts/boil-dispatch-packet.py --milestone M3 --root <project>
+#   → dispatch one implementer (T1: you, in a fresh context; T2+: one builder subagent)
+#     with ONLY that packet: statement, proxy gap, last counterexample. Never the check.
+python3 <skill>/scripts/boil-check.py audit --root <project> --diff <the attempt's diff>
+python3 <skill>/scripts/boil-check.py run --root <project> --milestone M3 --spent-usd <n> --rerun \
+        --note <sha of the diff>
+```
 
-Dispatch parallel tickets in **one message with multiple tool calls**. Agents may
-*propose* tickets; you route them. Proposals beyond the WIP limit go to
-`icebox.md` unrouted.
+### 2a — The attempt ladder is the retry policy
 
-### 2c — Verify
+1 fresh generation → up to 2 feedback rounds, each seeded with the single counterexample
+line the controller returned → 1 fresh-context resample → stop. Attempt 3 runs only if the
+failure signature changed. The implementer never holds the check's source and has no tool
+that runs it; the controller runs it once, after the implementer declares done. Two
+execution-feedback rounds capture 76–95% of the achievable gain; a third adds nothing, and
+in-context retries reproduce the same wrong program 33–68% of the time — hence the fresh
+context, and hence the cap.
 
-**Always:** run the project's own tests/lint/build. Capture exit codes and real
-output. Never "should pass". For each closed ticket, confirm its `proof_strategy`
-evidence exists — RED→GREEN for behavior and bugs, characterization for
-refactors, before/after numbers for performance.
+### 2b — Never lower the bar, never edit the ruler
 
-**Always:** re-test from an angle the implementer did not. They wrote a unit test
-→ you write an integration test. They tested the happy path → you test empty,
-malformed, concurrent. They fixed a bug → you reproduce the symptom on the prior
-commit, then on HEAD.
+A failed attempt is not information about the check. Re-authoring a check happens only
+through `compile` (validated again, hashed again) and only because the check was *wrong*
+— it passed on the baseline, failed on gold, or flaked. `audit` findings (writes under
+protected paths, skip markers, monkey-patching, git-history access) are logged and count
+against the attempt; they are never explained away.
 
-**Conditionally** — each of these is real work, so run it only on its trigger:
+### 2c — Demo
 
-| Pass | Trigger |
-|---|---|
-| Story replay | the project has stories AND a closed ticket names one → `references/stories.md` |
-| Rubric judge | a moved checkbox has a rubric attached → `references/rubrics.md` |
-| Manager loop | the ticket is T3 → `references/self-correcting-loop.md` |
-| Cross-LLM review | the ticket is T3 and roborev has a *different* reviewer available |
-| Playwright proof | the goal touches a visible UI |
-| Debug worksheet | the same ticket failed verification twice → `boil-debug-mode.py` |
+One user-visible artifact per passed milestone. **Never skip it.** The demo is a real
+invocation of the built thing — the command and its captured output, the curl and its
+response, the screenshot — not a description. Recipes: `references/demo-formats.md`.
 
-If a conditional pass finds problems, file tickets and loop. Do not try to fix
-everything in one iteration — that is what looping is for.
-
-### 2d — Demo
-
-One user-visible artifact. **Never skip it.** If you cannot produce one, the work
-is not done from the user's point of view: file a `demo-prep` ticket and loop.
-
-| Work type | Demo |
-|---|---|
-| Web UI | dev server + screenshot + the localhost URL |
-| API | a `curl` one-liner **and its real captured response** |
-| CLI | the command and its real output |
-| Library | a ≤30-line diff with `file:line`, plus the now-passing test |
-| Bug fix | the failing test before, green now, one-line root cause |
-| Performance | before/after numbers, same workload |
-
-Recipes: `references/demo-formats.md`.
-
-### 2e — Tick, then report ONCE
+### 2d — Tick, then the status line
 
 ```bash
 python3 <skill>/scripts/boil-brakes.py tick --root <project> --iteration iter-NNN --spent-usd <n>
+python3 <skill>/scripts/boil-check.py status --root <project>
 ```
 
-Then **one** block in chat. Not a machine summary *and* a narrative *and* a
-next-steps block *and* a footer — those were four restatements of one state:
+`status` prints the only report:
+`milestones 5/13 green | delta 8 | current M07 att 2/4 last=FAIL | spent $3.18/$25 | <ts>`.
+Append the milestone's `EVIDENCE:` line to `.boil/log.md` (ladder format,
+`references/outer-loop.md`). Do not write a narrative, a next-steps block, or a footer:
+the ledger is the report, and prose about work whose truth value the script already
+holds is the most expensive output in the loop.
 
-```
-## Iteration N — <what a returning human needs to know in one line>
+### 2e — Continue or stop
 
-**Changed:** <2-3 bullets, file-level>
-**Goal:** <X/Y checkboxes> — <which moved, or "none moved — <why>">
-**Proof:** <the actual command output line, e.g. `47 passed in 2.3s`>
-**Demo (30s):** → <the single action: open http://…, run `cmd`, view path>
-**Next:** <1-3 concrete actions, most important first — an unblock action first if one exists>
-```
-
-Then append the same result as one line in `.boil/log.md` in EVIDENCE format
-(`references/outer-loop.md`). That line is simultaneously the boil proof and the
-ladder evidence — write it once, use it twice.
-
-If the iteration made no real progress, or regressed, **say so plainly**. The
-loop is only worth running while it tells the truth.
-
-### 2f — Continue or stop
-
-Auto-continue when invoked under `/loop` and the goal is not done — but always
-emit the demo and pause. The demo is the user's interrupt window. If a brake
-fired, stop and ask; do not decide on the user's behalf that the work is nearly
-there.
+Auto-continue under `/loop` while `next` returns a milestone and `boil-brakes.py check`
+says CONTINUE. Any non-zero controller code other than 10 hands the decision to the user;
+the driver never grants itself another attempt. A brake that fires is a planned exit:
+commit work in progress to a branch, write `HANDOFF.md`, stop.
 
 ---
 
@@ -257,14 +230,16 @@ owns it.
    Enforced by `ticket-lint.py`.
 3. **No claim without fresh output in the same message.** Run it, paste the
    line, then claim. Never from memory.
-4. **Always re-test from an angle the implementer did not.**
-5. **No iteration without a demo.**
-6. **Tier by blast radius; raise it after two failures, never lower it.**
-   Lowering a tier to get past a failure is the same move as editing the answer
-   key.
-7. **The brakes are binding.** Three flat iterations, >5 actionable tickets, or a
-   spent budget stop the loop and hand the decision to the user. The manager
-   never grants itself another attempt.
+4. **The implementer never runs the check.** The controller runs it once, after
+   the implementer declares done, and returns one counterexample line. Not the
+   suite, not the trace, not the check's source.
+5. **No milestone without a demo.**
+6. **Validate before you freeze; never lower the bar.** A check passes `compile` or it
+   does not exist. A failed attempt is not a reason to change the check, and a stalled
+   milestone is split, never retried a fifth time.
+7. **The brakes are binding.** A STALL/CAP/TAMPER/BUDGET verdict, three flat
+   iterations, >5 actionable tickets, or a spent budget stop the loop and hand the
+   decision to the user. The driver never grants itself another attempt.
 8. **Protect the user's work.** Never reset, stash, overwrite, or amend without
    explicit authorization. Never merge a PR without it — a plan, a green key, or
    an accepted loop is not merge authority. Never add AI attribution trailers or
@@ -286,7 +261,7 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | Read | When |
 |---|---|
 | `references/outer-loop.md` | init, audit, portfolio review, writing a ladder or charter, or any brake fired |
-| `references/effort-tiers.md` | choosing or disputing a ticket's tier |
+| `references/effort-tiers.md` | assigning a milestone's tier (T1–T4), or disputing a ticket's |
 | `references/ticket-system.md` | writing a ticket or a dispatch prompt |
 | `references/state-files.md` | bootstrapping `.boil/` state files |
 | `references/self-correcting-loop.md` | running a **T3** ticket |
@@ -304,13 +279,14 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 
 | Script | Does |
 |---|---|
+| `boil-check.py` | **the controller**: `compile` (validate → freeze), `next`, `run` (decide), `split`, `audit`, `status` |
 | `boil-now.py` | the session-start read; writes `NOW.md` |
-| `boil-brakes.py` | `tick` per iteration; `check` the three brakes |
+| `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's last verdict |
 | `boil-doctor.py` | state validation; `--final` is the termination gate |
 | `boil-portfolio.py` | regenerate `PORTFOLIO.md`; `--check` exits 1 on violations |
 | `boil-migrate.py` | fold `.gate/` into `.boil/`; bootstrap the new files |
 | `ticket-lint.py` | ticket schema, tier, answer key, and goal-size lint |
-| `boil-loop.py` | the T3 manager (builder/judge/decide/escalate/audit) |
+| `boil-loop.py` | the T3 adversarial protocol — blast-radius milestones only |
 | `boil-commit-guard.py` | no AI attribution in commits; run before any push |
 | `boil-run-iteration.sh` | doctor + lint + stories + tests + iteration verify |
 

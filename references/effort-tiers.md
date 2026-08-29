@@ -80,3 +80,28 @@ When the budget brake reports RESTRICT (60% of the goal's cap spent), new work
 runs at T1 only and no new tickets are filed. T3 tickets already in flight
 finish; they are the expensive ones, and abandoning them halfway wastes what was
 already spent. See `references/outer-loop.md`.
+
+## Milestone tiers (verifier-first)
+
+Ticket tiers above price *ceremony*. Milestone tiers price *how much the check can be
+trusted*, and they set the controller's parameters. The controller assigns one at
+`compile` time from testability, codebase tier and blast radius.
+
+| | **T1** greenfield / local | **T2** existing code, mechanical oracle | **T3** brownfield, no oracle | **T4** non-testable or high blast radius |
+|---|---|---|---|---|
+| check | new-behaviour assertion | assertion + literal-state checklist + regression guard | **pair**: FAIL→PASS + PASS→PASS guard, signatures pinned | substrate check (build, links, perceptual diff) + rubric or human |
+| size | soft | soft | ≤3 files, ≤100 LOC | as small as expressible |
+| attempts | 1 + 2 feedback + 1 resample (4) | 4 | 4, then **split** | 1 + 1, then human |
+| stall | identical signature ×2 | ×2 | ×2 | first failure |
+| determinism at compile | 2 runs | 2 | 3 | 3 |
+| sampled audit of passes | 1 in 10 | 1 in 10 | 1 in 5 | every one |
+| LLM judge | never | never | sampled, out-of-band | inline narrow rubric, advisory |
+| human gate | never | at merge | blast radius not visible, or 2nd stall | always before advance |
+| expected per-attempt success | high | high | 15–25% | n/a |
+
+Why the numbers: two execution-feedback rounds capture 76–95% of achievable gain; on
+genuine brownfield work per-attempt success is 15–25% and retries do not compound (a
+100-iteration cap still plateaus at 25%), so the answer to a stall is a smaller milestone,
+not attempt five; 84% of pass→fail transitions at Google scale are flakes, so a pass must
+repeat; and an LLM judge is never the gate for anything a script can decide. Source:
+`_research/boil-convergence/PLAN.md`.

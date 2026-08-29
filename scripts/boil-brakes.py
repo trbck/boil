@@ -76,6 +76,26 @@ def tick(root: Path, iteration: str, spent_usd: float | None) -> int:
     return 0
 
 
+def _milestone_verdicts(root: Path) -> dict[str, str]:
+    """Last controller result per milestone from `.boil/checks/attempts.jsonl`
+    (written by boil-check.py). Empty when the project is not in verifier-first mode."""
+    path = state_dir(root) / "checks" / "attempts.jsonl"
+    if not path.is_file():
+        return {}
+    last: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if rec.get("milestone") and rec.get("result"):
+            last[str(rec["milestone"])] = str(rec["result"])
+    return last
+
+
 def evaluate(root: Path, wip_limit: int, stall_limit: int) -> dict:
     """Run all three brakes. Returns a verdict dict; never raises."""
     green, total = checkbox_counts(state_dir(root) / "goal.md")
@@ -121,6 +141,26 @@ def evaluate(root: Path, wip_limit: int, stall_limit: int) -> dict:
                 "Move the excess to .boil/icebox.md; file no new tickets until it is back under."
             ),
         })
+
+    # Brake 4 — the controller's verdict (verifier-first mode). When
+    # `.boil/checks/attempts.jsonl` exists, the last record per milestone is a
+    # decision: STALL / CAP / TAMPER / BUDGET hand the loop to the user until a
+    # later PASS clears it. This is the brake that would have stopped a 65-iteration
+    # run at iteration ten: nothing external was measuring per-milestone progress.
+    for mid, last in _milestone_verdicts(root).items():
+        if last in ("STALL", "CAP", "TAMPER", "BUDGET"):
+            verdict = "STOP"
+            findings.append({
+                "brake": "milestone",
+                "level": "stop",
+                "message": (
+                    f"milestone {mid} is at {last} — "
+                    + {"STALL": "split it into 2-4 sub-checks (once), then ask the user",
+                       "CAP": "the attempt ceiling is spent; split or ask the user, never attempt again",
+                       "TAMPER": "a frozen check or protected file changed; a human decides",
+                       "BUDGET": "the goal budget is spent; stop and report cost against progress"}[last]
+                ),
+            })
 
     # Brake 3 — budget.
     cap = budget.get("goal_usd")

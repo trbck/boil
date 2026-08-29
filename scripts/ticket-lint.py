@@ -159,7 +159,10 @@ def _issue(path: Path, severity: str, code: str, message: str) -> dict[str, str]
     }
 
 
-def lint_ticket(path: Path) -> list[dict[str, str]]:
+def lint_ticket(path: Path, verifier_first: bool = False) -> list[dict[str, str]]:
+    """`verifier_first` is true when `.boil/checks/frozen.json` exists: the frozen
+    milestone check is the proof, so the self-reported confidence block is not
+    required — a builder's 99/100 is not evidence, a script's exit code is."""
     issues: list[dict[str, str]] = []
     try:
         meta, text = _frontmatter(path)
@@ -181,7 +184,9 @@ def lint_ticket(path: Path) -> list[dict[str, str]]:
 
     status = meta.get("status")
     confidence = meta.get("confidence")
-    if status == "done":
+    if status == "done" and verifier_first:
+        pass  # the milestone's frozen check is the proof; see lint_checks()
+    elif status == "done":
         if not isinstance(confidence, dict):
             issues.append(_issue(path, "error", "missing-confidence", "`confidence` mapping required for done tickets"))
         else:
@@ -298,6 +303,35 @@ def lint_goal(path: Path) -> list[dict[str, str]]:
     return issues
 
 
+def lint_checks(root: Path) -> tuple[list[dict[str, str]], bool]:
+    """Verifier-first mode. A drafted milestone spec that was never validated and
+    frozen is the exact failure the research found — an LLM-written check with a
+    16% false-positive rate makes the loop worse than a single shot. Returns
+    (issues, verifier_first_active)."""
+    boil = root / ".boil"
+    spec = boil / "milestones.json"
+    frozen = boil / "checks" / "frozen.json"
+    issues: list[dict[str, str]] = []
+    if not frozen.is_file():
+        if spec.is_file():
+            issues.append(_issue(spec, "error", "checks-not-frozen",
+                                 "milestones.json is drafted but no .boil/checks/frozen.json exists — run "
+                                 "`boil-check.py compile` so every check is validated before it is frozen"))
+        return issues, False
+    try:
+        data = json.loads(frozen.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return [_issue(frozen, "error", "checks-bad-json", str(exc))], True
+    for m in data.get("milestones", []):
+        mid = str(m.get("id") or "?")
+        if not str(m.get("hash") or "").strip():
+            issues.append(_issue(frozen, "error", "milestone-no-hash", f"milestone {mid} has no frozen hash"))
+        if not str(m.get("proxy_gap") or "").strip():
+            issues.append(_issue(frozen, "warning", "milestone-no-proxy-gap",
+                                 f"milestone {mid} names no `proxy_gap` — say what the check does NOT measure"))
+    return issues, True
+
+
 def _is_derived_sibling(path: Path) -> bool:
     """True for rendered/derived copies of a ticket, e.g. `T-0001.plain.md`.
 
@@ -322,6 +356,8 @@ def main(argv: list[str]) -> int:
     root = Path(args.root)
     tickets_dir = root / ".boil" / "tickets"
     goal_issues = [] if args.no_goal else lint_goal(root / ".boil" / "goal.md")
+    check_issues, verifier_first = lint_checks(root)
+    goal_issues = goal_issues + check_issues
     if not tickets_dir.exists():
         issues = [_issue(tickets_dir, "error", "missing-tickets-dir", ".boil/tickets missing")]
     else:
@@ -330,7 +366,7 @@ def main(argv: list[str]) -> int:
         for path in sorted(tickets_dir.glob("T-*.md")):
             if _is_derived_sibling(path):
                 continue
-            issues.extend(lint_ticket(path))
+            issues.extend(lint_ticket(path, verifier_first))
             try:
                 meta, _ = _frontmatter(path)
                 tid = str(meta.get("id") or "")

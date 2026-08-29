@@ -40,6 +40,28 @@ boil the /api/orders endpoint until POST returns 201 with a real order_id
    every checkbox is green *and* carries a fresh evidence line. An unfinished goal produces
    `HANDOFF.md` instead — X of Y done, what is left, why.
 
+## The controller (verifier-first, since 2026-08-29)
+
+The loop's decisions are made by a script, not by the model. Per milestone the LLM is
+called twice — once to **draft** an acceptance check, once to **attempt** the milestone —
+and `scripts/boil-check.py` does the rest:
+
+```bash
+python3 scripts/boil-check.py compile --root P --spec P/.boil/milestones.json  # validate → freeze
+python3 scripts/boil-check.py next    --root P                                 # first failing node
+python3 scripts/boil-check.py run     --root P --milestone M3 --rerun          # 0 PASS · 10 RETRY · 20 STALL · 30 CAP · 40 BUDGET · 50 TAMPER
+python3 scripts/boil-check.py split   --root P --milestone M3 --spec '[...]'   # 2-4 sub-checks, once
+python3 scripts/boil-check.py audit   --root P --diff attempt.diff             # skip markers, protected-path writes, monkey-patching
+python3 scripts/boil-check.py status  --root P                                 # one line, zero LLM tokens
+```
+
+Rules the script enforces, each with a test: a check that already passes is **not
+falsifiable** and is never frozen; the check and its protected files are hashed together
+and any drift is **TAMPER**; the implementer **never runs the check** — the controller
+runs it once and returns one counterexample line; an identical failure twice is a
+**STALL**; four attempts is the **CAP**; passed milestones are never re-run. The
+evidence, per rule, is in `_research/boil-convergence/PLAN.md`.
+
 ## Effort tiers
 
 Ceremony is chosen by blast radius, not by habit:

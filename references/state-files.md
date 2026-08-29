@@ -328,3 +328,41 @@ iter-NNN/
 1. <single handoff/confirmation action if complete, or the exact unblock action if blocked>
 2. <optional follow-up verification/review action>
 ```
+
+## `.boil/milestones.json` → `.boil/checks/frozen.json` (verifier-first)
+
+The goal's checkboxes compiled into checks. One LLM call **drafts** `milestones.json`;
+`boil-check.py compile` **validates** every entry and writes `checks/frozen.json` — the
+only file the loop reads. A drafted spec without a frozen counterpart is a lint error.
+
+```json
+{
+  "budget_usd": 25.0,          "cap": 4,               "stall": 2,   "determinism_runs": 2,
+  "milestones": [
+    {"id": "M1", "title": "POST /orders returns 201 with an order_id",
+     "check": "pytest -q tests/api/test_orders.py::test_create_returns_201",
+     "kind": "test",            "tier": "T1",
+     "after": [],               "protect": ["tests/api/test_orders.py"],
+     "gold": "",                "already_green": false,
+     "proxy_gap": "status code and id shape; not idempotency, not auth",
+     "must_have": true}
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `check` | the command whose exit code IS the verdict; the implementer never sees or runs it |
+| `kind` | `test` \| `metric` \| `artifact` \| `rubric` \| `human` — the last two are advisory + human-gated |
+| `tier` | `T1` greenfield · `T2` mechanical oracle (port/migration) · `T3` undocumented brownfield · `T4` non-testable / high blast radius — `references/effort-tiers.md` |
+| `after` | dependency edges; `next` walks them topologically, passed nodes are never re-run |
+| `protect` | files or directories hashed together with the check; any drift is `TAMPER` |
+| `gold` | a command that must pass on a known-good state (gold-sanity) |
+| `already_green` | this is a regression guard (PASS→PASS); the falsifiability gate is skipped |
+| `proxy_gap` | one line: what the check does **not** measure. Required in spirit, linted as a warning |
+| `must_have` | `false` marks nice-to-have nodes that never block completion |
+
+`compile` rejects: a check that already passes (not falsifiable), a failing `gold`, an
+outcome that differs across `determinism_runs`. The controller's ledger is
+`checks/attempts.jsonl` — one record per attempt with `result`, `signature`,
+`counterexample`, `spent_usd` — and `boil-check.py status` renders it as one line.
