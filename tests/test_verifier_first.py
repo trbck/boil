@@ -508,3 +508,37 @@ class RecompileCarriesFrozenRecordsTest(unittest.TestCase):
             self.assertIn("carried", r.stdout)
         finally:
             ws.close()
+
+
+class PacketSuperpowersTest(unittest.TestCase):
+    """The implementer always codes under superpowers: TDD for the change, verification
+    before the done claim, systematic debugging once a counterexample exists. The packet
+    is the only thing the implementer reads, so the packet is where the rule lives."""
+
+    def test_first_attempt_requires_tdd_and_verification(self) -> None:
+        ws = Workspace()
+        try:
+            ws.spec([FAILING])
+            self.assertEqual(ws.compile().returncode, 0)
+            r = runpy(PACKET, "--root", str(ws.root), "--milestone", "M1")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            packet = (ws.root / ".boil" / "dispatch" / "M1.md").read_text()
+            self.assertIn("superpowers:test-driven-development", packet)
+            self.assertIn("superpowers:verification-before-completion", packet)
+            self.assertNotIn("superpowers:systematic-debugging", packet)
+            self.assertIn("Skills invoked", packet)
+        finally:
+            ws.close()
+
+    def test_a_counterexample_adds_systematic_debugging(self) -> None:
+        ws = Workspace()
+        try:
+            ws.spec([FAILING])
+            self.assertEqual(ws.compile().returncode, 0)
+            run("run", "--root", str(ws.root), "--milestone", "M1")
+            r = runpy(PACKET, "--root", str(ws.root), "--milestone", "M1")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            packet = (ws.root / ".boil" / "dispatch" / "M1.md").read_text()
+            self.assertIn("superpowers:systematic-debugging", packet)
+        finally:
+            ws.close()

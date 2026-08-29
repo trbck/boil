@@ -150,6 +150,7 @@ python3 <skill>/scripts/boil-check.py next --root <project>            # {"miles
 python3 <skill>/scripts/boil-dispatch-packet.py --milestone M3 --root <project>
 #   → dispatch one implementer (T1: you, in a fresh context; T2+: one builder subagent)
 #     with ONLY that packet: statement, proxy gap, last counterexample. Never the check.
+#     The packet names the superpowers skills the implementer must invoke (hard rule 9).
 python3 <skill>/scripts/boil-check.py audit --root <project> --diff <the attempt's diff>
 python3 <skill>/scripts/boil-check.py run --root <project> --milestone M3 --spent-usd <n> --rerun \
         --note <sha of the diff>
@@ -238,7 +239,7 @@ a PR body from `boil-pr-summary.py` over pushing to `main`.
 
 ## Hard rules
 
-Eight, each mechanically checkable. Everything else lives in the reference that
+Nine, each mechanically checkable. Everything else lives in the reference that
 owns it.
 
 1. **One read at session start.** `boil-now.py`. Exit 3 means stop and ask.
@@ -260,6 +261,15 @@ owns it.
    explicit authorization. Never merge a PR without it — a plan, a green key, or
    an accepted loop is not merge authority. Never add AI attribution trailers or
    commit as an AI identity (`boil-commit-guard.py`; run before any push).
+9. **Code only under superpowers.** Every implementer — you in a fresh context or a
+   builder subagent — invokes `superpowers:test-driven-development` before the change,
+   `superpowers:systematic-debugging` whenever a counterexample exists, and
+   `superpowers:verification-before-completion` before declaring done. The dispatch
+   packet lists them; a return without a `Skills invoked:` line is not a done claim and
+   is sent back once, unscored. Drafting checks in Phase 1 is TDD's RED step by another
+   name — `compile`'s falsifiability gate is the proof the test failed first. Phase 0
+   uses `superpowers:brainstorming`; T2+ dispatch uses `superpowers:dispatching-parallel-agents`
+   / `subagent-driven-development`.
 
 Baseline conduct is the Clanker Constitution — honor the request, act with
 judgment, finish the job, protect existing work, verify reality, communicate for
@@ -311,10 +321,11 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 
 ## Integration
 
-- `superpowers:test-driven-development` for T2/T3 implementation tickets,
-  `:verification-before-completion` for every done claim,
-  `:systematic-debugging` when a failure is non-obvious,
-  `:dispatching-parallel-agents` for the 2b mechanics.
+- **superpowers is mandatory for all coding** (hard rule 9): `test-driven-development`
+  for every implementation attempt, `verification-before-completion` for every done
+  claim, `systematic-debugging` whenever a counterexample exists, `brainstorming` in
+  Phase 0, `dispatching-parallel-agents` / `subagent-driven-development` for T2+ dispatch.
+  `boil-dispatch-packet.py` writes the required list into every packet.
 - **helm** is a cockpit, nothing more: it lists projects with `.boil/`, drafts a goal, and
   launches ONE headless boil session per click with `boil-guard.py --settings-json` wired in.
   It measures nothing — `boil-check.py verify` is the ruler, and `boil-doctor.py --final`

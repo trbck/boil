@@ -76,6 +76,15 @@ regression; a second model re-reads the change once after you declare done. Ther
 third round: what it still flags goes to the user.
 
 """
+    # The implementer always codes under superpowers. The packet is the only thing it
+    # reads, so the rule lives here, not in the driver's memory.
+    skills = ["`superpowers:test-driven-development` — the failing test first, then the smallest change"]
+    if last:
+        skills.append("`superpowers:systematic-debugging` — the counterexample above is the symptom; "
+                      "find the root cause before touching code")
+    skills.append("`superpowers:verification-before-completion` — fresh output in the same message "
+                  "before you declare done; never from memory")
+    skills_md = "\n".join(f"- {s}" for s in skills)
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{mid}.md"
     out.write_text(
@@ -104,12 +113,20 @@ What the check does NOT measure (proxy gap): {m.get('proxy_gap') or 'not stated'
   at most one counterexample line. Build against the milestone statement above.
 - Make the smallest change that satisfies the milestone. Do not touch files outside its scope.
 
+## Required skills (superpowers)
+
+Invoke each with the Skill tool before the work it governs; announce "Using <skill> to <purpose>".
+A return without the `Skills invoked` line below is not a done claim.
+
+{skills_md}
+
 ## Codebase Memory
 
 {memory}
 
 ## Required Return Shape
 
+- Skills invoked: <the superpowers skills you actually ran, in order>
 - Changed files (paths)
 - One line: what you believe the milestone now satisfies
 - Blockers, if any
