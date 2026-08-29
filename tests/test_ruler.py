@@ -210,5 +210,105 @@ class VerifyTest(unittest.TestCase):
         self.assertEqual(json.loads(r.stdout)["verdict"], "MET")
 
 
+def hook(root: Path, tool: str, tool_input: dict) -> subprocess.CompletedProcess[str]:
+    payload = json.dumps({"tool_name": tool, "tool_input": tool_input})
+    return run(GUARD, "--root", str(root), stdin=payload)
+
+
+class GuardTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ws = RulerWorkspace()
+        self.root = self.ws.root
+
+    def tearDown(self) -> None:
+        self.ws.close()
+
+    def denials(self) -> list[dict]:
+        p = self.root / ".boil" / "guard.jsonl"
+        return [json.loads(ln) for ln in p.read_text().splitlines()] if p.is_file() else []
+
+    def test_write_to_tests_is_blocked(self) -> None:
+        r = hook(self.root, "Write", {"file_path": str(self.root / "tests" / "test_new.py"), "content": "x"})
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("tests", r.stderr)
+        self.assertEqual(self.denials()[-1]["tool"], "Write")
+
+    def test_edit_to_a_frozen_protect_path_is_blocked(self) -> None:
+        r = hook(self.root, "Edit", {"file_path": str(self.root / "tests" / "test_guard.py"),
+                                     "old_string": "True", "new_string": "1"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_edit_to_frozen_json_and_milestones_is_blocked(self) -> None:
+        for rel in (".boil/checks/frozen.json", ".boil/milestones.json"):
+            r = hook(self.root, "Edit", {"file_path": str(self.root / rel), "old_string": "a", "new_string": "b"})
+            self.assertEqual(r.returncode, 2, rel)
+
+    def test_write_to_source_is_allowed_and_not_logged(self) -> None:
+        r = hook(self.root, "Write", {"file_path": str(self.root / "src" / "app.py"), "content": "x"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.denials(), [])
+
+    def test_bash_shell_write_into_tests_is_blocked(self) -> None:
+        r = hook(self.root, "Bash", {"command": "echo 'def test_x(): pass' >> tests/test_guard.py"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_read_of_tests_is_allowed(self) -> None:
+        r = hook(self.root, "Bash", {"command": "pytest -q tests/"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_bash_sed_i_on_frozen_json_is_blocked(self) -> None:
+        r = hook(self.root, "Bash", {"command": "sed -i 's/hash/x/' .boil/checks/frozen.json"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_human_evidence_written_by_the_worker_is_blocked(self) -> None:
+        goal = str(self.root / ".boil" / "goal.md")
+        r = hook(self.root, "Edit", {"file_path": goal, "old_string": "- [ ] an untagged manual box",
+                                     "new_string": "- [x] an untagged manual box — EVIDENCE: looked | 2026-08-29 | human"})
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("operator", r.stderr)
+        r = hook(self.root, "Bash", {"command": f"echo '- [x] ok — EVIDENCE: x | 2026-08-29 | human' >> {goal}"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_auto_evidence_on_goal_is_allowed(self) -> None:
+        goal = str(self.root / ".boil" / "goal.md")
+        r = hook(self.root, "Edit", {"file_path": goal, "old_string": "- [ ] an untagged manual box",
+                                     "new_string": "- [x] an untagged manual box — EVIDENCE: `make t` -> ok | 2026-08-29 | auto"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_multiedit_is_checked_per_edit(self) -> None:
+        goal = str(self.root / ".boil" / "goal.md")
+        r = hook(self.root, "MultiEdit", {"file_path": goal, "edits": [
+            {"old_string": "a", "new_string": "b"},
+            {"old_string": "c", "new_string": "EVIDENCE: y | 2026-08-29 | human"}]})
+        self.assertEqual(r.returncode, 2)
+
+    def test_other_tools_are_allowed(self) -> None:
+        r = hook(self.root, "Read", {"file_path": str(self.root / "tests" / "test_guard.py")})
+        self.assertEqual(r.returncode, 0)
+
+    def test_malformed_payload_fails_closed(self) -> None:
+        r = run(GUARD, "--root", str(self.root), stdin="not json")
+        self.assertEqual(r.returncode, 2)
+        r = run(GUARD, "--root", str(self.root), stdin="[1, 2]")
+        self.assertEqual(r.returncode, 2)
+
+    def test_works_without_frozen_json(self) -> None:
+        (self.root / ".boil" / "checks" / "frozen.json").unlink()
+        r = hook(self.root, "Write", {"file_path": str(self.root / "tests" / "t.py"), "content": "x"})
+        self.assertEqual(r.returncode, 2)
+        r = hook(self.root, "Write", {"file_path": str(self.root / "src" / "a.py"), "content": "x"})
+        self.assertEqual(r.returncode, 0)
+
+    def test_settings_json_wires_the_hook(self) -> None:
+        r = run(GUARD, "--root", str(self.root), "--settings-json")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s = json.loads(r.stdout)
+        entry = s["hooks"]["PreToolUse"][0]
+        self.assertEqual(entry["matcher"], "Write|Edit|MultiEdit|Bash")
+        cmd = entry["hooks"][0]["command"]
+        self.assertIn("boil-guard.py", cmd)
+        self.assertIn(str(self.root), cmd)
+
+
 if __name__ == "__main__":
     unittest.main()
