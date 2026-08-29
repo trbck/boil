@@ -10,6 +10,7 @@ attempting the milestone — and decides nothing. This script owns the rest:
   split    add 2–4 sub-milestones under a stalled node (once per node)
   audit    scan a diff for known gaming signatures (skip markers, protected-path writes, ...)
   status   one machine-generated line: green/total, current attempt, spend
+  verify   re-run every frozen check now; --write stamps evidence on {#id}-tagged goal boxes
 
 Rules, each traceable to `_research/boil-convergence/PLAN.md`:
   * validate before freeze — a check that passes on the current state is not
@@ -24,6 +25,7 @@ Rules, each traceable to `_research/boil-convergence/PLAN.md`:
 Exit codes (the driver obeys them and never reasons about them):
   0 PASS   10 RETRY   20 STALL   30 CAP   40 BUDGET   50 TAMPER
   60 NOT-FALSIFIABLE (compile)   1 audit finding   2 usage
+  verify: 0 MET  1 GAP  50 TAMPER
 """
 from __future__ import annotations
 
@@ -49,6 +51,13 @@ AUDIT_SIGNATURES = [
     (re.compile(r"^\+.*(git log|git show|reference[_ ]solution|gold[_ ]patch)"), "git-history / reference access"),
     (re.compile(r"^\+.*(_always_pass|return True  *#.*pass|sys\.exit\(0\)  *#)"), "evaluator stub"),
 ]
+
+# A goal checkbox binds to a milestone by ending with {#<milestone id>}:
+#   - [ ] latest run clears the Sharpe floor {#sharpe_floor}
+# `verify --write` stamps evidence only on tagged boxes. Untagged boxes keep manual evidence.
+CHECKBOX_TAG = re.compile(r"\{#([A-Za-z0-9_.-]+)\}\s*$")
+CHECKBOX_LINE = re.compile(r"^(\s*-\s*)\[( |x|X)\]")
+OLD_EVIDENCE = re.compile(r"\s*[—-]*\s*EVIDENCE:.*$")
 
 
 def now() -> str:
@@ -431,6 +440,84 @@ def cmd_status(a: argparse.Namespace) -> int:
     return 0
 
 
+# ----------------------------------------------------------------- verify
+def verify_all(root: Path, frozen: dict) -> list[dict]:
+    """Re-run every frozen check NOW. No attempt record, no cap, no budget — this is the
+    operator's (and the doctor's) re-measurement, not an implementer attempt. A green
+    checkbox is re-measured, never remembered."""
+    results = []
+    for m in frozen["milestones"]:
+        rec = {"milestone": m["id"], "must_have": bool(m.get("must_have", True)),
+               "check": m["check"], "counterexample": ""}
+        if harness_hash(root, m) != m["hash"]:
+            rec["result"] = "TAMPER"
+        else:
+            rc, out = run_cmd(root, m["check"], int(m.get("timeout", DEFAULT_TIMEOUT)))
+            rec["result"] = "PASS" if rc == 0 else "FAIL"
+            if rc != 0:
+                rec["counterexample"] = counterexample(out)
+        results.append(rec)
+    return results
+
+
+def verify_verdict(results: list[dict]) -> tuple[str, int, int]:
+    """(verdict, green, total) over must_have milestones. TAMPER outranks everything."""
+    must = [r for r in results if r["must_have"]]
+    green = sum(1 for r in must if r["result"] == "PASS")
+    if any(r["result"] == "TAMPER" for r in results):
+        return "TAMPER", green, len(must)
+    if any(r["result"] != "PASS" for r in must):
+        return "GAP", green, len(must)
+    return "MET", green, len(must)
+
+
+def stamp_evidence(goal: Path, results: list[dict], date: str) -> int:
+    """Tick + stamp an auto EVIDENCE line on each {#id}-tagged box whose check PASSed.
+    Never un-ticks, never touches an untagged box, never touches a `| human` line.
+    Returns the number of lines changed."""
+    if not goal.is_file():
+        return 0
+    passed = {r["milestone"]: r for r in results if r["result"] == "PASS"}
+    lines = goal.read_text(encoding="utf-8").splitlines()
+    changed = 0
+    for i, ln in enumerate(lines):
+        tag = CHECKBOX_TAG.search(ln)
+        if not tag or not CHECKBOX_LINE.match(ln) or re.search(r"\|\s*human\b", ln):
+            continue
+        mid = tag.group(1)
+        if mid not in passed:
+            continue
+        body = OLD_EVIDENCE.sub("", ln[:tag.start()]).rstrip()
+        body = CHECKBOX_LINE.sub(lambda mo: f"{mo.group(1)}[x]", body, count=1)
+        new = f"{body} — EVIDENCE: `{passed[mid]['check']}` -> exit 0 | {date} | auto {{#{mid}}}"
+        if new != ln:
+            lines[i] = new
+            changed += 1
+    if changed:
+        goal.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return changed
+
+
+def cmd_verify(a: argparse.Namespace) -> int:
+    root = Path(a.root).resolve()
+    frozen = load_frozen(root)
+    results = verify_all(root, frozen)
+    verdict, green, total = verify_verdict(results)
+    stamped = 0
+    if a.write:
+        stamped = stamp_evidence(root / ".boil" / "goal.md", results, now()[:10])
+    if a.json:
+        print(json.dumps({"results": results, "green": green, "total": total,
+                          "verdict": verdict, "stamped": stamped}))
+    else:
+        for r in results:
+            extra = f"  {r['counterexample']}" if r["counterexample"] else ""
+            print(f"{r['result']:6s} {r['milestone']}{extra}")
+        print(f"{verdict}: {green}/{total} must-have milestones green"
+              + (f" | {stamped} box(es) stamped" if a.write else ""))
+    return {"MET": 0, "GAP": 1, "TAMPER": 50}[verdict]
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -461,6 +548,11 @@ def main(argv: list[str]) -> int:
     t = sub.add_parser("status", help="one machine-generated status line")
     t.add_argument("--root", default=".")
     t.set_defaults(fn=cmd_status)
+    v = sub.add_parser("verify", help="re-run EVERY frozen check now (no attempt recorded); --write stamps evidence")
+    v.add_argument("--root", default=".")
+    v.add_argument("--json", action="store_true")
+    v.add_argument("--write", action="store_true", help="tick + stamp EVIDENCE on {#id}-tagged goal boxes that pass")
+    v.set_defaults(fn=cmd_verify)
     a = p.parse_args(argv)
     return a.fn(a)
 

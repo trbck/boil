@@ -95,5 +95,120 @@ class AssertDbTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout)
 
 
+class RulerWorkspace:
+    """A throwaway project with a frozen milestone set. M_PASS passes, M_FAIL fails."""
+
+    def __init__(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / ".boil").mkdir()
+        (self.root / "tests").mkdir()
+        (self.root / "tests" / "test_guard.py").write_text("def test_ok():\n    assert True\n")
+        (self.root / "src").mkdir()
+        self.goal = self.root / ".boil" / "goal.md"
+        self.goal.write_text(
+            "# Goal\n\n**One-line:** fixture\n\n## Success checklist\n"
+            "- [ ] the marker file exists {#M_PASS}\n"
+            "- [ ] the second marker exists {#M_FAIL}\n"
+            "- [ ] an untagged manual box\n"
+            f"- [x] operator approved — EVIDENCE: reviewed | {TODAY} | human\n"
+            "\n## Requirements understanding\n\n| Requirement | Interpretation | Acceptance signal | Confidence | Open uncertainty |\n|---|---|---|---|---|\n| a | b | c | 99 | none |\n"
+            "\n## How the user will see this works\nrun verify\n")
+        spec = {"budget_usd": 0, "cap": 4, "stall": 2, "determinism_runs": 1, "milestones": [
+            {"id": "M_PASS", "title": "marker", "check": "test -f out.txt", "kind": "artifact",
+             "protect": ["tests/test_guard.py"]},
+            {"id": "M_FAIL", "title": "second marker", "check": "test -f never.txt", "kind": "artifact"},
+        ]}
+        (self.root / ".boil" / "milestones.json").write_text(json.dumps(spec))
+        r = run(CHECK, "compile", "--root", str(self.root), "--spec",
+                str(self.root / ".boil" / "milestones.json"))
+        assert r.returncode == 0, r.stdout + r.stderr
+
+    def make_pass(self) -> None:
+        (self.root / "out.txt").write_text("x")
+
+    def verify(self, *extra: str) -> subprocess.CompletedProcess[str]:
+        return run(CHECK, "verify", "--root", str(self.root), *extra)
+
+    def close(self) -> None:
+        self.tmp.cleanup()
+
+
+class VerifyTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ws = RulerWorkspace()
+
+    def tearDown(self) -> None:
+        self.ws.close()
+
+    def test_all_red_reports_gap_with_exit_1(self) -> None:
+        r = self.ws.verify("--json")
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        out = json.loads(r.stdout)
+        self.assertEqual(out["verdict"], "GAP")
+        self.assertEqual((out["green"], out["total"]), (0, 2))
+        by = {x["milestone"]: x for x in out["results"]}
+        self.assertEqual(by["M_PASS"]["result"], "FAIL")
+        self.assertTrue(by["M_PASS"]["counterexample"])
+
+    def test_partial_green_is_still_gap(self) -> None:
+        self.ws.make_pass()
+        r = self.ws.verify("--json")
+        self.assertEqual(r.returncode, 1)
+        out = json.loads(r.stdout)
+        self.assertEqual((out["green"], out["total"]), (1, 2))
+
+    def test_verify_records_no_attempt(self) -> None:
+        self.ws.verify()
+        self.assertFalse((self.ws.root / ".boil" / "checks" / "attempts.jsonl").exists())
+
+    def test_tamper_is_exit_50(self) -> None:
+        (self.ws.root / "tests" / "test_guard.py").write_text("def test_ok():\n    assert 1\n")
+        r = self.ws.verify("--json")
+        self.assertEqual(r.returncode, 50, r.stdout)
+        self.assertEqual(json.loads(r.stdout)["verdict"], "TAMPER")
+
+    def test_write_stamps_evidence_only_on_passing_tagged_boxes(self) -> None:
+        self.ws.make_pass()
+        r = self.ws.verify("--write")
+        self.assertEqual(r.returncode, 1, r.stdout)
+        lines = self.ws.goal.read_text().splitlines()
+        passed = next(ln for ln in lines if "{#M_PASS}" in ln)
+        failed = next(ln for ln in lines if "{#M_FAIL}" in ln)
+        manual = next(ln for ln in lines if "untagged manual" in ln)
+        human = next(ln for ln in lines if "| human" in ln)
+        self.assertTrue(passed.startswith("- [x]"), passed)
+        self.assertIn("EVIDENCE: `test -f out.txt` -> exit 0 |", passed)
+        self.assertIn("| auto {#M_PASS}", passed)
+        self.assertTrue(failed.startswith("- [ ]"), failed)
+        self.assertNotIn("EVIDENCE", failed)
+        self.assertTrue(manual.startswith("- [ ]"))
+        self.assertEqual(human, f"- [x] operator approved — EVIDENCE: reviewed | {TODAY} | human")
+
+    def test_write_is_idempotent_and_refreshes_the_date(self) -> None:
+        self.ws.make_pass()
+        self.ws.verify("--write")
+        first = self.ws.goal.read_text()
+        self.ws.verify("--write")
+        self.assertEqual(first, self.ws.goal.read_text())
+        self.assertEqual(first.count("EVIDENCE: `test -f out.txt`"), 1)
+
+    def test_write_never_unticks(self) -> None:
+        self.ws.make_pass()
+        self.ws.verify("--write")
+        (self.ws.root / "out.txt").unlink()
+        r = self.ws.verify("--write", "--json")
+        self.assertEqual(json.loads(r.stdout)["green"], 0)
+        passed = next(ln for ln in self.ws.goal.read_text().splitlines() if "{#M_PASS}" in ln)
+        self.assertTrue(passed.startswith("- [x]"), "verify --write must never un-tick a box")
+
+    def test_all_green_is_met_exit_0(self) -> None:
+        self.ws.make_pass()
+        (self.ws.root / "never.txt").write_text("x")
+        r = self.ws.verify("--json")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        self.assertEqual(json.loads(r.stdout)["verdict"], "MET")
+
+
 if __name__ == "__main__":
     unittest.main()
