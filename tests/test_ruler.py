@@ -438,5 +438,27 @@ class NowMeasuredTest(unittest.TestCase):
         self.assertNotIn("**Measured:**", r.stdout)
 
 
+class LintBindingTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.ws = RulerWorkspace()
+
+    def tearDown(self) -> None:
+        self.ws.close()
+
+    def test_unbound_tag_and_unbound_milestone_are_warned(self) -> None:
+        text = self.ws.goal.read_text().replace("{#M_FAIL}", "{#M_TYPO}")
+        self.ws.goal.write_text(text)
+        r = run(LINT, "--root", str(self.ws.root), "--json")
+        codes = [i["code"] for i in json.loads(r.stdout)["issues"]]
+        self.assertIn("goal-tag-unfrozen", codes)
+        self.assertIn("goal-milestone-unbound", codes)
+
+    def test_bound_goal_has_no_binding_warnings(self) -> None:
+        r = run(LINT, "--root", str(self.ws.root), "--json")
+        codes = [i["code"] for i in json.loads(r.stdout)["issues"]]
+        self.assertNotIn("goal-tag-unfrozen", codes)
+        self.assertNotIn("goal-milestone-unbound", codes)
+
+
 if __name__ == "__main__":
     unittest.main()
