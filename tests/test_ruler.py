@@ -262,7 +262,7 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
 
     def test_bash_read_of_tests_is_allowed(self) -> None:
-        r = hook(self.root, "Bash", {"command": "pytest -q tests/"})
+        r = hook(self.root, "Bash", {"command": "cat tests/test_guard.py"})
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_bash_sed_i_on_frozen_json_is_blocked(self) -> None:
@@ -323,12 +323,13 @@ class GuardTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
 
     def test_bash_confirm_results_is_not_treated_as_an_rm_write(self) -> None:
-        r = hook(self.root, "Bash", {"command": "pytest tests/ && echo confirm results"})
+        r = hook(self.root, "Bash", {"command": "ls tests/ && echo confirm results"})
         self.assertEqual(r.returncode, 0, r.stderr)
 
-    def test_bash_module_pytest_invocation_is_allowed(self) -> None:
+    def test_bash_module_pytest_invocation_on_the_sensor_is_blocked(self) -> None:
+        # W2 (2026-08-30): the worker reads the ruler, never runs it — see GuardExecutionTest
         r = hook(self.root, "Bash", {"command": "python3 -m pytest tests/"})
-        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.returncode, 2, r.stderr)
 
     def test_edit_through_a_symlink_alias_is_blocked(self) -> None:
         (self.root / "tests" / "secret.py").write_text("x = 1\n")
@@ -362,9 +363,9 @@ class GuardTest(unittest.TestCase):
         r = hook(self.root, "Bash", {"command": f"echo pwned >> {self.root / 'src' / 'alias.py'}"})
         self.assertEqual(r.returncode, 2)
 
-    def test_bash_plain_pytest_tests_dir_is_allowed(self) -> None:
+    def test_bash_plain_pytest_tests_dir_is_blocked(self) -> None:
         r = hook(self.root, "Bash", {"command": "pytest tests/"})
-        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.returncode, 2, r.stderr)
 
     def test_bash_path_qualified_rm_is_blocked(self) -> None:
         r = hook(self.root, "Bash", {"command": "/bin/rm tests/secret.py"})
@@ -377,9 +378,9 @@ class GuardTest(unittest.TestCase):
 
     # --- C1: redirect parsing — a read-only command that merely contains ">" is not a write
     def test_bash_read_only_commands_with_redirections_are_allowed(self) -> None:
-        for cmd in ("pytest -q tests/ 2>&1 | tail -20",
-                    "python3 -m unittest discover -s tests 2>&1 | tail -3",
-                    "pytest tests/ > /dev/null",
+        for cmd in ("cat tests/test_guard.py 2>&1 | tail -20",
+                    "grep -rn assert tests/ 2>&1 | tail -3",
+                    "ls -la tests/ > /dev/null",
                     "ls tests/ 2>/dev/null",
                     "cat .boil/checks/frozen.json 2>&1",
                     "grep -n -- '->' tests/test_guard.py",
@@ -452,8 +453,8 @@ class GuardTest(unittest.TestCase):
         for cmd in ('echo ">" tests/x.py',
                     "echo 'a > tests/x.py'",
                     "grep -n -- '->' tests/test_guard.py",
-                    "pytest tests/ 2>&1 | tail -3",
-                    "pytest tests/ > /dev/null",
+                    "cat tests/test_guard.py 2>&1 | tail -3",
+                    "ls tests/ > /dev/null",
                     "awk '$1>2' f"):
             r = hook(self.root, "Bash", {"command": cmd})
             self.assertEqual(r.returncode, 0, f"{cmd!r} was blocked: {r.stderr}")
@@ -602,3 +603,33 @@ class LintBindingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GuardExecutionTest(unittest.TestCase):
+    """W2: the implementer may READ the ruler but may not RUN it. A hidden oracle was gamed
+    the moment the agent could invoke it; the controller runs the check once, after done."""
+
+    def setUp(self) -> None:
+        self.ws = RulerWorkspace()
+        self.root = self.ws.root
+
+    def tearDown(self) -> None:
+        self.ws.close()
+
+    def test_running_the_frozen_check_verbatim_is_blocked(self) -> None:
+        r = hook(self.root, "Bash", {"command": "test -f out.txt"})
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("run", r.stderr.lower())
+
+    def test_test_runners_on_protected_paths_or_bare_are_blocked(self) -> None:
+        for cmd in ("pytest", "pytest -q tests/test_guard.py", "python3 -m pytest tests", "python -m unittest",
+                    "PYTHONPATH=. python3 tests/test_guard.py", "cd tests && python3 test_guard.py",
+                    "npm test", "cargo test", "uv run --with pytest pytest tests/"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 2, f"{cmd!r} was allowed")
+
+    def test_reading_the_ruler_and_running_own_code_stay_allowed(self) -> None:
+        for cmd in ("cat tests/test_guard.py", "git diff -- tests/", "python3 src/app.py",
+                    "python3 -c 'print(1)'", "pytest scratch/test_mine.py", "ls tests"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 0, f"{cmd!r} was blocked: {r.stderr}")

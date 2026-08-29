@@ -172,7 +172,7 @@ def run_project(project: Path, implementer: str, model: str | None, keep: bool) 
         return result
 
     for _ in range(MAX_ITERATIONS):
-        pr = check("prepare")
+        pr = check("prepare", *([] if implementer == "llm" else ["--allow-unguarded"]))
         if pr.returncode != 0:
             result["events"].append(["prepare", pr.returncode])
             break

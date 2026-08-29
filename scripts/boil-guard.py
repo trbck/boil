@@ -281,7 +281,60 @@ def _rel(p: Path, root: Path) -> str:
     return str(p.relative_to(root)) if _under(p, root) else str(p)
 
 
+TEST_RUNNERS = re.compile(
+    r"(^|[\s;&|(])(pytest|py\.test|unittest|jest|vitest|mocha|(npm|pnpm|yarn)\s+(run\s+)?test|"
+    r"cargo\s+test|go\s+test|make\s+(test|check)|python3?\s+-m\s+(pytest|unittest))\b")
+SCRIPT_RUNNERS = re.compile(r"(^|[\s;&|(])(python3?|bash|sh|node|ruby|perl)\s+")
+
+
+def frozen_checks(root: Path) -> list[str]:
+    frozen = root / ".boil" / "checks" / "frozen.json"
+    if not frozen.is_file():
+        return []
+    try:
+        return [" ".join(str(m.get("check", "")).split())
+                for m in json.loads(frozen.read_text(encoding="utf-8")).get("milestones", []) if m.get("check")]
+    except (json.JSONDecodeError, AttributeError):
+        return []
+
+
+def runs_the_ruler(cmd: str, root: Path, prots: list[Path]) -> str:
+    """Why this command would RUN the ruler, or ''. Reading it is fine; the controller runs the
+    check once, after the implementer declares done — an implementer that can invoke the
+    oracle optimises against it instead of against the milestone."""
+    flat = " ".join(cmd.split())
+    for check in frozen_checks(root):
+        if check and check in flat:
+            return "it is the frozen check itself"
+    # any path token under a protected sensor, resolved the way writes are
+    on_sensor = []
+    for tok in bash_path_tokens(cmd):
+        t_real = _resolve_bash_token(tok, root)
+        if t_real is None:
+            continue
+        if any(_same_or_under(t_real, p_) for p_ in prots):
+            on_sensor.append(tok)
+    if TEST_RUNNERS.search(flat):
+        if on_sensor:
+            return f"it runs a test runner on protected sensor path `{on_sensor[0]}`"
+        if not any(_resolve_bash_token(t, root) is not None for t in bash_path_tokens(cmd)):
+            return "a bare test runner runs the protected test tree"
+    if on_sensor and SCRIPT_RUNNERS.search(flat):
+        return f"it executes `{on_sensor[0]}`, which is under a protected sensor path"
+    # `cd tests && python3 x.py`: the working directory becomes the sensor
+    for m in re.finditer(r"(?:^|[\s;&|(])cd\s+([A-Za-z0-9_./~-]+)", flat):
+        target = (root / m.group(1)).resolve() if not m.group(1).startswith("/") else Path(m.group(1)).resolve()
+        if any(_same_or_under(target, p_) for p_ in prots) and (SCRIPT_RUNNERS.search(flat) or TEST_RUNNERS.search(flat)):
+            return f"it changes into protected sensor path `{m.group(1)}` and runs something there"
+    return ""
+
+
 def decide_bash(cmd: str, root: Path, prots: list[Path]) -> tuple[int, str]:
+    why = runs_the_ruler(cmd, root, prots)
+    if why:
+        return 2, (f"boil guard: refusing to run the ruler — {why}. You may read the tests; you may "
+                   "not run the check. The controller runs it once when you declare done and returns "
+                   "one counterexample line. Build against the packet's milestone statement.")
     verb = has_verb_write(cmd)
     redirs = redirect_targets(cmd)
     if not verb and not redirs:

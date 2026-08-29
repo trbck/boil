@@ -46,10 +46,16 @@ ls *.txt
 
 
 class Project:
-    def __init__(self, goal: str = GOAL, milestones: list[dict] | None = None, git: bool = True) -> None:
+    def __init__(self, goal: str = GOAL, milestones: list[dict] | None = None, git: bool = True,
+                 wire_guard: bool = True) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         (self.root / ".boil").mkdir()
+        if wire_guard:
+            (self.root / ".claude").mkdir()
+            (self.root / ".claude" / "settings.json").write_text(json.dumps({"hooks": {"PreToolUse": [
+                {"matcher": "Write|Edit|MultiEdit|Bash",
+                 "hooks": [{"type": "command", "command": f"python3 {ROOT / 'scripts' / 'boil-guard.py'} --root {self.root}"}]}]}}))
         (self.root / "tests").mkdir()
         (self.root / "tests" / "test_guard.py").write_text("def test_ok():\n    assert True\n")
         (self.root / "src").mkdir()
@@ -292,5 +298,53 @@ class CompileIsAtomicTest(unittest.TestCase):
             self.assertEqual(r.returncode, 60, r.stdout + r.stderr)
             self.assertEqual((p.root / ".boil" / "checks" / "frozen.json").read_text(), before)
             self.assertIn("nothing frozen", r.stdout)
+        finally:
+            p.close()
+
+
+class PrepareGuardTest(unittest.TestCase):
+    """W2: no packet without the guard. The packet's 'you cannot run the check' was prose;
+    prepare makes it a precondition."""
+
+    def test_prepare_refuses_without_a_wired_guard(self) -> None:
+        p = Project(wire_guard=False)
+        try:
+            self.assertEqual(p.compile().returncode, 0)
+            r = p.check("prepare")
+            self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+            self.assertIn("--wire-guard", r.stdout + r.stderr)
+            self.assertFalse((p.root / ".boil" / "dispatch").exists())
+        finally:
+            p.close()
+
+    def test_wire_guard_merges_the_hook_and_prepare_proceeds(self) -> None:
+        p = Project(wire_guard=False)
+        try:
+            (p.root / ".claude").mkdir()
+            (p.root / ".claude" / "settings.json").write_text(json.dumps(
+                {"permissions": {"allow": ["Bash(ls)"]}, "hooks": {"PreToolUse": [
+                    {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo other"}]}]}}))
+            self.assertEqual(p.compile().returncode, 0)
+            r = p.check("prepare", "--wire-guard")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertEqual(json.loads(r.stdout.strip().splitlines()[-1])["guard"], "wired")
+            settings = json.loads((p.root / ".claude" / "settings.json").read_text())
+            self.assertEqual(settings["permissions"], {"allow": ["Bash(ls)"]})              # untouched
+            cmds = [h["command"] for e in settings["hooks"]["PreToolUse"] for h in e["hooks"]]
+            self.assertIn("echo other", cmds)
+            self.assertTrue(any("boil-guard.py" in c for c in cmds))
+            self.assertEqual(p.check("prepare", "--wire-guard").returncode, 0)             # idempotent
+            settings2 = json.loads((p.root / ".claude" / "settings.json").read_text())
+            self.assertEqual(settings, settings2)
+        finally:
+            p.close()
+
+    def test_allow_unguarded_is_an_explicit_choice_that_is_warned(self) -> None:
+        p = Project(wire_guard=False)
+        try:
+            self.assertEqual(p.compile().returncode, 0)
+            r = p.check("prepare", "--allow-unguarded")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertIn("prose only", r.stderr)
         finally:
             p.close()

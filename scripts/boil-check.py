@@ -37,6 +37,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -601,6 +602,27 @@ def guard_wired(root: Path) -> bool:
     return False
 
 
+def wire_guard(root: Path) -> None:
+    """Merge the guard's PreToolUse hook into the project's .claude/settings.json. Other keys
+    and other hooks are kept; a second call is a no-op."""
+    guard = Path(__file__).resolve().parent / "boil-guard.py"
+    entry = {"matcher": "Write|Edit|MultiEdit|Bash",
+             "hooks": [{"type": "command", "command": f"python3 {shlex.quote(str(guard))} --root {shlex.quote(str(root))}"}]}
+    p = root / ".claude" / "settings.json"
+    settings = {}
+    if p.is_file():
+        try:
+            settings = json.loads(p.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            settings = {}
+    hooks = settings.setdefault("hooks", {})
+    pre = hooks.setdefault("PreToolUse", [])
+    if not any("boil-guard" in str(h.get("command", "")) for e in pre for h in e.get("hooks", [])):
+        pre.append(entry)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+
+
 def diff_since(root: Path, head: str | None) -> str:
     """The attempt's diff: tracked changes since `head` plus every untracked file as added
     lines, in unified-diff shape so the auditor sees `+++ b/<path>` headers."""
@@ -634,6 +656,16 @@ def cmd_prepare(a: argparse.Namespace) -> int:
     if a.dry_run:
         print(json.dumps(out))
         return 0
+    if a.wire_guard and out["guard"] == "missing":
+        wire_guard(root)
+        out["guard"] = "wired" if guard_wired(root) else "missing"
+        print(f"wired boil-guard.py into {root / '.claude' / 'settings.json'} (PreToolUse; restart the "
+              "implementer session to load it)", file=sys.stderr)
+    if out["guard"] == "missing" and not a.allow_unguarded:
+        print(f"no packet: boil-guard.py is not wired in {root}/.claude/settings.json, so the implementer "
+              "would be held off the ruler by prose only. Run `prepare --wire-guard` (merges the PreToolUse "
+              "hook, keeps other settings), or `--allow-unguarded` to proceed anyway.")
+        return 2
     packet = Path(__file__).resolve().parent / "boil-dispatch-packet.py"
     r = subprocess.run([sys.executable, str(packet), "--root", str(root), "--milestone", m["id"]],
                        text=True, capture_output=True)
@@ -836,6 +868,10 @@ def main(argv: list[str]) -> int:
     pr = sub.add_parser("prepare", help="one iteration, step 1: next milestone -> packet -> guard check")
     pr.add_argument("--root", default=".")
     pr.add_argument("--dry-run", action="store_true", help="print the decision, write nothing")
+    pr.add_argument("--wire-guard", action="store_true",
+                    help="merge boil-guard.py's PreToolUse hook into <root>/.claude/settings.json first")
+    pr.add_argument("--allow-unguarded", action="store_true",
+                    help="hand out a packet even though the guard is not wired (warned; for scripted implementers)")
     pr.set_defaults(fn=cmd_prepare)
     sc = sub.add_parser("score", help="one iteration, step 2: audit -> run -> tick the box -> review -> tick -> status")
     sc.add_argument("--root", default=".")
