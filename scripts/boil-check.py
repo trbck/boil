@@ -81,15 +81,28 @@ def save_frozen(root: Path, frozen: dict) -> None:
     (state_dir(root) / "frozen.json").write_text(json.dumps(frozen, indent=1) + "\n", encoding="utf-8")
 
 
+IGNORED_DIRS = {"__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".hypothesis",
+                "node_modules", ".git", ".tox", ".venv", "dist", "build"}
+IGNORED_SUFFIXES = (".pyc", ".pyo", ".log", ".tmp")
+
+
+def _is_artifact(rel: Path) -> bool:
+    return any(part in IGNORED_DIRS for part in rel.parts) or rel.suffix in IGNORED_SUFFIXES
+
+
 def harness_hash(root: Path, m: dict) -> str:
-    """Hash the check command plus every protected file, as one artifact.
-    Tampering only succeeds when scorer and tests are edited together — so both are frozen."""
+    """Hash the check command plus every protected source file, as one artifact.
+    Tampering only succeeds when scorer and tests are edited together — so both are frozen.
+    Build caches the check itself writes (__pycache__, .pytest_cache, *.pyc) are not the ruler."""
     parts = [m["check"].encode()]
     for rel in m.get("protect", []):
         p = root / rel
         files = sorted(x for x in p.rglob("*") if x.is_file()) if p.is_dir() else [p]
         for f in files:
-            parts.append(str(f.relative_to(root)).encode())
+            frel = f.relative_to(root) if f.is_absolute() else Path(rel)
+            if _is_artifact(frel):
+                continue
+            parts.append(str(frel).encode())
             parts.append(f.read_bytes() if f.is_file() else b"<missing>")
     return sha(*parts)
 
@@ -196,6 +209,13 @@ def cmd_compile(a: argparse.Namespace) -> int:
     root = Path(a.root).resolve()
     spec = json.loads(Path(a.spec).read_text(encoding="utf-8"))
     runs = int(spec.get("determinism_runs", a.determinism_runs))
+    prev_path = state_dir(root) / "frozen.json"
+    prev = {}
+    if prev_path.is_file():
+        try:
+            prev = {m["id"]: m["hash"] for m in json.loads(prev_path.read_text(encoding="utf-8")).get("milestones", [])}
+        except (json.JSONDecodeError, KeyError):
+            prev = {}
     frozen = {"compiled_at": now(), "budget_usd": float(spec.get("budget_usd", 0) or 0),
               "cap": int(spec.get("cap", DEFAULT_CAP)), "stall": int(spec.get("stall", DEFAULT_STALL)),
               "determinism_runs": runs, "milestones": []}
@@ -209,6 +229,14 @@ def cmd_compile(a: argparse.Namespace) -> int:
             continue
         frozen["milestones"].append(fm)
         print(f"FROZEN {m['id']} hash={fm['hash']} baseline={fm['baseline']}")
+    # A re-authored check is a new ruler: attempts made against the old one do not count
+    # toward the cap or the stall, so the ledger is archived rather than carried over.
+    new = {m["id"]: m["hash"] for m in frozen["milestones"]}
+    ledger = state_dir(root) / "attempts.jsonl"
+    if prev and new != prev and ledger.is_file():
+        archived = ledger.with_name(f"attempts-{now().replace(':', '')}.jsonl")
+        ledger.rename(archived)
+        print(f"checks changed since the last freeze — attempt ledger archived to {archived.name}")
     save_frozen(root, frozen)
     print(f"{len(frozen['milestones'])} frozen, {rejected} rejected -> {state_dir(root) / 'frozen.json'}")
     return 60 if rejected else 0

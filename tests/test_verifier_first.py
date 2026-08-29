@@ -411,3 +411,40 @@ class LintTicketsOptionalTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout)
         finally:
             ws.close()
+
+
+class ProtectedPathHashTest(unittest.TestCase):
+    """Found by dogfooding: `protect: ["tests"]` hashed tests/__pycache__ written by the
+    check itself, so the next run was TAMPER. Caches and build artefacts are not the ruler."""
+
+    def test_bytecode_caches_under_a_protected_dir_do_not_trip_tamper(self) -> None:
+        ws = Workspace()
+        try:
+            (ws.root / "tests" / "conftest_free.py").write_text("x = 1\n")
+            check = "python3 -c \"import sys; sys.path.insert(0,'tests'); import conftest_free; raise SystemExit(1)\""
+            ws.spec([{"id": "M1", "title": "imports a protected module", "check": check, "protect": ["tests"]}])
+            self.assertEqual(ws.compile().returncode, 0)
+            (ws.root / "tests" / "__pycache__").mkdir(exist_ok=True)
+            (ws.root / "tests" / "__pycache__" / "junk.cpython-311.pyc").write_bytes(b"\x00cache")
+            (ws.root / ".pytest_cache").mkdir(exist_ok=True)
+            r = run("run", "--root", str(ws.root), "--milestone", "M1")
+            self.assertEqual(r.returncode, 10, r.stdout + r.stderr)  # a real failure, not TAMPER
+        finally:
+            ws.close()
+
+
+class RecompileArchivesAttemptsTest(unittest.TestCase):
+    def test_recompiling_a_changed_check_archives_its_old_attempts(self) -> None:
+        ws = Workspace()
+        try:
+            ws.spec([FAILING])
+            self.assertEqual(ws.compile().returncode, 0)
+            run("run", "--root", str(ws.root), "--milestone", "M1")
+            self.assertEqual(len(ws.attempts()), 1)
+            ws.spec([dict(FAILING, check="test -f out2.txt")])  # re-authored check
+            self.assertEqual(ws.compile().returncode, 0)
+            self.assertEqual(ws.attempts(), [])  # ledger starts clean for the new ruler
+            archived = list((ws.root / ".boil" / "checks").glob("attempts-*.jsonl"))
+            self.assertEqual(len(archived), 1)
+        finally:
+            ws.close()
