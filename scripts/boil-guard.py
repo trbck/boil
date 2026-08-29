@@ -42,9 +42,10 @@ WRITE_OP_WORDS = ("tee", "sed -i", "truncate", "dd", "cp", "mv", "rm", "rsync",
                   "install", "patch", "ln -s",
                   "python -c", "python3 -c", "perl -e", "ruby -e", "node -e")
 _WRITE_OP_WORD_RE = re.compile("|".join(
-    rf"(?<![A-Za-z0-9_./-]){re.escape(op)}(?![A-Za-z0-9_-])" for op in WRITE_OP_WORDS))
+    rf"(?<![A-Za-z0-9_.-]){re.escape(op)}(?![A-Za-z0-9_-])" for op in WRITE_OP_WORDS))
 # open('path', 'w'/'a'/'w+'/... ) — a bare inline write even without a recognized interpreter flag.
 _OPEN_WRITE_RE = re.compile(r"""open\(\s*['"][^'"]*['"]\s*,\s*['"][wa]""")
+_PATH_TOKEN_RE = re.compile(r"[A-Za-z0-9_./~-]+")
 
 
 def protected_paths(root: Path) -> list[Path]:
@@ -99,6 +100,28 @@ def mentioned(cmd: str, prot: Path, root: Path) -> bool:
     return False
 
 
+def _resolve_bash_token(tok: str, root: Path) -> Path | None:
+    """Best-effort realpath of a path-like Bash token, following symlinks — so an alias
+    like src/alias.py -> ../tests/secret.py resolves onto the file it really points at,
+    not the unprotected-looking name it was written through."""
+    if not tok or tok in (".", ".."):
+        return None
+    try:
+        if tok.startswith("~"):
+            return Path(os.path.expanduser(tok)).resolve()
+        p = Path(tok)
+        return p.resolve() if p.is_absolute() else (root / p).resolve()
+    except OSError:
+        return None
+
+
+def bash_path_tokens(cmd: str) -> list[str]:
+    """Path-shaped words in a shell command: anything with a slash, or a dotted
+    suffix like .py — not bare flags or plain words such as `pwned` or `-p1`."""
+    return [t for t in _PATH_TOKEN_RE.findall(cmd)
+            if "/" in t or re.search(r"\.[A-Za-z0-9]{1,8}$", t)]
+
+
 def has_write_op(cmd: str) -> bool:
     if any(op in cmd for op in WRITE_REDIRECTS):
         return True
@@ -133,6 +156,20 @@ def decide(tool: str, tinput: dict, root: Path) -> tuple[int, str]:
                 return 2, (f"boil guard: refusing a shell write that touches protected sensor "
                            f"{p.relative_to(root) if _under(p, root) else p}. The ruler is read-only; "
                            "make the real code change instead.")
+        for tok in bash_path_tokens(cmd):
+            t_real = _resolve_bash_token(tok, root)
+            if t_real is None:
+                continue
+            for p in prots:
+                try:
+                    p_real = p.resolve()
+                except OSError:
+                    continue
+                if t_real == p_real or _under(t_real, p_real):
+                    return 2, (f"boil guard: refusing a shell write that resolves onto protected "
+                               f"sensor {p.relative_to(root) if _under(p, root) else p} (via `{tok}`, "
+                               "an alias or symlink). The ruler is read-only; make the real code "
+                               "change instead.")
         return 0, ""
     if tool not in ("Write", "Edit", "MultiEdit"):
         return 0, ""

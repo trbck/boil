@@ -341,6 +341,31 @@ class GuardTest(unittest.TestCase):
         r = hook(self.root, "Bash", {"command": "patch -p1 tests/test_guard.py < fix.diff"})
         self.assertEqual(r.returncode, 2)
 
+    def test_bash_write_through_relative_symlink_alias_is_blocked(self) -> None:
+        (self.root / "tests" / "secret.py").write_text("x = 1\n")
+        (self.root / "src" / "alias.py").symlink_to(Path("..") / "tests" / "secret.py")
+        r = hook(self.root, "Bash", {"command": "echo pwned >> src/alias.py"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_write_through_absolute_symlink_alias_is_blocked(self) -> None:
+        (self.root / "tests" / "secret.py").write_text("x = 1\n")
+        (self.root / "src" / "alias.py").symlink_to(Path("..") / "tests" / "secret.py")
+        r = hook(self.root, "Bash", {"command": f"echo pwned >> {self.root / 'src' / 'alias.py'}"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_plain_pytest_tests_dir_is_allowed(self) -> None:
+        r = hook(self.root, "Bash", {"command": "pytest tests/"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_bash_path_qualified_rm_is_blocked(self) -> None:
+        r = hook(self.root, "Bash", {"command": "/bin/rm tests/secret.py"})
+        self.assertEqual(r.returncode, 2)
+
+    def test_bash_path_qualified_python_inline_write_is_blocked(self) -> None:
+        r = hook(self.root, "Bash",
+                 {"command": "/usr/bin/python3 -c \"open('tests/x.py','w').write('x')\""})
+        self.assertEqual(r.returncode, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
