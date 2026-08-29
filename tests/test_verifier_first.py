@@ -76,7 +76,7 @@ class CompileTest(unittest.TestCase):
         r = self.ws.compile()
         self.assertEqual(r.returncode, 60, r.stdout + r.stderr)
         self.assertIn("not falsifiable", r.stdout)
-        self.assertEqual(self.ws.frozen()["milestones"], [])
+        self.assertFalse((self.ws.root / ".boil" / "checks" / "frozen.json").exists())   # all or nothing
 
     def test_a_failing_check_is_frozen_with_a_hash(self) -> None:
         self.ws.spec([FAILING])
@@ -382,7 +382,7 @@ class CompileEnvironmentTest(unittest.TestCase):
             r = ws.compile()
             self.assertEqual(r.returncode, 60, r.stdout + r.stderr)
             self.assertIn("cannot run", r.stdout)
-            self.assertEqual(ws.frozen()["milestones"], [])
+            self.assertFalse((ws.root / ".boil" / "checks" / "frozen.json").exists())
         finally:
             ws.close()
 

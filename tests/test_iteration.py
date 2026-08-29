@@ -276,3 +276,21 @@ class NowNextTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CompileIsAtomicTest(unittest.TestCase):
+    """Found on the sample: a compile that rejected every milestone (new binding rule) wrote
+    an empty frozen.json, destroying the previous freeze and its carry-forward records."""
+
+    def test_a_compile_with_a_rejection_leaves_the_previous_freeze_untouched(self) -> None:
+        p = Project()
+        try:
+            self.assertEqual(p.compile().returncode, 0)
+            before = (p.root / ".boil" / "checks" / "frozen.json").read_text()
+            p.milestones.append({"id": "M9", "title": "nowhere", "check": "test -f nine.txt"})
+            r = p.compile()
+            self.assertEqual(r.returncode, 60, r.stdout + r.stderr)
+            self.assertEqual((p.root / ".boil" / "checks" / "frozen.json").read_text(), before)
+            self.assertIn("nothing frozen", r.stdout)
+        finally:
+            p.close()

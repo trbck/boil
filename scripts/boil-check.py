@@ -374,13 +374,19 @@ def cmd_compile(a: argparse.Namespace) -> int:
             ledger.write_text(("\n".join(keep) + "\n") if keep else "", encoding="utf-8")
             changed = sorted({json.loads(ln)["milestone"] for ln in drop})
             print(f"checks changed for {', '.join(changed)} — their attempts archived to {archived.name}")
+    if rejected:
+        # All or nothing: a spec with a rejected milestone is a spec to fix, and the previous
+        # freeze (with its carry-forward records) must survive the attempt to replace it.
+        print(f"{rejected} rejected — nothing frozen; fix the spec and compile again "
+              f"({len(frozen['milestones'])} would have been frozen)")
+        return 60
     save_frozen(root, frozen)
     frozen_ids = {m["id"] for m in frozen["milestones"]}
     stamped = stamp_tags(goal_path, {k: v for k, v in bound.items() if k in frozen_ids}, goal_lines)
     if stamped:
         print(f"{stamped} goal box(es) tagged {{#id}} — only the controller ticks them from now on")
-    print(f"{len(frozen['milestones'])} frozen, {rejected} rejected -> {state_dir(root) / 'frozen.json'}")
-    return 60 if rejected else 0
+    print(f"{len(frozen['milestones'])} frozen -> {state_dir(root) / 'frozen.json'}")
+    return 0
 
 
 # ------------------------------------------------------------------- next
