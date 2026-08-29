@@ -487,3 +487,24 @@ class RecompileKeepsUnchangedPassesTest(unittest.TestCase):
             self.assertEqual(nxt["milestone"], FAILING["id"])
         finally:
             ws.close()
+
+
+class RecompileCarriesFrozenRecordsTest(unittest.TestCase):
+    """Found by dogfooding: a check proven falsifiable at its first freeze was rejected
+    on a later recompile because the implementer had meanwhile made it pass. Falsifiability
+    is established once per hash; an unchanged check carries its frozen record forward."""
+
+    def test_an_unchanged_frozen_check_is_not_revalidated_after_the_milestone_lands(self):
+        ws = Workspace()
+        try:
+            ws.spec([FAILING])
+            self.assertEqual(ws.compile().returncode, 0)
+            first = ws.frozen()["milestones"][0]
+            (ws.root / "out.txt").write_text("done")
+            r = ws.compile()
+            self.assertEqual(r.returncode, 0, r.stdout)
+            self.assertEqual(ws.frozen()["milestones"][0]["hash"], first["hash"])
+            self.assertEqual(ws.frozen()["milestones"][0]["frozen_at"], first["frozen_at"])
+            self.assertIn("carried", r.stdout)
+        finally:
+            ws.close()

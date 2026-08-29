@@ -212,17 +212,29 @@ def cmd_compile(a: argparse.Namespace) -> int:
     spec = json.loads(Path(a.spec).read_text(encoding="utf-8"))
     runs = int(spec.get("determinism_runs", a.determinism_runs))
     prev_path = state_dir(root) / "frozen.json"
-    prev = {}
+    prev_records = {}
     if prev_path.is_file():
         try:
-            prev = {m["id"]: m["hash"] for m in json.loads(prev_path.read_text(encoding="utf-8")).get("milestones", [])}
+            prev_records = {m["id"]: m for m in json.loads(prev_path.read_text(encoding="utf-8")).get("milestones", [])}
         except (json.JSONDecodeError, KeyError):
-            prev = {}
+            prev_records = {}
+    prev = {mid: r["hash"] for mid, r in prev_records.items()}
     frozen = {"compiled_at": now(), "budget_usd": float(spec.get("budget_usd", 0) or 0),
               "cap": int(spec.get("cap", DEFAULT_CAP)), "stall": int(spec.get("stall", DEFAULT_STALL)),
               "determinism_runs": runs, "milestones": []}
     rejected = 0
     for m in spec["milestones"]:
+        old = prev_records.get(m["id"])
+        if old and old["hash"] == harness_hash(root, m):
+            # Falsifiability was proven once for this exact check + harness; the tree may
+            # have moved since (the milestone may have landed) but the ruler has not.
+            fm = dict(old, title=m.get("title", old.get("title")), after=list(m.get("after", [])),
+                      kind=m.get("kind", old.get("kind")), tier=m.get("tier", old.get("tier")),
+                      proxy_gap=m.get("proxy_gap", old.get("proxy_gap")),
+                      must_have=bool(m.get("must_have", old.get("must_have", True))))
+            frozen["milestones"].append(fm)
+            print(f"FROZEN {m['id']} hash={fm['hash']} baseline={fm['baseline']} (carried from {fm['frozen_at']})")
+            continue
         fm, reason = validate(root, m, runs)
         if fm is None:
             rejected += 1
