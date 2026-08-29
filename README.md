@@ -39,6 +39,11 @@ boil the /api/orders endpoint until POST returns 201 with a real order_id
 6. **Terminates honestly.** `boil-doctor.py --final` refuses to write a `FINAL.md` unless
    every checkbox is green *and* carries a fresh evidence line. An unfinished goal produces
    `HANDOFF.md` instead — X of Y done, what is left, why.
+7. **Re-measures before it believes.** A goal checkbox tagged `{#id}` is bound to a frozen check;
+   `boil-check.py verify --write` runs the check and stamps the evidence itself, `boil-doctor.py
+   --final` re-runs every check before a FINAL, and `boil-guard.py` keeps the worker off the
+   tests, the protected paths, the frozen ruler, and the human sign-off. Data counts as evidence
+   too: `boil-assert-db.py` turns a query plus an assertion into a check command.
 
 ## The controller (verifier-first, since 2026-08-29)
 

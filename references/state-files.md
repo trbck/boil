@@ -80,6 +80,17 @@ paste-ready for the ladder:
 `boil-doctor.py --final` refuses to declare the goal done unless **every** checked box
 matches that shape. An unfinished goal gets `HANDOFF.md`, never `FINAL.md`.
 
+A checkbox that a frozen milestone measures ends with `{#<milestone id>}`:
+
+````markdown
+- [ ] latest run clears the Sharpe floor {#sharpe_floor}
+````
+
+`boil-check.py verify --write` ticks tagged boxes whose check passes now and stamps the auto
+EVIDENCE line itself; it never un-ticks and never touches an untagged box or a `| human` line.
+`ticket-lint.py` warns on a tag with no frozen milestone and on a must-have milestone with no
+tag. A `| human` line expires after 30 days — `boil-doctor.py --final` refuses older ones.
+
 ---
 
 ## `.boil/proof-map.md`
@@ -368,6 +379,13 @@ outcome that differs across `determinism_runs`. The controller's ledger is
 `counterexample`, `spent_usd` — and `boil-check.py status` renders it as one line.
 A recompile carries an unchanged frozen check (same hash) forward without re-validating
 it, and archives only the attempts of checks that changed.
+
+Two more commands complete the ruler. `boil-check.py verify` re-runs **every** frozen check now
+(no attempt recorded, no cap, no budget) and reports MET / GAP / TAMPER — `boil-doctor.py --final`
+runs it, so a green box is re-measured, never remembered. A data check is just a command:
+`boil-assert-db.py --db runs/x.duckdb --query "select …" --assert "n >= 1"` exits 0/1/2. And
+`boil-guard.py` (a PreToolUse hook, `--settings-json` prints the wiring) blocks the worker from
+editing `tests/`, any `protect` path, the frozen ruler, or a `| human` evidence line.
 
 ### `review` — milestone-wise second-model review (optional, top-level in `milestones.json`)
 

@@ -15,6 +15,8 @@ Without --write it prints to stdout. Exit code mirrors the brakes:
 from __future__ import annotations
 
 import argparse
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -74,6 +76,22 @@ def _goal_headline(root: Path) -> str:
     return "(goal.md has no one-line summary)"
 
 
+def _measured(root: Path) -> str:
+    """One line from `boil-check.py status` when the goal has frozen checks. Reads the
+    attempt ledger only (cheap) — it never runs a check. Empty when nothing is frozen."""
+    if not (state_dir(root) / "checks" / "frozen.json").is_file():
+        return ""
+    script = Path(__file__).resolve().parent / "boil-check.py"
+    proc = subprocess.run([sys.executable, str(script), "status", "--root", str(root)],
+                          text=True, capture_output=True)
+    if proc.returncode != 0:
+        return ""
+    line = proc.stdout.strip()
+    # Drop the trailing ` | <timestamp>`: NOW.md is regenerated constantly and a clock in it
+    # makes every call a diff.
+    return re.sub(r"\s*\|\s*\d{4}-\d{2}-\d{2}T[0-9:]+Z\s*$", "", line)
+
+
 def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
     charter = parse_frontmatter(charter_path(root))
     status = charter.get("status", "unknown")
@@ -93,6 +111,9 @@ def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
                  f"{charter.get('reentry', '(unstated — ask the user)')}")
     L.append(f"**Ladder:** {lg}/{lt} criteria green" + (f" · next open: {open_items[0]}" if open_items else ""))
     L.append(f"**Goal:** {result['green']}/{result['total']} checkboxes — {_goal_headline(root)}")
+    measured = _measured(root)
+    if measured:
+        L.append(f"**Measured:** {measured}")
     L.append(f"**Loop:** {result['iterations']} iterations · {result['actionable_tickets']} actionable tickets"
              + (f" · {result['blocked_tickets']} blocked" if result["blocked_tickets"] else ""))
     if result.get("budget_usd"):

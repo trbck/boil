@@ -295,7 +295,7 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 
 | Script | Does |
 |---|---|
-| `boil-check.py` | **the controller**: `compile` (validate → freeze), `next`, `run` (decide), `split`, `audit`, `status` |
+| `boil-check.py` | compile/next/run/split/audit/status, and `verify` — re-run every frozen check now; `--write` stamps evidence on `{#id}`-tagged boxes |
 | `boil-now.py` | the session-start read; writes `NOW.md` |
 | `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's and the reviewer's last verdict |
 | `boil-review.py` | milestone-wise roborev: `review` (decide by risk score, one round, route findings), `close` (one re-review) |
@@ -305,6 +305,8 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `ticket-lint.py` | ticket schema, tier, answer key, and goal-size lint |
 | `boil-loop.py` | the T3 adversarial protocol — blast-radius milestones only |
 | `boil-commit-guard.py` | no AI attribution in commits; run before any push |
+| `boil-assert-db.py` | a data check as a command: `--db --query --assert`; exit 0/1/2 is the verdict |
+| `boil-guard.py` | PreToolUse hook: the worker never edits tests/, `protect` paths, or the frozen ruler; `--settings-json` wires it |
 | `boil-run-iteration.sh` | doctor + lint + stories + tests + iteration verify |
 
 ## Integration
@@ -313,10 +315,13 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
   `:verification-before-completion` for every done claim,
   `:systematic-debugging` when a failure is non-obvious,
   `:dispatching-parallel-agents` for the 2b mechanics.
-- **helm** is the controller between the ladder and the run loop: a criterion
-  contract turns a goal into machine-checkable subgoals, and `helm gate-sync
-  --write` ticks the ladder box from a MET goal. Link a session with
-  `boil-helm-log.py link --stem <contract>`.
+- **helm** is a cockpit, nothing more: it lists projects with `.boil/`, drafts a goal, and
+  launches ONE headless boil session per click with `boil-guard.py --settings-json` wired in.
+  It measures nothing — `boil-check.py verify` is the ruler, and `boil-doctor.py --final`
+  re-runs it before any FINAL. A `| human` evidence line is the operator's sign-off; a worker
+  may never write one. Compile the ruler (`boil-check.py compile`) BEFORE wiring the guard: a
+  guarded session can never write `.boil/milestones.json` or `.boil/checks/`; helm's
+  goal-creation step owns draft → compile before the first Run.
 - `/loop` wraps boil for unattended runs; `/schedule` for recurring ones.
 - `hound` MCP over `WebFetch` for JS-heavy or bot-walled research fetches.
 
