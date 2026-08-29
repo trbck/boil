@@ -232,13 +232,23 @@ def cmd_compile(a: argparse.Namespace) -> int:
         frozen["milestones"].append(fm)
         print(f"FROZEN {m['id']} hash={fm['hash']} baseline={fm['baseline']}")
     # A re-authored check is a new ruler: attempts made against the old one do not count
-    # toward the cap or the stall, so the ledger is archived rather than carried over.
+    # toward the cap or the stall, so those records are archived. Attempts against a
+    # milestone whose hash did not move — including its PASS — are carried over.
     new = {m["id"]: m["hash"] for m in frozen["milestones"]}
     ledger = state_dir(root) / "attempts.jsonl"
-    if prev and new != prev and ledger.is_file():
-        archived = ledger.with_name(f"attempts-{now().replace(':', '')}.jsonl")
-        ledger.rename(archived)
-        print(f"checks changed since the last freeze — attempt ledger archived to {archived.name}")
+    if prev and ledger.is_file():
+        keep, drop = [], []
+        for ln in ledger.read_text(encoding="utf-8").splitlines():
+            if not ln.strip():
+                continue
+            mid = json.loads(ln).get("milestone")
+            (keep if mid in new and new[mid] == prev.get(mid) else drop).append(ln)
+        if drop:
+            archived = ledger.with_name(f"attempts-{now().replace(':', '')}.jsonl")
+            archived.write_text("\n".join(drop) + "\n", encoding="utf-8")
+            ledger.write_text(("\n".join(keep) + "\n") if keep else "", encoding="utf-8")
+            changed = sorted({json.loads(ln)["milestone"] for ln in drop})
+            print(f"checks changed for {', '.join(changed)} — their attempts archived to {archived.name}")
     save_frozen(root, frozen)
     print(f"{len(frozen['milestones'])} frozen, {rejected} rejected -> {state_dir(root) / 'frozen.json'}")
     return 60 if rejected else 0

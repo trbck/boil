@@ -463,3 +463,27 @@ class RejectionHintTest(unittest.TestCase):
             self.assertIn("already_green", r.stdout)
         finally:
             ws.close()
+
+
+class RecompileKeepsUnchangedPassesTest(unittest.TestCase):
+    """Found by dogfooding: re-freezing after one check changed archived the whole
+    ledger, so a milestone whose ruler had not moved lost its PASS and was re-queued."""
+
+    def test_a_passed_milestone_with_an_unchanged_check_stays_passed(self):
+        ws = Workspace()
+        try:
+            guard = {"id": "G", "title": "guard", "check": "test -f tests/test_guard.py",
+                     "already_green": True, "tier": "T1"}
+            ws.spec([guard, FAILING])
+            self.assertEqual(ws.compile().returncode, 0)
+            self.assertEqual(run("run", "--root", str(ws.root), "--milestone", "G").returncode, 0)
+            changed = dict(FAILING, check="test -f out2.txt")
+            ws.spec([guard, changed])
+            self.assertEqual(ws.compile().returncode, 0)
+            ids = {a["milestone"] for a in ws.attempts()}
+            self.assertIn("G", ids)
+            self.assertNotIn(FAILING["id"], ids)
+            nxt = json.loads(run("next", "--root", str(ws.root)).stdout)
+            self.assertEqual(nxt["milestone"], FAILING["id"])
+        finally:
+            ws.close()
