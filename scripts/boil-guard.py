@@ -70,8 +70,10 @@ _OPEN_WRITE_RE = re.compile(
     r"""|mode\s*=\s*['"][wax]"""
     r"""|shutil\.(?:copy|move|rmtree)""")
 _PATH_TOKEN_RE = re.compile(r"[A-Za-z0-9_./~-]+")
-# Quoted runs, stripped before redirect parsing so `grep -- '->' f` has no redirect in it.
+# Quoted runs, MASKED (not deleted) before redirect parsing: their punctuation must not
+# parse as an operator, but a quoted redirect target must survive to be checked.
 _QUOTED_RE = re.compile("'[^']*'" + r'|"[^"]*"')
+_MASK_RE = re.compile("\x00Q(\\d+)\x00")
 # One pass over a command finds fd duplications (2>&1 — NOT a write) and real redirects
 # (>, >>, >|, &>, 2>) together with the token each one writes to.
 _REDIRECT_RE = re.compile(
@@ -177,17 +179,40 @@ def bash_path_tokens(cmd: str) -> list[str]:
             if "/" in t or re.search(r"\.[A-Za-z0-9]{1,8}$", t)]
 
 
+def _mask_quoted(cmd: str) -> tuple[str, list[str]]:
+    """Replace each quoted run with a placeholder that holds its PLACE but hides its
+    punctuation, and return the placeholder table. Deleting quoted runs instead would
+    silence `> 'tests/x.py'` — the target would come back empty and the write would look
+    like no write at all. The placeholder contains no shell metacharacter, so it cannot
+    parse as an operator and cannot end a target token."""
+    parts: list[str] = []
+
+    def take(m: re.Match) -> str:
+        parts.append(m.group(0)[1:-1])     # the quoted content, quotes dropped
+        return f"\x00Q{len(parts) - 1}\x00"
+
+    return _QUOTED_RE.sub(take, cmd), parts
+
+
+def _unmask(tok: str, parts: list[str]) -> str:
+    """Put the quoted content back, joining it to whatever sat beside it —
+    `"tests"/x.py` and `.boil/"goal.md"` both come back as one ordinary path."""
+    return _MASK_RE.sub(lambda m: parts[int(m.group(1))], tok)
+
+
 def redirect_targets(cmd: str) -> list[str]:
     """The files this command REDIRECTS output into. `>` is not a write on its own:
     `2>&1` duplicates an fd, `2>/dev/null` discards, and `'->'` inside a quoted grep
-    pattern is not a redirect at all (quoted runs are stripped before the scan). Only
+    pattern is not a redirect at all (quoted runs are masked before the scan). Only
     the token that follows a real redirect operator is a write target — which is why
-    `pytest tests/ > /tmp/out` is allowed while `echo x > tests/t.py` is not."""
+    `pytest tests/ > /tmp/out` is allowed while `echo x > tests/t.py` is not. Quoting
+    the target changes nothing: the mask is unwound before the token is returned."""
+    masked, parts = _mask_quoted(cmd)
     targets = []
-    for m in _REDIRECT_RE.finditer(_QUOTED_RE.sub(" ", cmd)):
+    for m in _REDIRECT_RE.finditer(masked):
         if m.group("dup") or not m.group("redir"):
             continue                       # 2>&1 and friends move an fd, they write nothing
-        tok = (m.group("target") or "").strip()
+        tok = _unmask((m.group("target") or "").strip(), parts).strip()
         if not tok or tok in _NON_WRITE_TARGETS:
             continue
         targets.append(tok)

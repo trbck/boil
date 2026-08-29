@@ -436,6 +436,28 @@ class GuardTest(unittest.TestCase):
             "command": "echo '- [x] ok — EVIDENCE: x | 2026-08-29 | human' >> src/goal_alias.md"})
         self.assertEqual(r.returncode, 2, r.stderr)
 
+    # --- quoted redirect targets: masking must preserve the target, not blank it
+    def test_bash_quoted_redirect_target_is_still_seen(self) -> None:
+        for cmd in ("echo x >'tests/x.py'",
+                    'echo x > "tests/x.py"',
+                    "cat foo > 'tests/x.py'",
+                    'echo x >> ".boil/goal.md"',
+                    'echo x > .boil/"goal.md"',
+                    'echo x > "tests"/x.py',
+                    'echo x > "$PWD/tests/x.py"'):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 2, f"{cmd!r} was allowed")
+
+    def test_bash_a_quoted_gt_is_still_not_a_redirect(self) -> None:
+        for cmd in ('echo ">" tests/x.py',
+                    "echo 'a > tests/x.py'",
+                    "grep -n -- '->' tests/test_guard.py",
+                    "pytest tests/ 2>&1 | tail -3",
+                    "pytest tests/ > /dev/null",
+                    "awk '$1>2' f"):
+            r = hook(self.root, "Bash", {"command": cmd})
+            self.assertEqual(r.returncode, 0, f"{cmd!r} was blocked: {r.stderr}")
+
     # --- I3: everyday write forms
     def test_bash_everyday_write_forms_are_recognised(self) -> None:
         heredoc = ("python3 - <<'EOF'\nfrom pathlib import Path\n"
