@@ -1,0 +1,69 @@
+{
+ "budget_usd": 5.0,
+ "cap": 4,
+ "stall": 2,
+ "determinism_runs": 1,
+ "review": {
+  "enabled": false
+ },
+ "milestones": [
+  {
+   "id": "M1",
+   "title": "help",
+   "box": "`python -m wordfreq --help` exits 0 and mentions --top",
+   "check": "python3 tests/check_m1_help.py",
+   "kind": "test",
+   "tier": "T1",
+   "protect": [
+    "tests"
+   ],
+   "already_green": true,
+   "proxy_gap": "only the help text"
+  },
+  {
+   "id": "M2",
+   "title": "counts",
+   "box": "`python -m wordfreq FILE` prints `word count` lines, most frequent first, ties alphabetical, case-insensitive",
+   "check": "python3 tests/check_m2_counts.py",
+   "kind": "test",
+   "tier": "T1",
+   "protect": [
+    "tests"
+   ],
+   "after": [
+    "M1"
+   ],
+   "proxy_gap": "one fixture; not unicode"
+  },
+  {
+   "id": "M3",
+   "title": "top",
+   "box": "`--top N` limits the output to N lines",
+   "check": "python3 tests/check_m3_top.py",
+   "kind": "test",
+   "tier": "T1",
+   "protect": [
+    "tests"
+   ],
+   "after": [
+    "M2"
+   ],
+   "proxy_gap": "N=2 only"
+  },
+  {
+   "id": "M4",
+   "title": "errors",
+   "box": "a missing file exits 2 with `error:` on stderr; an empty file prints nothing and exits 0",
+   "check": "python3 tests/check_m4_errors.py",
+   "kind": "test",
+   "tier": "T1",
+   "protect": [
+    "tests"
+   ],
+   "after": [
+    "M1"
+   ],
+   "proxy_gap": "two error cases"
+  }
+ ]
+}

@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+import json, os, subprocess, sys
+D = os.environ["FAKE_ROBOREV_DIR"]
+S = os.path.join(D, "scenario.json")
+sc = json.load(open(S))
+with open(os.path.join(D, "calls.log"), "a") as f:
+    f.write(json.dumps(sys.argv[1:]) + "\n")
+cmd = sys.argv[1] if len(sys.argv) > 1 else ""
+def save(): json.dump(sc, open(S, "w"))
+def head(args):
+    repo = "."
+    if "--repo" in args: repo = args[args.index("--repo") + 1]
+    return subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], text=True, capture_output=True).stdout.strip()
+if cmd == "status":
+    print("Daemon: running"); sys.exit(0)
+if cmd == "list":
+    print(json.dumps(sc.get("jobs", []) or None, indent=2)); sys.exit(0)   # real CLI pretty-prints
+if cmd == "review":
+    out = sc.get("review_outputs", []).pop(0) if sc.get("review_outputs") else sc.get("review_output", "No issues found.\nSummary: ok")
+    jid = max([j["id"] for j in sc.get("jobs", [])] + [100]) + 1
+    # real roborev (v0.65): a --since range job records git_ref as "<base>..<head>" and
+    # job_type "range"; a single-commit job records the sha and job_type "review".
+    if "--since" in sys.argv:
+        ref, jt = sys.argv[sys.argv.index("--since") + 1] + ".." + head(sys.argv), "range"
+    else:
+        ref, jt = head(sys.argv), "review"
+    sc.setdefault("jobs", []).append({"id": jid, "git_ref": ref, "branch": "main", "job_type": jt,
+                                      "status": "done", "agent": "fake", "closed": False,
+                                      "verdict": "P" if out.startswith("No issues") else "F"})
+    sc.setdefault("shows", {})[str(jid)] = {"job_id": jid, "output": out, "closed": False,
+                                            "verdict_bool": 1 if out.startswith("No issues") else 0}
+    save(); print(out); sys.exit(0)
+if cmd == "show":
+    jid = [a for a in sys.argv[2:] if a.isdigit()][0]
+    print(json.dumps(sc["shows"][jid], indent=2)); sys.exit(0)
+if cmd == "close":
+    jid = [a for a in sys.argv[2:] if a.isdigit()][0]
+    sc["shows"][jid]["closed"] = True; save(); sys.exit(0)
+sys.exit(0)

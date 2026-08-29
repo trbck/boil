@@ -1,0 +1,25 @@
+{
+ "budget_usd": 5.0,
+ "cap": 4,
+ "stall": 2,
+ "determinism_runs": 1,
+ "review": {
+  "enabled": true,
+  "every_lines": 0,
+  "fix_min_severity": "high"
+ },
+ "milestones": [
+  {
+   "id": "M1",
+   "title": "greet",
+   "box": "`greet('Ada')` returns `Hello, Ada!`",
+   "check": "PYTHONPATH=. python3 tests/check_greet.py",
+   "kind": "test",
+   "tier": "T1",
+   "protect": [
+    "tests"
+   ],
+   "proxy_gap": "one name"
+  }
+ ]
+}

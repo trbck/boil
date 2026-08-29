@@ -1,0 +1,1 @@
+{"review_outputs": ["## Review Findings\n\n- **Severity**: High\n- **Location**: greet/__init__.py:2\n- **Problem**: `greet` concatenates without type checking; a non-str raises a TypeError deep inside.\n- **Fix**: validate the argument.\n\n## Summary\nAdds greet.\n", "No issues found.\n\nSummary: fine."]}

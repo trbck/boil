@@ -46,7 +46,14 @@ DEFAULT_CAP = 4              # 1 fresh + 2 feedback rounds + 1 fresh-context res
 DEFAULT_STALL = 2            # identical failure signature N times in a row
 DEFAULT_TIMEOUT = 300        # seconds per check run
 DEFAULT_DETERMINISM = 2      # identical outcomes required at compile time
-COUNTEREXAMPLE = re.compile(r"(AssertionError|assert |Error:|FAILED|FAIL:|Traceback|expected|got )", re.I)
+# Ranked: the line that names the wrong value beats the line that says something went wrong.
+COUNTEREXAMPLE_RANKS = [
+    re.compile(r"COUNTEREXAMPLE:", re.I),
+    re.compile(r"^(AssertionError|E\s+assert\b|\w*Error:)", re.I),
+    re.compile(r"(expected|got |want )", re.I),
+    re.compile(r"(assert |FAILED|FAIL:)", re.I),
+    re.compile(r"Traceback", re.I),
+]
 AUDIT_SIGNATURES = [
     (re.compile(r"^\+.*(pytest\.mark\.(skip|xfail)|@skip\b|@unittest\.skip|\.skip\(|xfail)"), "skip marker"),
     (re.compile(r"^\+.*(monkeypatch|monkey_patch|setattr\((os|sys|time|torch|subprocess)\b)"), "monkey-patching"),
@@ -179,10 +186,15 @@ def run_cmd(root: Path, cmd: str, timeout: int) -> tuple[int, str]:
 
 def counterexample(output: str) -> str:
     """The single most informative failing line — never the whole trace."""
-    lines = [ln.strip() for ln in output.splitlines() if ln.strip()]
-    for ln in lines:
-        if COUNTEREXAMPLE.search(ln) and not ln.startswith("File "):
-            return ln[:240]
+    lines = [ln.strip() for ln in output.splitlines() if ln.strip() and not ln.strip().startswith("File ")]
+    for i, rx in enumerate(COUNTEREXAMPLE_RANKS):
+        for ln in lines:
+            # a traceback echoes the failing `assert ...` source line; the message it produced
+            # (the AssertionError line) is the counterexample, the source is not
+            if i < 3 and ln.startswith("assert "):
+                continue
+            if rx.search(ln):
+                return ln[:240]
     return (lines[-1] if lines else "check failed with no output")[:240]
 
 

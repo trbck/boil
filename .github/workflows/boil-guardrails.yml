@@ -17,6 +17,8 @@ jobs:
       - run: python -m py_compile scripts/*.py tests/*.py
       - run: bash -n scripts/*.sh
       - run: python -m unittest discover -s tests
+      - name: convergence bench (scripted implementer) — every controller verdict on real code
+        run: python bench/run.py --implementer scripted
       - name: example fixture guardrails
         run: |
           tmp="$(mktemp -d)"

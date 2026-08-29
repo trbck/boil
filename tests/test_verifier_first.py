@@ -542,3 +542,20 @@ class PacketSuperpowersTest(unittest.TestCase):
             self.assertIn("superpowers:systematic-debugging", packet)
         finally:
             ws.close()
+
+
+class CounterexampleTest(unittest.TestCase):
+    """The one line the implementer gets back must be the assertion, not the trace header."""
+
+    def test_the_assertion_message_beats_the_traceback_header(self) -> None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("bc", CHECK)
+        bc = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bc)
+        out = ("Traceback (most recent call last):\n"
+               '  File "tests/check_m2.py", line 6, in <module>\n'
+               "    assert r.stdout.splitlines() == ['b 3'], f\"COUNTEREXAMPLE: got {x!r}\"\n"
+               "AssertionError: COUNTEREXAMPLE: got ['b:3'], want ['b 3']\n")
+        self.assertEqual(bc.counterexample(out), "AssertionError: COUNTEREXAMPLE: got ['b:3'], want ['b 3']")
+        self.assertEqual(bc.counterexample("E   assert 1 == 2\nFAILED tests/t.py::test_x - assert 1 == 2\n"),
+                         "E   assert 1 == 2")

@@ -1,0 +1,23 @@
+{
+ "budget_usd": 5.0,
+ "cap": 4,
+ "stall": 2,
+ "determinism_runs": 1,
+ "review": {
+  "enabled": false
+ },
+ "milestones": [
+  {
+   "id": "M1",
+   "title": "add",
+   "box": "`add(a, b)` returns the sum for positive and negative operands",
+   "check": "PYTHONPATH=. python3 tests/check_add.py",
+   "kind": "test",
+   "tier": "T1",
+   "protect": [
+    "tests"
+   ],
+   "proxy_gap": "two cases"
+  }
+ ]
+}

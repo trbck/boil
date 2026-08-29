@@ -1,0 +1,1 @@
+[{"id": "S1", "title": "add positive", "check": "PYTHONPATH=. python3 tests/check_add_pos.py", "kind": "test", "protect": ["tests"], "proxy_gap": "one case"}, {"id": "S2", "title": "add negative", "check": "PYTHONPATH=. python3 tests/check_add_neg.py", "kind": "test", "protect": ["tests"], "proxy_gap": "one case"}]
