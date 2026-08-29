@@ -143,17 +143,32 @@ def spent_total(root: Path) -> float:
 
 
 # ---------------------------------------------------------------- compile
+ENV_FAILURE = re.compile(r"No module named|command not found|not found\b|No such file or directory: '?(python|pytest|node|npm|uv|cargo|go)\b|Permission denied", re.I)
+
+
+def environment_failure(rc: int, output: str) -> str:
+    """A check that cannot even run is broken, not falsifiable. Exit 127 is the shell's
+    'command not found'; a missing interpreter module or binary is the same class."""
+    if rc in (126, 127):
+        return f"exit {rc} (command not found / not executable)"
+    m = ENV_FAILURE.search(output)
+    return m.group(0) if m else ""
+
+
 def validate(root: Path, m: dict, runs: int) -> tuple[dict | None, str]:
-    """Return (frozen milestone, '') or (None, reason). The four gates, in order:
-    determinism, falsifiability, gold-sanity, then hash."""
+    """Return (frozen milestone, '') or (None, reason). The gates, in order:
+    can-run, determinism, falsifiability, gold-sanity, then hash."""
     timeout = int(m.get("timeout", DEFAULT_TIMEOUT))
     outcomes = []
     first_out = ""
     for i in range(max(1, runs)):
         rc, out = run_cmd(root, m["check"], timeout)
-        outcomes.append(rc != 0)
         if i == 0:
             first_out = out
+            env = environment_failure(rc, out) if rc != 0 else ""
+            if env:
+                return None, f"check cannot run in the verifier environment ({env}) — fix the command, not the code"
+        outcomes.append(rc != 0)
     if len(set(outcomes)) > 1:
         return None, f"check is not deterministic across {runs} runs — not frozen"
     fails_now = outcomes[0]

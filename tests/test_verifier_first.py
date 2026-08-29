@@ -369,3 +369,45 @@ class DispatchPacketTest(unittest.TestCase):
             self.assertNotIn("Confidence gate", packet)
         finally:
             ws.close()
+
+
+class CompileEnvironmentTest(unittest.TestCase):
+    """A check that cannot even run is not falsifiable — it is broken. Found by dogfooding:
+    `python3 -m pytest` failed with "No module named pytest" and was frozen as falsifiable."""
+
+    def test_a_check_that_fails_for_an_environment_reason_is_rejected(self) -> None:
+        ws = Workspace()
+        try:
+            ws.spec([{"id": "M9", "title": "needs a missing tool", "check": "python3 -m no_such_module_xyz", "kind": "test"}])
+            r = ws.compile()
+            self.assertEqual(r.returncode, 60, r.stdout + r.stderr)
+            self.assertIn("cannot run", r.stdout)
+            self.assertEqual(ws.frozen()["milestones"], [])
+        finally:
+            ws.close()
+
+    def test_a_missing_command_is_rejected(self) -> None:
+        ws = Workspace()
+        try:
+            ws.spec([{"id": "M9", "title": "missing binary", "check": "no-such-binary-xyz --version", "kind": "test"}])
+            r = ws.compile()
+            self.assertEqual(r.returncode, 60, r.stdout + r.stderr)
+            self.assertIn("cannot run", r.stdout)
+        finally:
+            ws.close()
+
+
+class LintTicketsOptionalTest(unittest.TestCase):
+    def test_in_verifier_first_mode_a_missing_tickets_dir_is_not_an_error(self) -> None:
+        ws = Workspace()
+        try:
+            (ws.root / ".boil" / "goal.md").write_text(
+                "# Goal\n\n## Success checklist\n- [ ] artifact exists\n\n## How the user will see this works\nls out.txt\n")
+            ws.spec([dict(FAILING, proxy_gap="existence only")])
+            self.assertEqual(ws.compile().returncode, 0)
+            r = runpy(LINT, "--root", str(ws.root), "--json")
+            codes = [i["code"] for i in json.loads(r.stdout)["issues"]]
+            self.assertNotIn("missing-tickets-dir", codes)
+            self.assertEqual(r.returncode, 0, r.stdout)
+        finally:
+            ws.close()

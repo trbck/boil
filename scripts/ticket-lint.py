@@ -358,7 +358,9 @@ def main(argv: list[str]) -> int:
     goal_issues = [] if args.no_goal else lint_goal(root / ".boil" / "goal.md")
     check_issues, verifier_first = lint_checks(root)
     goal_issues = goal_issues + check_issues
-    if not tickets_dir.exists():
+    if not tickets_dir.exists() and verifier_first:
+        issues = []  # milestones in checks/frozen.json are the work units; tickets are optional
+    elif not tickets_dir.exists():
         issues = [_issue(tickets_dir, "error", "missing-tickets-dir", ".boil/tickets missing")]
     else:
         issues = []
