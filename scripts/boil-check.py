@@ -965,8 +965,12 @@ def cmd_report(a: argparse.Namespace) -> int:
     return 0
 
 
+VERSION = "1.0.0"   # helm pins MIN_BOIL_VERSION against this (cockpit.boil_version_ok)
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--version", action="version", version=f"boil-check {VERSION}")
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("compile", help="validate drafted checks, then freeze them")
     c.add_argument("--root", default=".")
