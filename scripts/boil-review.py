@@ -29,7 +29,7 @@ Exit codes
   2  usage                                          (the user decides)
 
 Config: the `review` object in milestones.json, carried into checks/frozen.json:
-  {"enabled": true, "agent": "codex", "every_lines": 150, "fix_min_severity": "high",
+  {"enabled": true, "agent": "codex", "model": "", "every_lines": 150, "fix_min_severity": "high",
    "always_tiers": ["T3", "T4"], "risk_paths": ["**/auth/**", "**/migrations/**"],
    "cost_usd": 0.0, "timeout_s": 900, "reasoning": ""}
 Ledger: .boil/checks/reviews.jsonl — one record per decision.
@@ -50,7 +50,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULTS = {
-    "enabled": True, "agent": "", "every_lines": 150, "fix_min_severity": "high",
+    "enabled": True, "agent": "", "model": "", "every_lines": 150, "fix_min_severity": "high",
     "always_tiers": ["T3", "T4"], "risk_paths": [], "cost_usd": 0.0, "timeout_s": 900,
     "reasoning": "",
 }
@@ -301,6 +301,8 @@ def run_review(root: Path, cfg: dict, base: str | None, head: str, dirty: bool) 
         return None
     if cfg.get("agent"):
         args += ["--agent", cfg["agent"]]
+    if cfg.get("model"):
+        args += ["--model", cfg["model"]]
     if cfg.get("reasoning"):
         args += ["--reasoning", cfg["reasoning"]]
     before = max((j.get("id", 0) for j in list_jobs(root)), default=0)

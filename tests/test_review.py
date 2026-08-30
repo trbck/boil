@@ -467,3 +467,19 @@ class RecompileKeepsBaseShaTest(unittest.TestCase):
             self.assertEqual(p.frozen()["base_sha"], first)
         finally:
             p.close()
+
+
+class ReviewModelPassthroughTest(unittest.TestCase):
+    """A reviewer is an agent AND a model: with Codex out of quota the review runs as
+    claude-code driven by an Ollama cloud model, which roborev selects by --model."""
+
+    def test_agent_and_model_are_passed_to_roborev(self) -> None:
+        p = Project(review={"every_lines": 0, "agent": "claude-code", "model": "kimi-k3:cloud"})
+        try:
+            p.land("M1", lines=5)
+            self.assertEqual(p.review("review", "--milestone", "M1").returncode, 0)
+            call = next(c for c in p.calls() if c[0] == "review")
+            self.assertIn("--agent", call); self.assertEqual(call[call.index("--agent") + 1], "claude-code")
+            self.assertIn("--model", call); self.assertEqual(call[call.index("--model") + 1], "kimi-k3:cloud")
+        finally:
+            p.close()

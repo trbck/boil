@@ -402,6 +402,7 @@ editing `tests/`, any `protect` path, the frozen ruler, or a `| human` evidence 
 | `always_tiers` / `risk_paths` | milestones that are always reviewed regardless of size; globs are matched against changed paths |
 | `fix_min_severity` | findings at or above this become the `<M>-fix` node; lower ones are deferred into `.boil/log.md` |
 | `agent` | the reviewer — pick a different model family from the implementer |
+| `model` | the reviewer's model, passed as roborev `--model`. With `agent: claude-code` and an Ollama `:cloud` tag (e.g. `deepseek-v4-pro:cloud`) the review runs on Ollama through the `claude-ollama` wrapper — no Codex/Anthropic quota involved |
 | `cost_usd` | charged per review against `budget_usd`; a review that would overrun is skipped |
 
 `compile` also records `base_sha` (HEAD at first freeze — the accumulator's origin, never
