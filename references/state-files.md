@@ -364,6 +364,7 @@ only file the loop reads. A drafted spec without a frozen counterpart is a lint 
 | Field | Meaning |
 |---|---|
 | `check` | the command whose exit code IS the verdict; the implementer never sees or runs it |
+| `box` | the goal checkbox this milestone measures (its text). Optional when `title` equals the box text or the box already carries `{#id}`; a must-have that binds to no box is rejected at compile |
 | `kind` | `test` \| `metric` \| `artifact` \| `rubric` \| `human` — the last two are advisory + human-gated |
 | `tier` | `T1` greenfield · `T2` mechanical oracle (port/migration) · `T3` undocumented brownfield · `T4` non-testable / high blast radius — `references/effort-tiers.md` |
 | `after` | dependency edges; `next` walks them topologically, passed nodes are never re-run |
@@ -404,7 +405,19 @@ editing `tests/`, any `protect` path, the frozen ruler, or a `| human` evidence 
 | `cost_usd` | charged per review against `budget_usd`; a review that would overrun is skipped |
 
 `compile` also records `base_sha` (HEAD at first freeze — the accumulator's origin, never
-moved by a recompile) and keeps `<M>-fix` nodes across recompiles. The reviewer's ledger is
+moved by a recompile), keeps `<M>-fix` nodes across recompiles, and appends one record per
+run to `checks/compile.jsonl` (`frozen`, `rejected`) — the rejection rate of LLM-drafted
+checks is a number `report` shows.
+
+### The iteration ledgers (`prepare` / `score`)
+
+`checks/iteration.json` is written by `prepare`: the milestone, the attempt number, the
+packet path, the tree sha the attempt's diff is measured from, and whether the guard was
+wired. `score` refuses a milestone that was not prepared, audits the diff since that sha,
+runs the check once, appends the attempt to `checks/attempts.jsonl` (now with `check` and
+`evidence`), ticks the bound box, consults the reviewer, ticks `progress.jsonl` with the
+iteration id `<M>#<attempt>`, and derives `budget.json`'s `spent_usd` from the ledgers.
+`boil-check.py report` reads only these files. The reviewer's ledger is
 `checks/reviews.jsonl`: `SKIP` (with the reason), `CLEAN`, `DEFERRED`, `FIX-NODE`,
 `PENDING`, `CLOSED`, `OPEN`. The final milestone is always reviewed once, so a goal never
 finishes without a second model having read its whole diff.

@@ -52,22 +52,29 @@ called twice — once to **draft** an acceptance check, once to **attempt** the 
 and `scripts/boil-check.py` does the rest:
 
 ```bash
-python3 scripts/boil-check.py compile --root P --spec P/.boil/milestones.json  # validate → freeze
-python3 scripts/boil-check.py next    --root P                                 # first failing node
-python3 scripts/boil-check.py run     --root P --milestone M3 --rerun          # 0 PASS · 10 RETRY · 20 STALL · 30 CAP · 40 BUDGET · 50 TAMPER
-python3 scripts/boil-check.py split   --root P --milestone M3 --spec '[...]'   # 2-4 sub-checks, once
-python3 scripts/boil-check.py audit   --root P --diff attempt.diff             # skip markers, protected-path writes, monkey-patching
-python3 scripts/boil-check.py status  --root P                                 # one line, zero LLM tokens
-python3 scripts/boil-review.py review --root P --milestone M3                  # after PASS: script decides if a 2nd model reads the diff
-python3 scripts/boil-review.py close  --root P --milestone M3-fix              # one re-review; clean closes, else the user decides
+python3 scripts/boil-check.py compile --root P --spec P/.boil/milestones.json  # validate → bind boxes → freeze (all or nothing)
+python3 scripts/boil-check.py prepare --root P                                 # iteration step 1: next milestone → packet → guard wired?
+#   dispatch ONE implementer subagent whose entire prompt is the packet — never the check
+python3 scripts/boil-check.py score   --root P --milestone M3 --spent-usd 0.4  # step 2: audit → check once → box ticked → review? → tick → status
+#   0 PASS · 10 RETRY · 20 STALL · 30 CAP · 40 BUDGET · 50 TAMPER · 70 REVIEW · 71 PENDING
+python3 scripts/boil-check.py split   --root P --milestone M3 --spec '[...]'   # 2-4 sub-checks, once, on STALL
+python3 scripts/boil-check.py report  --root P                                 # attempts per milestone, first-pass rate, $ per green box
+python3 scripts/boil-check.py verify  --root P --write                         # re-run every frozen check now; stamp what passes
+python3 scripts/boil-review.py close  --root P --milestone M3-fix              # after a fix node passes: one re-review
+python3 bench/run.py --implementer scripted                                    # every verdict above, on real code, in ~10 s (CI)
+python3 bench/run.py --implementer llm --model <m>                             # the effectiveness numbers, by hand
 ```
 
 Rules the script enforces, each with a test: a check that already passes is **not
 falsifiable** and is never frozen; the check and its protected files are hashed together
 and any drift is **TAMPER**; the implementer **never runs the check** — the controller
 runs it once and returns one counterexample line; an identical failure twice is a
-**STALL**; four attempts is the **CAP**; passed milestones are never re-run. The
-evidence, per rule, is in `_research/boil-convergence/PLAN.md`.
+**STALL**; four attempts is the **CAP**; passed milestones are never re-run; a must-have
+milestone binds to one goal checkbox and **only the controller ticks it**; the guard denies
+the worker any write to the ruler and any *run* of it. The evidence, per rule, is in
+`_research/boil-convergence/PLAN.md`; the bench (`bench/`) is where each verdict is proven
+on real code, and `bench/run.py --implementer llm` is how boil's own first-attempt pass rate
+and dollars per green checkbox get measured.
 
 ## Effort tiers
 

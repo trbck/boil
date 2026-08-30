@@ -1,6 +1,6 @@
 ---
 description: "Run a boil loop, or manage the project/portfolio gates"
-argument-hint: "GOAL [till|until CONDITION] | init | status | audit | review | migrate"
+argument-hint: "GOAL [till|until CONDITION] | init | status | report | audit | review | migrate"
 ---
 
 # /boil
@@ -13,9 +13,10 @@ boil owns three scopes: the **portfolio** (should I be in this project?), the
 | Command | Does |
 |---|---|
 | `/boil <goal> till <condition>` | run the loop on a goal |
-| `/boil init` | interview → charter, ladder, verified current level, first tickets, portfolio update |
+| `/boil init` | interview → charter, ladder, verified current level, portfolio update |
 | `/boil status` | read-only: print NOW.md — where the project is and the one next action |
-| `/boil audit` | re-run every `auto` evidence command, drift check, regenerate the scorecard |
+| `/boil report` | one page for the current goal: attempts per milestone, first-attempt pass rate, $ per green box |
+| `/boil audit` | re-run every frozen check (`verify`), drift check, regenerate the scorecard |
 | `/boil review` | weekly portfolio review: moved / recommit / park / kill |
 | `/boil migrate` | fold a legacy `.gate/` into `.boil/` and bootstrap the new state files |
 
@@ -38,30 +39,39 @@ the workspace cannot answer.
 
 ## What each iteration costs
 
-Work is dispatched at the **tier its blast radius earns**, not at a fixed
-ceremony: T1 direct (most tickets — edit, test, show the diff), T2 delegated (one
-builder subagent plus independent verification), T3 adversarial (frozen answer
-key, isolated judge in a different model family, deterministic manager,
-cross-LLM review) for money, auth, data-loss and production paths — or anything
-that has already failed twice.
+One LLM call drafts a deterministic check per checkbox; `compile` validates it (it
+must fail now, pass on a known-good state, repeat, and bind to its box) and freezes
+it. Then, per milestone, the loop is two commands and one dispatch:
+
+    boil-check.py prepare   → the packet for the next milestone
+    <one implementer subagent, holding only the packet>
+    boil-check.py score     → audit, the check once, the box ticked by the script, one status line
+
+The implementer never sees or runs the check; the guard denies it. One attempt, up to
+two feedback rounds seeded with a single counterexample line, one fresh resample, then
+stop. Nothing in between is an LLM call.
 
 ## What you get back
 
-One block per iteration: what changed, goal progress, the real proof output, a
-30-second demo, and the next concrete actions. The same result is appended to
-`.boil/log.md` as a ladder EVIDENCE line — written once, used twice.
+One status line per iteration —
+`milestones 5/13 green | delta 8 | current M07 att 2/4 last=FAIL | spent $3.18/$25` —
+a demo per passed milestone, and the goal's boxes ticked by the controller with the
+evidence line it measured. `/boil report` is the page that says how it went.
 
 ## When it stops on its own
 
-Three brakes are binding and hand the decision to you rather than pressing on:
+The script hands the decision to you rather than pressing on:
 
-- **stall** — three iterations with no checkbox moving
-- **WIP** — more than 5 actionable tickets
-- **budget** — the goal's `budget.json` cap is spent
+- **STALL** — the same failure twice → the milestone is split once, then it asks
+- **CAP** — four attempts on one milestone
+- **TAMPER** — a frozen check or protected file changed
+- **BUDGET** — the goal's `budget.json` cap is spent
+- **REVIEW** — a second model's must-fix findings survived their one fix round
+- the ladder brakes: three flat iterations, or too many open tickets
 
-It also stops when every checkbox is green **and evidenced** (`boil-doctor.py
---final`), when you say stop, or when something only you can do is blocking. An
-unfinished goal produces `HANDOFF.md`, never a `FINAL.md`.
+It also stops when every box is green **and re-measured** (`boil-doctor.py --final`
+re-runs every check), when you say stop, or when something only you can do is
+blocking. An unfinished goal produces `HANDOFF.md`, never a `FINAL.md`.
 
 ---
 

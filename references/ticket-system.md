@@ -1,5 +1,9 @@
 # Ticket System
 
+> **Legacy (parked 2026-08-30).** Tickets belong to the loop `references/legacy-ticket-loop.md`
+> describes. A goal with frozen checks has no tickets: the milestone DAG in
+> `.boil/checks/frozen.json` is the work list and `boil-check.py prepare` hands out the packet.
+
 The ticket pool is how the firm coordinates. Agents write tickets to each other; the orchestrator routes them to the right specialist. This file defines the ticket schema, the dispatch prompt template, and the inter-agent handoff rules.
 
 ## Why tickets (not just a TODO list)

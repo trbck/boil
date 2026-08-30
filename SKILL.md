@@ -113,9 +113,13 @@ python3 <skill>/scripts/boil-check.py compile --root <project> --spec <project>/
 ```
 
 `compile` validates before it freezes: a check that already passes is rejected as
-unfalsifiable, a `gold` command must pass, the outcome must repeat across runs; on
-brownfield milestones pair a new-behaviour assertion with an `already_green` regression
-guard. Only validated checks get a hash. A drafted-but-unfrozen spec is a lint error.
+unfalsifiable, a `gold` command must pass, the outcome must repeat across runs, and every
+must-have milestone must **bind to one goal checkbox** (its `box:` text or `title` equals
+the box, or the box already carries `{#id}`) — compile stamps the tag, and from then on
+only the controller ticks that box. On brownfield milestones pair a new-behaviour assertion
+with an `already_green` regression guard. One rejection freezes nothing (fix the spec,
+compile again); a recompile carries unchanged checks forward. A drafted-but-unfrozen spec
+is a lint error.
 Milestone schema: `references/state-files.md`.
 
 Set `budget.json` `goal_usd` to arm the budget brake. A goal with no budget has
@@ -130,50 +134,54 @@ inside an ungoverned project is how effort stops converting into progress.
 
 The controller is `boil-check.py`; you are the driver. Per milestone the LLM is called for
 exactly two things — **drafting the check** (Phase 1) and **attempting the milestone** —
-and decides nothing. The script decides. Its exit code is the instruction:
+and decides nothing. One iteration is **two commands and one dispatch**:
+
+```bash
+python3 <skill>/scripts/boil-check.py prepare --root <project>
+#   → {"milestone":"M3","attempt":2,"packet":".boil/dispatch/M3.md","guard":"wired",...}
+#     prepare refuses without the guard: `--wire-guard` merges boil-guard.py into
+#     <project>/.claude/settings.json once. Then dispatch ONE implementer subagent whose
+#     ENTIRE prompt is the packet: statement, proxy gap, last counterexample, required
+#     superpowers skills. Never the check. It reads the tests; it cannot run them.
+python3 <skill>/scripts/boil-check.py score --root <project> --milestone M3 --spent-usd <n>
+#   → audit of the attempt's diff → gates → the check, once → on PASS the controller ticks
+#     the bound {#M3} box and writes its EVIDENCE line → boil-review.py decides whether a
+#     second model reads the diff → tick → ONE status line. Exit code = the instruction.
+```
 
 | Exit | Meaning | You do |
 |---|---|---|
-| 0 | PASS — an `EVIDENCE:` line was printed | copy the line onto the goal checkbox; `next` |
-| 10 | RETRY — new failure signature | one fresh implementer call with the packet (below) |
+| 0 | PASS — the box is ticked, evidence written | `prepare` again |
+| 10 | RETRY — new failure signature; one counterexample line printed | `prepare` → one fresh implementer with the packet (it now carries the counterexample) |
 | 20 | STALL — identical failure twice | `split` the milestone into 2–4 sub-checks, once; then ask |
 | 30 | CAP — attempt ceiling (4) spent | split or ask the user; **never attempt again** |
 | 40 | BUDGET — goal budget spent | stop; report cost against progress |
 | 50 | TAMPER — a frozen check or protected file changed | abort; the user decides |
-| 70 | REVIEW — a second model's must-fix findings (from `boil-review.py`) | `next` returns the `<M>-fix` node; after it passes, `close`; if 70 again, the user decides |
-| 71 | PENDING — the review is still running | continue the loop; re-run `review` later |
+| 70 | REVIEW — a second model's must-fix findings | `prepare` returns the `<M>-fix` node; after it passes, `boil-review.py close`; if 70 again, the user decides |
+| 71 | PENDING — the review is still running | continue; re-run `boil-review.py review` later |
 
-One iteration:
-
-```bash
-python3 <skill>/scripts/boil-check.py next --root <project>            # {"milestone": "M3", ...}
-python3 <skill>/scripts/boil-dispatch-packet.py --milestone M3 --root <project>
-#   → dispatch one implementer (T1: you, in a fresh context; T2+: one builder subagent)
-#     with ONLY that packet: statement, proxy gap, last counterexample. Never the check.
-#     The packet names the superpowers skills the implementer must invoke (hard rule 9).
-python3 <skill>/scripts/boil-check.py audit --root <project> --diff <the attempt's diff>
-python3 <skill>/scripts/boil-check.py run --root <project> --milestone M3 --spent-usd <n> --rerun \
-        --note <sha of the diff>
-python3 <skill>/scripts/boil-review.py review --root <project> --milestone M3     # only after exit 0
-```
+Nothing else is written by you during the loop. No EVIDENCE line is ever LLM-written; no
+box is ticked by hand; the spend is what you pass to `score`. If you find yourself typing
+`next`, `audit`, `run`, `tick` or pasting evidence, you have left the loop.
 
 ### 2a — The attempt ladder is the retry policy
 
 1 fresh generation → up to 2 feedback rounds, each seeded with the single counterexample
 line the controller returned → 1 fresh-context resample → stop. Attempt 3 runs only if the
-failure signature changed. The implementer never holds the check's source and has no tool
-that runs it; the controller runs it once, after the implementer declares done. Two
-execution-feedback rounds capture 76–95% of the achievable gain; a third adds nothing, and
-in-context retries reproduce the same wrong program 33–68% of the time — hence the fresh
-context, and hence the cap.
+failure signature changed. Every attempt is a fresh subagent: the implementer never holds
+the check's source, and the guard denies running it; the controller runs it once, after the
+implementer declares done. Two execution-feedback rounds capture 76–95% of the achievable
+gain; a third adds nothing, and in-context retries reproduce the same wrong program 33–68%
+of the time — hence the fresh context, and hence the cap.
 
 ### 2b — Never lower the bar, never edit the ruler
 
 A failed attempt is not information about the check. Re-authoring a check happens only
-through `compile` (validated again, hashed again) and only because the check was *wrong*
-— it passed on the baseline, failed on gold, or flaked. `audit` findings (writes under
-protected paths, skip markers, monkey-patching, git-history access) are logged and count
-against the attempt; they are never explained away.
+through `compile` (validated again, hashed again, bound again) and only because the check
+was *wrong* — it passed on the baseline, failed on gold, or flaked. An `audit` finding in
+the attempt's diff (writes under protected paths, skip markers, monkey-patching,
+git-history access) scores the attempt as a failure whatever the check says; it is never
+explained away.
 
 ### 2c — Demo
 
@@ -181,39 +189,34 @@ One user-visible artifact per passed milestone. **Never skip it.** The demo is a
 invocation of the built thing — the command and its captured output, the curl and its
 response, the screenshot — not a description. Recipes: `references/demo-formats.md`.
 
-### 2d — Tick, then the status line
+### 2d — The status line is the report
 
-```bash
-python3 <skill>/scripts/boil-brakes.py tick --root <project> --iteration iter-NNN --spent-usd <n>
-python3 <skill>/scripts/boil-check.py status --root <project>
-```
-
-`status` prints the only report:
+`score` ends with the only report:
 `milestones 5/13 green | delta 8 | current M07 att 2/4 last=FAIL | spent $3.18/$25 | <ts>`.
-Append the milestone's `EVIDENCE:` line to `.boil/log.md` (ladder format,
-`references/outer-loop.md`). Do not write a narrative, a next-steps block, or a footer:
-the ledger is the report, and prose about work whose truth value the script already
-holds is the most expensive output in the loop.
+Do not write a narrative, a next-steps block, or a footer: the ledger is the report, and
+prose about work whose truth value the script already holds is the most expensive output
+in the loop. `boil-check.py report` prints the one page per goal — attempts per milestone,
+first-attempt pass rate, $ per green box — when someone asks how it went.
 
-### 2f — A second model reads the code, when the script says so
+### 2e — A second model reads the code, when the script says so
 
-`boil-review.py review` runs after a PASS and *decides* whether a roborev review is worth
-its cost — it is not fired per commit. It fires on a T3/T4 milestone, a `risk_paths` hit,
-the final milestone, or once `every_lines` (default 150) unreviewed source lines have
-accumulated; docs and `.boil/` never count, a job the post-commit hook already enqueued
-for HEAD is adopted, and a milestone gets **one review round and one fix round**, never
-more. Findings at or above `fix_min_severity` (default high) become a `<M>-fix` node whose
-gate is the parent's frozen check; lower ones are deferred into `.boil/log.md` and the job
-is closed — never silently dismissed. When the fix node passes, `boil-review.py close
+`score` consults `boil-review.py` after a PASS; it *decides* whether a roborev review is
+worth its cost — it is not fired per commit. It fires on a T3/T4 milestone, a `risk_paths`
+hit, the final milestone, or once `every_lines` (default 150) unreviewed source lines have
+accumulated; docs and `.boil/` never count, a job the post-commit hook already enqueued for
+HEAD is adopted, and a milestone gets **one review round and one fix round**, never more.
+Findings at or above `fix_min_severity` (default high) become a `<M>-fix` node whose gate is
+the parent's frozen check; lower ones are deferred into `.boil/log.md` and the job is
+closed — never silently dismissed. When the fix node passes, `boil-review.py close
 --milestone <M>-fix` re-reviews once: clean closes both jobs; anything left is `OPEN`, the
 brakes say STOP, and the user decides. The reviewer never replaces a green check.
 
-### 2e — Continue or stop
+### 2f — Continue or stop
 
-Auto-continue under `/loop` while `next` returns a milestone and `boil-brakes.py check`
-says CONTINUE. Any non-zero controller code other than 10 hands the decision to the user;
-the driver never grants itself another attempt. A brake that fires is a planned exit:
-commit work in progress to a branch, write `HANDOFF.md`, stop.
+Auto-continue under `/loop` while `prepare` returns a milestone and `boil-brakes.py check`
+says CONTINUE. Any non-zero `score` other than 10 hands the decision to the user; the
+driver never grants itself another attempt. A brake that fires is a planned exit: commit
+work in progress to a branch, write `HANDOFF.md`, stop.
 
 ---
 
@@ -288,9 +291,10 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 |---|---|
 | `references/outer-loop.md` | init, audit, portfolio review, writing a ladder or charter, or any brake fired |
 | `references/effort-tiers.md` | assigning a milestone's tier (T1–T4), or disputing a ticket's |
-| `references/ticket-system.md` | writing a ticket or a dispatch prompt |
+| `references/ticket-system.md` | the project still has `.boil/tickets/` (legacy) |
+| `references/legacy-ticket-loop.md` | the project has `.boil/tickets/` or `.boil/iterations/` and no frozen checks |
 | `references/state-files.md` | bootstrapping `.boil/` state files |
-| `references/self-correcting-loop.md` | running a **T3** ticket |
+| `references/self-correcting-loop.md` | running a **T3** ticket in a legacy ticket project |
 | `references/demo-formats.md` | the demo format for this work type is not obvious |
 | `references/stories.md` | the project has stories and this iteration touches one |
 | `references/rubrics.md` | a moved checkbox has a rubric attached |
@@ -305,7 +309,7 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 
 | Script | Does |
 |---|---|
-| `boil-check.py` | compile/next/run/split/audit/status, and `verify` — re-run every frozen check now; `--write` stamps evidence on `{#id}`-tagged boxes |
+| `boil-check.py` | **the controller**: `compile` (validate → bind → freeze), `prepare` / `score` (one iteration), `split`, `report`, `verify` (re-run every frozen check; `--write` stamps what passes); the parts (`next`, `run`, `audit`, `status`) remain callable |
 | `boil-now.py` | the session-start read; writes `NOW.md` |
 | `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's and the reviewer's last verdict |
 | `boil-review.py` | milestone-wise roborev: `review` (decide by risk score, one round, route findings), `close` (one re-review) |
@@ -317,7 +321,8 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `boil-commit-guard.py` | no AI attribution in commits; run before any push |
 | `boil-assert-db.py` | a data check as a command: `--db --query --assert`; exit 0/1/2 is the verdict |
 | `boil-guard.py` | PreToolUse hook: the worker never edits tests/, `protect` paths, or the frozen ruler; `--settings-json` wires it |
-| `boil-run-iteration.sh` | doctor + lint + stories + tests + iteration verify |
+| `boil-run-iteration.sh` | with frozen checks: doctor + lint + verify + brakes + NOW; otherwise the legacy iteration gates |
+| `bench/run.py` | the convergence bench: every controller verdict on real code (`--implementer scripted`, CI) and the effectiveness numbers (`--implementer llm`) |
 
 ## Integration
 

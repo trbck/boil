@@ -1,6 +1,6 @@
 # The Self-Correcting Loop — builder / judge / manager
 
-> **Load when:** you are running a **tier T3** ticket (money, auth, data loss, production, or a ticket that already failed twice at T1/T2). T1 and T2 tickets do not use this protocol — their proof is the project's own suite via `proof_strategy`. See `references/effort-tiers.md`.
+> **Load when:** you are running a **tier T3** ticket in a legacy ticket project (`references/legacy-ticket-loop.md`). Under the controller, a T3 *milestone* runs through the same `prepare` / `score` as every other tier: the frozen check is the answer key, the script is the judge, and the **manager role is dropped** — `score`'s exit code decides revise / finish / escalate, and `boil-review.py` is the cross-model review. See `references/effort-tiers.md`.
 
 A `boil` ticket used to be a one-shot: dispatch a specialist, read its report, believe it or don't. This file defines the layer that replaces "believe it or don't" with a bounded, evidence-backed correction cycle.
 
