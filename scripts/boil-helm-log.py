@@ -105,7 +105,7 @@ def helm_dir() -> Path | None:
     candidates = [Path(env)] if env else []
     candidates += [Path.home() / "workspace" / "helm", Path.home() / "wp" / "helm"]
     for c in candidates:
-        if (c / "helm.py").exists():
+        if any((c / f).exists() for f in ("helm.py", "server.py", "helm_mcp.py")):   # v1 or v2 checkout
             return c
     return None
 
@@ -268,6 +268,57 @@ def _events(root: Path, limit: int = MAX_EVENTS_IN_SNAPSHOT) -> list[dict[str, A
     return rows[::-1]  # newest first
 
 
+def _jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        return []
+    out: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            out.append(json.loads(line))
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
+def _milestones(root: Path) -> list[dict[str, Any]]:
+    """The controller's DAG with each node's attempt history (frozen.json + attempts.jsonl)."""
+    checks = root / ".boil" / "checks"
+    if not (checks / "frozen.json").is_file():
+        return []
+    try:
+        frozen = json.loads((checks / "frozen.json").read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return []
+    ledger = _jsonl(checks / "attempts.jsonl")
+    out = []
+    for m in frozen.get("milestones", []):
+        recs = [a for a in ledger if a.get("milestone") == m.get("id")]
+        out.append({
+            "id": m.get("id", "?"), "title": m.get("title", ""), "tier": m.get("tier", ""),
+            "kind": m.get("kind", ""), "must_have": bool(m.get("must_have", True)),
+            "after": list(m.get("after", [])),
+            "attempts": max([int(a.get("attempt", 0) or 0) for a in recs], default=0),
+            "result": recs[-1].get("result", "-") if recs else "-",
+            "counterexample": next((a.get("counterexample", "") for a in reversed(recs) if a.get("counterexample")), ""),
+            "spend_usd": round(sum(float(a.get("spent_usd", 0) or 0) for a in recs), 4),
+        })
+    return out
+
+
+def _iteration_state(root: Path) -> tuple[str, bool]:
+    """(`<M>#<attempt>`, in_flight) from the controller's iteration.json, or ('', False)."""
+    p = root / ".boil" / "checks" / "iteration.json"
+    if not p.is_file():
+        return "", False
+    try:
+        it = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return "", False
+    if not it.get("milestone"):
+        return "", False
+    return f"{it['milestone']}#{it.get('attempt', 0)}", not it.get("scored")
+
+
 def _current_iteration(root: Path) -> str:
     explicit = _run_md_field(root, "Current iteration")
     if explicit:
@@ -285,7 +336,9 @@ def build_snapshot(root: Path, stem: str = "") -> dict[str, Any]:
     loops = _loops(root)
     tickets = _tickets(root, loops)
     goal = _goal_progress(root)
-    iteration = _current_iteration(root)
+    milestones = _milestones(root)
+    ctrl_iteration, in_flight = _iteration_state(root)
+    iteration = ctrl_iteration or _current_iteration(root)
     events = _events(root)
 
     blockers = [
@@ -303,14 +356,20 @@ def build_snapshot(root: Path, stem: str = "") -> dict[str, Any]:
     ][-40:]
 
     active = [t for t in tickets if t["status"] == "in-progress"]
-    if blockers:
+    must = [m for m in milestones if m["must_have"]]
+    ms_green = sum(1 for m in must if m["result"] == "PASS")
+    ms_stopped = [m for m in milestones if m["result"] in {"STALL", "CAP", "TAMPER", "BUDGET"}]
+    if blockers or ms_stopped:
         status = "blocked"
-    elif goal["total"] and goal["green"] >= goal["total"]:
+    elif (goal["total"] and goal["green"] >= goal["total"]) or (must and ms_green == len(must)):
         status = "done"
-    elif active or any((t.get("loop") or {}).get("status") == "running" for t in tickets):
+    elif in_flight or active or any((t.get("loop") or {}).get("status") == "running" for t in tickets):
         status = "running"
     else:
         status = "idle"
+    for m in ms_stopped:
+        blockers.append({"ticket": m["id"], "title": m["title"], "safe_summary": m["counterexample"][:200],
+                         "reason": f"controller verdict {m['result']} — the user decides"})
 
     demo = ""
     if iteration and (root / ".boil" / "iterations" / iteration / "demo.md").exists():
@@ -328,12 +387,15 @@ def build_snapshot(root: Path, stem: str = "") -> dict[str, Any]:
         "iteration": iteration,
         "goal_progress": {"green": goal["green"], "total": goal["total"]},
         "checkboxes": goal["checkboxes"],
+        "milestones": milestones,
         "tickets": tickets,
         "decisions": decisions,
         "blockers": blockers,
         "events": events,
         "demo": demo,
         "counts": {
+            "milestones": len(must),
+            "milestones_green": ms_green,
             "tickets": len(tickets),
             "open": sum(1 for t in tickets if t["status"] == "open"),
             "in_progress": len(active),
@@ -369,6 +431,16 @@ def render_status_md(snap: dict[str, Any]) -> str:
         for b in snap["blockers"]:
             lines.append(f"- **{b['ticket']}** — {b['safe_summary'] or b['title']}"
                          + (f"  \n  _{b['reason']}_" if b["reason"] else ""))
+        lines.append("")
+
+    if snap.get("milestones"):
+        lines += ["## Milestones (the controller's ruler)", "",
+                  f"{c['milestones_green']}/{c['milestones']} must-have green", "",
+                  "| Milestone | Tier | Attempts | Result | Spend | Last counterexample |",
+                  "|---|---|---:|---|---:|---|"]
+        for m in snap["milestones"]:
+            ce = (m["counterexample"] or "")[:70].replace("|", "\\|")
+            lines.append(f"| {m['id']} | {m['tier']} | {m['attempts']} | {m['result']} | ${m['spend_usd']:.2f} | {ce} |")
         lines.append("")
 
     live = [t for t in snap["tickets"] if t["status"] in {"in-progress", "blocked"}
@@ -412,6 +484,75 @@ def render_status_md(snap: dict[str, Any]) -> str:
 # ---------- writes -----------------------------------------------------------
 
 
+PHASE_BY_KIND = {"boil.session.start": "bootstrap", "boil.prepare": "attempt", "boil.score": "verdict",
+                 "boil.iteration.gates": "gates", "boil.demo": "demo", "boil.blocker": "blocked"}
+SHELL_MAX_EVENTS = 200
+
+
+def _upsert_shell_session(hd: Path, snap: dict[str, Any], event: dict[str, Any] | None) -> None:
+    """The cockpit's shell-session row: runs/sessions/<project>.json (+ .jsonl), in the schema
+    helm_mcp.py writes for `helm_status`, so a controller-driven session shows up on the
+    dashboard without the LLM calling any tool. Same flock + tmp/replace protocol; the
+    operator-owned MCP fields (demo, blocked) are never touched here."""
+    import fcntl
+    import tempfile
+    d = hd / "runs" / "sessions"
+    d.mkdir(parents=True, exist_ok=True)
+    name = snap["project_name"]
+    jp = d / f"{name}.json"
+    lock_fd = os.open(d / f"{name}.lock", os.O_RDWR | os.O_CREAT, 0o644)
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX)
+        try:
+            s = json.loads(jp.read_text(encoding="utf-8")) if jp.is_file() else {}
+        except (OSError, ValueError):
+            s = {}
+        ts = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()) + ".000000Z"
+        s.setdefault("project", name)
+        s["path"] = snap["project"]
+        s.setdefault("started", ts)
+        s["updated"] = ts
+        s["iteration"] = snap.get("iteration") or s.get("iteration")
+        s["session"] = snap["session_id"]
+        s["goal"] = snap.get("goal") or s.get("goal")
+        s["progress"] = f"{snap['counts'].get('milestones_green', 0)}/{snap['counts'].get('milestones', 0)} milestones" \
+            if snap["counts"].get("milestones") else f"{snap['goal_progress']['green']}/{snap['goal_progress']['total']} boxes"
+        if event:
+            kind = event.get("kind", "boil.event")
+            text = " ".join(str(x) for x in (kind, event.get("ticket"), event.get("status"), event.get("detail")) if x)
+            s["message"] = text[:500]
+            s["phase"] = PHASE_BY_KIND.get(kind, kind.split(".")[1] if "." in kind else "loop")
+            if event.get("ticket"):
+                s["ticket"] = event["ticket"]
+            ev = {"ts": ts, "kind": kind, "text": text[:500]}
+            s["events"] = (s.get("events") or [])[-(SHELL_MAX_EVENTS - 1):] + [ev]
+            fd_, tmp_name = tempfile.mkstemp(dir=d, prefix=f".{name}.", suffix=".json.tmp")
+            tmp = Path(tmp_name)
+            try:
+                with os.fdopen(fd_, "w") as f:
+                    f.write(json.dumps(s, indent=1))
+                os.replace(tmp, jp)
+            except BaseException:
+                tmp.unlink(missing_ok=True)
+                raise
+            _append_line(d / f"{name}.jsonl", json.dumps({**ev, "project": name}) + "\n")
+        else:
+            s.setdefault("message", snap.get("status", ""))
+            s.setdefault("phase", "sync")
+            fd_, tmp_name = tempfile.mkstemp(dir=d, prefix=f".{name}.", suffix=".json.tmp")
+            tmp = Path(tmp_name)
+            try:
+                with os.fdopen(fd_, "w") as f:
+                    f.write(json.dumps(s, indent=1))
+                os.replace(tmp, jp)
+            except BaseException:
+                tmp.unlink(missing_ok=True)
+                raise
+    finally:
+        fcntl.flock(lock_fd, fcntl.LOCK_UN)
+        os.close(lock_fd)
+
+
 def push_to_helm(snap: dict[str, Any], event: dict[str, Any] | None = None) -> dict[str, str]:
     """Upsert the session object + append the transition to helm's event log.
     Never raises: helm being absent, moved, or mid-upgrade must not break a boil run."""
@@ -426,6 +567,11 @@ def push_to_helm(snap: dict[str, Any], event: dict[str, Any] | None = None) -> d
         result["session"] = "written"
     except Exception as exc:  # noqa: BLE001
         result["session"] = f"failed: {exc}"
+    try:
+        _upsert_shell_session(hd, snap, event)
+        result["shell"] = "written"
+    except Exception as exc:  # noqa: BLE001
+        result["shell"] = f"failed: {exc}"
     if event:
         try:
             ts = event.get("ts") or _now()
@@ -448,7 +594,7 @@ def sync(root: Path, stem: str = "", event: dict[str, Any] | None = None,
     _atomic_write(root / ".boil" / "session.json", json.dumps(snap, indent=2, default=str) + "\n")
     _atomic_write(root / ".boil" / "STATUS.md", render_status_md(snap))
     helm_result = {"session": "disabled", "event": "disabled", "helm_dir": ""}
-    if not no_helm:
+    if not no_helm and not os.environ.get("BOIL_NO_HELM"):
         helm_result = push_to_helm(snap, event)
     return snap, helm_result
 

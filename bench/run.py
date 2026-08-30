@@ -139,6 +139,7 @@ def run_project(project: Path, implementer: str, model: str | None, keep: bool) 
     git(work, "commit", "-qm", "seed")
 
     env = dict(os.environ)
+    env["BOIL_NO_HELM"] = "1"          # a bench work tree is not an operator project
     scenario = project / "roborev-scenario.json"
     if scenario.is_file():
         fake_dir = tmp / "fake"

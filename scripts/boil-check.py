@@ -650,6 +650,25 @@ def diff_since(root: Path, head: str | None) -> str:
     return "\n".join(parts)
 
 
+def emit_status(root: Path, kind: str, ticket: str = "", attempt: int = 0, status: str = "", detail: str = "") -> None:
+    """One transition to boil-helm-log (local status.jsonl / STATUS.md, and helm's dashboard
+    when helm is installed). Best effort: a status failure never fails an iteration."""
+    log = Path(__file__).resolve().parent / "boil-helm-log.py"
+    args = [sys.executable, str(log), "emit", "--root", str(root), "--kind", kind]
+    if ticket:
+        args += ["--ticket", ticket]
+    if attempt:
+        args += ["--attempt", str(attempt)]
+    if status:
+        args += ["--status", status]
+    if detail:
+        args += ["--detail", detail[:300]]
+    try:
+        subprocess.run(args, text=True, capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
 def cmd_prepare(a: argparse.Namespace) -> int:
     root = Path(a.root).resolve()
     frozen = load_frozen(root)
@@ -676,6 +695,8 @@ def cmd_prepare(a: argparse.Namespace) -> int:
                               f"> ${frozen['budget_usd']:.2f} — stop, report cost against progress"})
         print(out["reason"])
         print(json.dumps(out))
+        if not a.dry_run:
+            emit_status(root, "boil.prepare", m["id"], out["attempt"], "BUDGET", out["reason"])
         return 40
     if a.dry_run:
         print(json.dumps(out))
@@ -704,6 +725,8 @@ def cmd_prepare(a: argparse.Namespace) -> int:
     if out["guard"] == "missing" and out["dispatch"]:
         print(f"warning: boil-guard.py is not wired in {root}/.claude/settings.json — the implementer "
               "is held off the ruler by prose only (`boil-guard.py --settings-json`)", file=sys.stderr)
+    emit_status(root, "boil.prepare", m["id"], out["attempt"], "dispatch" if out["dispatch"] else "score-directly",
+                out.get("last_counterexample") or m.get("title", ""))
     print(json.dumps(out))
     return 0
 
@@ -758,7 +781,9 @@ def cmd_score(a: argparse.Namespace) -> int:
     subprocess.run([sys.executable, str(brakes), "tick", "--root", str(root), "--iteration",
                     f"{m['id']}#{rec.get('attempt', 0)}", "--spent-usd", str(a.spent_usd)],
                    text=True, capture_output=True)
-    # 6. the only report
+    # 6. the transition, then the only report
+    emit_status(root, "boil.score", m["id"], int(rec.get("attempt", 0) or 0), rec.get("result", "?"),
+                rec.get("evidence") or rec.get("counterexample") or "")
     cmd_status(argparse.Namespace(root=str(root)))
     return code
 

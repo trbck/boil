@@ -11,6 +11,7 @@ compile time — an unbound must-have is not frozen.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -23,7 +24,9 @@ NOW = ROOT / "scripts" / "boil-now.py"
 
 
 def run(script: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run([sys.executable, str(script), *args], text=True, capture_output=True)
+    # never into the operator's helm: the bridge is tested on its own with a fake HELM_DIR
+    return subprocess.run([sys.executable, str(script), *args], text=True, capture_output=True,
+                          env=dict(os.environ, BOIL_NO_HELM="1"))
 
 
 GOAL = """# Goal

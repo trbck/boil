@@ -151,6 +151,7 @@ class Project:
         env = dict(os.environ)
         env["PATH"] = ("/nonexistent" if missing else str(self.fake)) + os.pathsep + "/usr/bin:/bin"
         env["FAKE_ROBOREV_DIR"] = str(self.fake_dir)
+        env["BOIL_NO_HELM"] = "1"
         env.pop("BOIL_ROBOREV", None)
         return env
 

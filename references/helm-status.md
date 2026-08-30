@@ -20,6 +20,7 @@ boil never *depends* on helm. The project-local files are always written; the he
 | `<project>/.boil/session.json` | boil | This session's identity + full snapshot. |
 | `$HELM_DIR/runs/boil/<session_id>.json` | boil writes, helm reads | The session as a helm object — what the dashboard and `helm boil` render. |
 | `$HELM_DIR/runs/events/<YYYY-MM>.jsonl` | boil appends, helm reads | The same transitions on helm's chronological event log, as `boil.*` kinds. |
+| `$HELM_DIR/runs/sessions/<project>.json` (+ `.jsonl`) | boil upserts, the cockpit reads | The **dashboard's shell-session row** — the schema `helm_mcp.py` writes for `helm_status`. Every emit updates `message`, `phase`, `iteration`, `ticket`; `demo` and `blocked` stay the operator's (set via the MCP tools). |
 
 The contract between the two repos is **files, not imports**. boil writes plain JSON to known paths and helm reads it, so either side can be upgraded alone. Both use a single `O_APPEND` write for log lines (the kernel serializes it), so parallel subagents and the orchestrator can all log without a lock.
 
@@ -47,7 +48,9 @@ python3 $S/boil-helm-log.py session --root <project>          # rendered
 python3 $S/boil-helm-log.py session --root <project> --json   # machine
 ```
 
-Add `--no-helm` to keep a run entirely project-local (useful in tests and fixtures — a smoke test must never write into the operator's real helm stores).
+Add `--no-helm` to keep a run entirely project-local (useful in tests and fixtures — a smoke test must never write into the operator's real helm stores). `BOIL_NO_HELM=1` in the environment does the same for every emit, including the controller's own; the bench sets it.
+
+**Under the controller nothing has to remember to log.** `boil-check.py prepare` emits `boil.prepare` and `score` emits `boil.score` (milestone, attempt, verdict, the evidence line or the counterexample), so a controller-driven session is on the dashboard from its first iteration without any `helm_status` call. The MCP tools remain for what the script cannot know: `helm_demo` (where the demo is) and `helm_blocked` (the question only the operator can answer).
 
 `scripts/boil-loop.py` emits its own transitions automatically; pass it `--no-log` to suppress that.
 
@@ -71,6 +74,8 @@ Namespaced `boil.*` so helm's existing prefix filter works unchanged: `helm even
 | `boil.demo` | Step 2e produced a demo | the demo path |
 | `boil.blocker` | A human-action ticket was filed | the safe summary |
 | `boil.iteration.gates` | `boil-run-iteration.sh` finished | ok / failure |
+| `boil.prepare` | `boil-check.py prepare` handed out a packet | `dispatch` / `score-directly` / `BUDGET`; `ticket` = milestone, `attempt` |
+| `boil.score` | `boil-check.py score` recorded a verdict | PASS / FAIL / STALL / CAP / TAMPER / BUDGET; `detail` = the EVIDENCE line or the counterexample |
 
 Every line carries `ts`, `kind`, `session`, `project`, and `stem` (empty when the session isn't linked to a helm goal), plus whichever of `ticket`, `attempt`, `status`, `detail` apply.
 
