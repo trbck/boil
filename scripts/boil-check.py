@@ -443,8 +443,15 @@ def cmd_run(a: argparse.Namespace) -> int:
     return code
 
 
+def expected_attempt_cost(root: Path) -> float:
+    """Mean cost of the attempts paid so far (0 when nothing has been paid yet)."""
+    costs = [float(a.get("spent_usd", 0) or 0) for a in attempts(root) if a.get("attempt")]
+    costs = [c for c in costs if c > 0]
+    return round(sum(costs) / len(costs), 4) if costs else 0.0
+
+
 def run_milestone(root: Path, frozen: dict, m: dict, spent_usd: float, rerun: bool, note: str,
-                  forced_failure: str = "") -> tuple[int, dict]:
+                  forced_failure: str = "", budget_gate: bool = True) -> tuple[int, dict]:
     """Gates, the check, the verdict, the ledger record. `forced_failure` is a finding from
     the diff auditor: the attempt is scored FAIL with that finding as its counterexample,
     whatever the check says — a skip marker that makes a check pass is not a pass."""
@@ -456,7 +463,7 @@ def run_milestone(root: Path, frozen: dict, m: dict, spent_usd: float, rerun: bo
         append(root, rec)
         print(f"TAMPER {m['id']}: check or protected file changed since freeze — loop aborted, human decides")
         return 50, rec
-    if frozen["budget_usd"] and spent_total(root) + a.spent_usd > frozen["budget_usd"]:
+    if budget_gate and frozen["budget_usd"] and spent_total(root) + a.spent_usd > frozen["budget_usd"]:
         rec = {"ts": ts, "milestone": m["id"], "result": "BUDGET", "spent_usd": a.spent_usd, "check": m["check"]}
         append(root, rec)
         print(f"BUDGET ${spent_total(root):.2f} > ${frozen['budget_usd']:.2f} — stop, ask the user")
@@ -651,11 +658,25 @@ def cmd_prepare(a: argparse.Namespace) -> int:
         print(json.dumps({"milestone": None, "done": True}))
         return 0
     prior = attempts(root, m["id"])
+    guard_regression = m.get("baseline") == "already-green"
     out = {"milestone": m["id"], "title": m["title"], "kind": m["kind"], "tier": m["tier"],
            "attempt": len(prior) + 1, "cap": frozen["cap"],
            "last_counterexample": (prior[-1].get("counterexample") if prior else "") or "",
            "guard": "wired" if guard_wired(root) else "missing",
-           "packet": f".boil/dispatch/{m['id']}.md"}
+           "dispatch": not guard_regression,
+           "packet": None if guard_regression else f".boil/dispatch/{m['id']}.md"}
+    if guard_regression:
+        out["reason"] = "already_green regression guard — nothing to implement; run `score` directly"
+    # Money is committed at dispatch, so the budget gate lives here, projected from the
+    # attempts already paid for. A paid attempt is always scored (see `score`).
+    spent, expected = spent_total(root), (0.0 if guard_regression else expected_attempt_cost(root))
+    if frozen["budget_usd"] and spent + expected > frozen["budget_usd"]:
+        out.update({"dispatch": False, "packet": None, "budget": "BUDGET",
+                    "reason": f"BUDGET: ${spent:.2f} spent + ${expected:.2f} expected for the next attempt "
+                              f"> ${frozen['budget_usd']:.2f} — stop, report cost against progress"})
+        print(out["reason"])
+        print(json.dumps(out))
+        return 40
     if a.dry_run:
         print(json.dumps(out))
         return 0
@@ -664,22 +685,23 @@ def cmd_prepare(a: argparse.Namespace) -> int:
         out["guard"] = "wired" if guard_wired(root) else "missing"
         print(f"wired boil-guard.py into {root / '.claude' / 'settings.json'} (PreToolUse; restart the "
               "implementer session to load it)", file=sys.stderr)
-    if out["guard"] == "missing" and not a.allow_unguarded:
+    if out["guard"] == "missing" and not a.allow_unguarded and out["dispatch"]:
         print(f"no packet: boil-guard.py is not wired in {root}/.claude/settings.json, so the implementer "
               "would be held off the ruler by prose only. Run `prepare --wire-guard` (merges the PreToolUse "
               "hook, keeps other settings), or `--allow-unguarded` to proceed anyway.")
         return 2
-    packet = Path(__file__).resolve().parent / "boil-dispatch-packet.py"
-    r = subprocess.run([sys.executable, str(packet), "--root", str(root), "--milestone", m["id"]],
-                       text=True, capture_output=True)
-    if r.returncode != 0:
-        print(r.stdout + r.stderr, file=sys.stderr)
-        return 2
+    if out["dispatch"]:
+        packet = Path(__file__).resolve().parent / "boil-dispatch-packet.py"
+        r = subprocess.run([sys.executable, str(packet), "--root", str(root), "--milestone", m["id"]],
+                           text=True, capture_output=True)
+        if r.returncode != 0:
+            print(r.stdout + r.stderr, file=sys.stderr)
+            return 2
     head = (_git(root, "rev-parse", "HEAD") or "").strip() or None
     (state_dir(root) / ITERATION).write_text(json.dumps(
         {"milestone": m["id"], "attempt": out["attempt"], "prepared_at": now(), "head": head,
          "packet": out["packet"], "guard": out["guard"]}) + "\n", encoding="utf-8")
-    if out["guard"] == "missing":
+    if out["guard"] == "missing" and out["dispatch"]:
         print(f"warning: boil-guard.py is not wired in {root}/.claude/settings.json — the implementer "
               "is held off the ruler by prose only (`boil-guard.py --settings-json`)", file=sys.stderr)
     print(json.dumps(out))
@@ -705,7 +727,13 @@ def cmd_score(a: argparse.Namespace) -> int:
         print(f"AUDIT {f}")
     forced = "; ".join(findings)
     # 2. gates, check, verdict, ledger
-    code, rec = run_milestone(root, frozen, m, a.spent_usd, not a.no_rerun, a.note or forced, forced)
+    code, rec = run_milestone(root, frozen, m, a.spent_usd, not a.no_rerun, a.note or forced, forced,
+                              budget_gate=False)
+    if frozen["budget_usd"] and spent_total(root) > frozen["budget_usd"]:
+        print(f"BUDGET: ${spent_total(root):.2f} spent > ${frozen['budget_usd']:.2f} — this attempt was paid for "
+              "and scored; the next `prepare` stops")
+        if code == 10:
+            code = 40
     # 3. on PASS the controller ticks the bound box — nobody else does
     if code == 0:
         stamped = stamp_evidence(root / ".boil" / "goal.md",

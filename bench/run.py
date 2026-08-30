@@ -107,7 +107,10 @@ def llm_attempt(project: Path, work: Path, mid: str, attempt: int, packet: str, 
     """ONE headless implementer whose entire prompt is the packet. The guard is wired into
     the work tree's .claude/settings.json so the ruler is architecturally off-limits."""
     prompt = (work / packet).read_text(encoding="utf-8")
+    # The guard hook is the fence, not the permission mode: the implementer may run its own
+    # code and scratch tests; boil-guard.py denies writes to and runs of the ruler.
     cmd = ["claude", "-p", prompt, "--output-format", "json", "--permission-mode", "acceptEdits",
+           "--allowedTools", "Bash", "Edit", "Write", "MultiEdit", "Read", "Glob", "Grep",
            "--settings", str(work / ".claude" / "settings.json")]
     if model:
         cmd += ["--model", model]
@@ -174,13 +177,15 @@ def run_project(project: Path, implementer: str, model: str | None, keep: bool) 
     for _ in range(MAX_ITERATIONS):
         pr = check("prepare", *([] if implementer == "llm" else ["--allow-unguarded"]))
         if pr.returncode != 0:
-            result["events"].append(["prepare", pr.returncode])
+            result["events"].append(["prepare", pr.returncode])   # 40 = BUDGET before dispatch
             break
         out = json.loads(pr.stdout.strip().splitlines()[-1])
         if out.get("done"):
             break
         mid, attempt = out["milestone"], out["attempt"]
-        if implementer == "scripted":
+        if not out.get("dispatch", True):
+            att = {"overlay": None, "files": [], "cost": 0.0, "dispatch": False}
+        elif implementer == "scripted":
             att = scripted_attempt(project, work, mid, attempt, out["packet"])
         else:
             att = llm_attempt(project, work, mid, attempt, out["packet"], model)

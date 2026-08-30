@@ -407,3 +407,59 @@ class ReportTest(unittest.TestCase):
             self.assertEqual(d["compile"]["runs"], 2)
         finally:
             p.close()
+
+
+class PrepareEconomicsTest(unittest.TestCase):
+    """From the first real bench run (2026-08-30): an already_green guard cost a $1.03
+    implementer call, and a $1.57 attempt was refused scoring because it crossed the budget.
+    Money is committed at dispatch, so the gates that save it live in `prepare`."""
+
+    def test_an_already_green_guard_is_scored_without_a_dispatch(self) -> None:
+        p = Project(milestones=[
+            {"id": "G", "title": "the first marker exists", "check": "test -d src", "already_green": True},
+            {"id": "M2", "title": "the second marker exists", "check": "test -f two.txt", "after": ["G"]}])
+        try:
+            self.assertEqual(p.compile().returncode, 0)
+            r = p.check("prepare")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            out = json.loads(r.stdout.strip().splitlines()[-1])
+            self.assertEqual(out["milestone"], "G")
+            self.assertFalse(out["dispatch"])
+            self.assertIn("already_green", out["reason"])
+            self.assertFalse((p.root / ".boil" / "dispatch").exists())
+            self.assertEqual(p.check("score", "--milestone", "G", "--no-review").returncode, 0)
+            out2 = json.loads(p.check("prepare").stdout.strip().splitlines()[-1])
+            self.assertEqual(out2["milestone"], "M2")
+            self.assertTrue(out2["dispatch"])
+        finally:
+            p.close()
+
+    def test_a_paid_attempt_is_always_scored_and_the_next_prepare_refuses_on_budget(self) -> None:
+        p = Project()
+        try:
+            self.assertEqual(p.compile().returncode, 0)               # budget 5.0
+            self.assertEqual(p.check("prepare").returncode, 0)
+            (p.root / "one.txt").write_text("x")
+            r = p.check("score", "--milestone", "M1", "--no-review", "--spent-usd", "6.00")
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)   # the check ran, the box is ticked
+            self.assertIn("- [x] the first marker exists", p.goal())
+            self.assertIn("BUDGET", r.stdout)                          # and the overrun is said
+            r = p.check("prepare")
+            self.assertEqual(r.returncode, 40, r.stdout + r.stderr)
+            self.assertIn("BUDGET", r.stdout)
+            self.assertFalse((p.root / ".boil" / "dispatch" / "M2.md").exists())
+        finally:
+            p.close()
+
+    def test_prepare_projects_the_next_attempt_from_the_running_average(self) -> None:
+        p = Project()
+        try:
+            self.assertEqual(p.compile().returncode, 0)               # budget 5.0
+            self.assertEqual(p.check("prepare").returncode, 0)
+            (p.root / "one.txt").write_text("x")
+            self.assertEqual(p.check("score", "--milestone", "M1", "--no-review", "--spent-usd", "3.00").returncode, 0)
+            r = p.check("prepare")                                     # 3.00 spent + ~3.00 expected > 5.00
+            self.assertEqual(r.returncode, 40, r.stdout + r.stderr)
+            self.assertIn("expected", r.stdout)
+        finally:
+            p.close()
