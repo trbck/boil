@@ -343,7 +343,9 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
   installed, the dashboard's session row (`runs/sessions/<project>.json`). Do not call `helm_status` per
   iteration. **If the `helm_demo` / `helm_blocked` MCP tools are available**, call `helm_demo` when the
   demo exists and `helm_blocked` when only the operator can unblock you; if they are absent, do nothing —
-  boil never depends on helm. `references/helm-status.md` has the contract.
+  boil never depends on helm. Write `message` in plain English a non-programmer can follow (what you are
+  doing and why it matters — not internal event grammar); machine detail belongs after a `—`.
+  `references/helm-status.md` has the contract.
 - `/loop` wraps boil for unattended runs; `/schedule` for recurring ones.
 - `hound` MCP over `WebFetch` for JS-heavy or bot-walled research fetches.
 
