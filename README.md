@@ -17,33 +17,106 @@ You say something like:
 boil the /api/orders endpoint until POST returns 201 with a real order_id
 ```
 
-`boil` then:
+`boil` crystallizes that into a small goal with observable checkboxes, compiles each box into
+a deterministic check, and then loops: hand a packet to one implementer, run the check once,
+tick the box only when the check passes, stop itself when the math says stop. Every passed
+milestone ends with a user-visible demo.
 
-1. **Reads one file.** `boil-now.py` derives `.boil/NOW.md` — ~40 lines covering project
-   status, ladder position, goal progress, the brakes, and the actionable tickets. Its exit
-   code is the instruction: 0 continue, 2 restrict to cheap work, 3 stop and ask. A parked
-   project refuses work before a line is written.
-2. **Crystallizes the goal** — and keeps it small. **A goal is one ladder criterion, not a
-   project:** max 7 checkboxes, max 2500 bytes, and it must state how you will see it works.
-   This is linted, because goal size predicts failure better than anything else measured
-   (see below).
-3. **Loops.** Each iteration picks ready tickets, dispatches them at **the tier their blast
-   radius earns**, verifies with the project's real commands, re-tests from an angle the
-   implementer did not use, and produces a 30-second demo.
-4. **Reports once.** One block: what changed, goal progress, the real proof output, the demo,
-   the next actions — and the same result appended to `.boil/log.md` as a ladder `EVIDENCE:`
-   line. Written once, used twice.
-5. **Stops itself.** Three brakes are binding and hand the decision to you rather than
-   pressing on: **stall** (three iterations with no checkbox moving), **WIP** (more than 5
-   actionable tickets), and **budget** (the goal's cap is spent).
-6. **Terminates honestly.** `boil-doctor.py --final` refuses to write a `FINAL.md` unless
-   every checkbox is green *and* carries a fresh evidence line. An unfinished goal produces
-   `HANDOFF.md` instead — X of Y done, what is left, why.
-7. **Re-measures before it believes.** A goal checkbox tagged `{#id}` is bound to a frozen check;
-   `boil-check.py verify --write` runs the check and stamps the evidence itself, `boil-doctor.py
-   --final` re-runs every check before a FINAL, and `boil-guard.py` keeps the worker off the
-   tests, the protected paths, the frozen ruler, and the human sign-off. Data counts as evidence
-   too: `boil-assert-db.py` turns a query plus an assertion into a check command.
+## What boil boils down to — rule by rule
+
+One sentence first: **the LLM is called twice per milestone — once to draft a check, once to
+attempt the milestone — and a script decides everything else.** Every rule below exists
+because its absence was measured to burn tokens without converging (two projects ran 65 and
+69 iterations, 205 and 308 tickets, for 2/7 and 0/13 checkboxes — [MERGE-PLAN.md](MERGE-PLAN.md) §1).
+Each rule names the code that enforces it and the test that proves it; none is prose-only.
+
+**1. A goal is one criterion: ≤ 7 checkboxes, ≤ 2500 bytes, a demo target.**
+Goal size predicted failure better than anything else measured: a 976-byte goal went 7/7
+green; every goal over 4.6 KB landed at 0/7, 0/13 or 2/7.
+→ [`scripts/ticket-lint.py`](scripts/ticket-lint.py) (goal rules) · [`tests/test_merged_gates.py`](tests/test_merged_gates.py)
+
+**2. A check must fail today before it may ever count.**
+An LLM-drafted check carries a ~16% false-positive rate; validating before freezing (must
+fail now, pass on a known-good state, repeat across runs, be runnable in a clean
+environment) is what makes "it passed" mean something. One rejection freezes nothing.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `validate` / `cmd_compile` · [`tests/test_verifier_first.py`](tests/test_verifier_first.py) `CompileTest`
+
+**3. Every must-have milestone is bound to a goal checkbox, and only the controller ticks it.**
+`compile` stamps `{#id}` onto the box; `score` writes the tick and the `EVIDENCE:` line
+itself. No LLM ever turns a box green by prose — the failure mode the whole skill exists
+to prevent.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `bind_boxes` / `stamp_evidence` · [`tests/test_iteration.py`](tests/test_iteration.py) `CompileBindsBoxesTest`, `ScoreTest`
+
+**4. The implementer never sees, and can never run, the check.**
+Agents that can see or invoke their scorer game it (~43× more reward hacking in METR's
+data). The implementer gets a packet — milestone statement, proxy gap, one counterexample,
+required skills — and the guard denies both writes to the ruler and *runs* of it.
+→ [`scripts/boil-dispatch-packet.py`](scripts/boil-dispatch-packet.py) · [`scripts/boil-guard.py`](scripts/boil-guard.py) `runs_the_ruler` · [`tests/test_ruler.py`](tests/test_ruler.py) `GuardTest`, `GuardExecutionTest`
+
+**5. One iteration is two commands.**
+`prepare` (next milestone → packet → guard wired?) and `score` (audit → the check once →
+box ticked → review decision → one status line). The old loop was seven commands the driver
+ran from memory — every step tokens, every step a place to deviate.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `cmd_prepare` / `cmd_score` · [`tests/test_iteration.py`](tests/test_iteration.py)
+
+**6. Exactly one counterexample line flows back; four attempts, then stop.**
+The retry ladder is 1 fresh attempt → ≤ 2 feedback rounds seeded with the single failing
+line → 1 fresh-context resample. Rounds 1–2 capture 76–95% of the achievable gain;
+in-context retries reproduce the same wrong program 33–68% of the time. The same failure
+twice is a STALL → the milestone is split once, never retried a fifth time.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `run_milestone` / `counterexample` / `cmd_split` · [`tests/test_verifier_first.py`](tests/test_verifier_first.py) `RunTest`, `CounterexampleTest`
+
+**7. Touching the ruler is an abort, not a warning.**
+The check command and its protected files are hashed together at freeze; any drift is
+TAMPER (exit 50) and the loop halts for a human. Build caches are not part of the ruler.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `harness_hash` · [`tests/test_verifier_first.py`](tests/test_verifier_first.py) `ProtectedPathHashTest` · [`bench/projects/tamper`](bench/projects/tamper)
+
+**8. The money gates run before the money is spent.**
+`prepare` refuses to dispatch when spend plus the running-average attempt cost would cross
+the budget; a paid attempt is always scored. Learned from the first real bench run, where a
+$1.57 attempt was refused scoring after the fact.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `expected_attempt_cost` · [`tests/test_iteration.py`](tests/test_iteration.py) `PrepareEconomicsTest`
+
+**9. An audit finding scores the attempt as a failure, whatever the check says.**
+Skip markers, monkey-patching, writes under protected paths, git-history access in the
+attempt's diff are never explained away — the diff auditor's verdict overrides a green check.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `audit_text` (forced failure in `cmd_score`) · [`tests/test_iteration.py`](tests/test_iteration.py) `ScoreTest`
+
+**10. A second model reads the code only when a script says it is worth it.**
+Per-commit review hooks once produced 11 of 43 commits as review churn. `boil-review.py`
+fires after a PASS on deterministic triggers (tier, risk path, final milestone, accumulated
+lines), allows one review round and one fix round, turns must-fix findings into a DAG node
+gated by the parent's frozen check, and logs the rest — never a ratchet, never the gate.
+→ [`scripts/boil-review.py`](scripts/boil-review.py) `decide` · [`tests/test_review.py`](tests/test_review.py)
+
+**11. Evidence is re-measured before it is believed.**
+`verify --write` re-runs every frozen check and stamps what passes; `boil-doctor.py
+--final` re-runs everything before a FINAL and expires stale human sign-offs; data counts
+via [`scripts/boil-assert-db.py`](scripts/boil-assert-db.py). An unfinished goal gets `HANDOFF.md`, never `FINAL.md`.
+→ [`scripts/boil-check.py`](scripts/boil-check.py) `cmd_verify` · [`scripts/boil-doctor.py`](scripts/boil-doctor.py) · [`tests/test_ruler.py`](tests/test_ruler.py) `VerifyTest`, `DoctorFinalTest`
+
+**12. The brakes are binding, and the driver never grants itself another attempt.**
+STALL / CAP / TAMPER / BUDGET, an open review, three flat iterations, or a spent budget
+hand the decision to the user. A brake that fires is a planned exit, not a failure.
+→ [`scripts/boil-brakes.py`](scripts/boil-brakes.py) · [`tests/test_verifier_first.py`](tests/test_verifier_first.py) `BrakesIntegrationTest`
+
+**13. Effectiveness is measured, not asserted.**
+The bench drives the whole protocol over seeded repos: scripted mode fires every controller
+verdict on real code in CI (~10 s); llm mode runs a real implementer per attempt and
+records first-attempt pass rate and **dollars per green checkbox** — the number the skill
+optimises. `boil-check.py report` prints the same numbers for any real project.
+First measurement (2026-08-30): 3/4 green, 100% first-attempt pass, $2.04 per green box.
+→ [`bench/run.py`](bench/run.py) · [`tests/test_bench.py`](tests/test_bench.py) · [`scripts/boil-check.py`](scripts/boil-check.py) `report_data`
+
+**14. The status line is the report, and the cockpit gets it for free.**
+`score` ends with one machine line; prose about work whose truth value the script already
+holds is the most expensive output in the loop. Every transition also lands in
+`.boil/status.jsonl` and on helm's dashboard without any tool call by the model.
+→ [`scripts/boil-helm-log.py`](scripts/boil-helm-log.py) · [`tests/test_helm_bridge.py`](tests/test_helm_bridge.py) · [`tests/test_docs.py`](tests/test_docs.py)
+
+The one-sentence summary of all fourteen: **whoever is being measured never owns the ruler —
+and the ruler is a script, so "done" is a measurement, not a claim.** The research behind the
+numbers is in `_research/boil-convergence/PLAN.md` (200-source hyperresearch run, 2026-08-29).
 
 ## The controller (verifier-first, since 2026-08-29)
 
