@@ -448,3 +448,18 @@ class NowTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ClaudeSessionTrailerTest(unittest.TestCase):
+    """Found live on streammachine: `Claude-Session:` lines survived the strip and the guard.
+    Any AI session/attribution trailer is attribution."""
+
+    def test_claude_session_trailer_is_flagged(self) -> None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "bcg", Path(__file__).resolve().parents[1] / "scripts" / "boil-commit-guard.py")
+        bcg = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(bcg)
+        self.assertTrue(bcg.AI_PATTERN.search("Claude-Session: https://claude.ai/code/session_01X"))
+        self.assertTrue(bcg.AI_PATTERN.search("Codex-Session: https://chatgpt.com/codex/x"))
+        self.assertFalse(bcg.AI_PATTERN.search("uses the claude-ollama wrapper for reviews"))
