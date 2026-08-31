@@ -9,6 +9,20 @@ built and verified?). Every iteration ends with a **user-visible demo**.
 > because a separate skill has to be invoked voluntarily — and measurably was not. See
 > [MERGE-PLAN.md](MERGE-PLAN.md) for the evidence and the design.
 
+**In plain terms:** you give boil a goal with checkboxes. It turns each box into a real,
+runnable check (a test, a command, a data assertion), locks those checks so nobody — human
+or model — can quietly weaken them, and then loops: one AI attempt, one check run, box
+ticked only when the check passes. It stops itself on stalls, spent budgets, or tampering,
+and it can always show you a one-line status, a demo, and a cost-per-result number.
+
+```text
+goal.md ──compile──▶ frozen checks ──▶ ┌────────────── one iteration ──────────────┐
+ - [ ] box {#M1}      (validated,      │ prepare → packet → ONE implementer        │──▶ box
+ - [ ] box {#M2}       hashed, bound)  │ score   → check runs once → verdict       │    ticked +
+                                       │           PASS / RETRY / STALL / …        │    evidence
+                                       └────────────────────────────────────────────┘
+```
+
 ## What it does
 
 You say something like:
@@ -159,8 +173,9 @@ Ceremony is chosen by blast radius, not by habit:
 | **T2** delegated | one builder subagent + independent orchestrator verification | needs isolation, or parallelisable |
 | **T3** adversarial | frozen answer key + builder + isolated judge in a different model family + deterministic manager + cross-LLM review | money, auth, data loss, production — or anything that already failed twice |
 
-`tier:` is a required ticket field; `ticket-lint.py` warns when a T1/T2 ticket mentions
-payment, auth, migrations or production. Most tickets are T1.
+Under the controller a tier labels a **milestone** (it drives the reviewer's triggers and
+the dispatch ceremony); in legacy ticket projects it labels a ticket. `ticket-lint.py`
+warns when a T1/T2 item mentions payment, auth, migrations or production. Most work is T1.
 
 ## Why the limits exist
 
@@ -180,7 +195,13 @@ Convergence was. Passes that file tickets rather than fix them make the pool a g
 existed **zero** times across 86 loop directories. Rules that live only in prose do not
 execute. Every limit above is therefore a script with a test.
 
-## The self-correcting loop (tier T3)
+## The self-correcting loop (tier T3, legacy ticket projects)
+
+> Under the controller (2026-08-30) a T3 **milestone** runs through the same
+> `prepare` / `score` as every other tier — the frozen check is the answer key, the script
+> is the judge, and `boil-review.py` is the cross-model review. This section describes the
+> older builder/judge/manager protocol, still used by projects mid-flight on tickets
+> ([`references/legacy-ticket-loop.md`](references/legacy-ticket-loop.md)).
 
 Every **T3** ticket runs a bounded correction cycle with three roles:
 
@@ -212,7 +233,7 @@ python3 scripts/boil-helm-log.py sync --root /path/to/project              # .bo
 python3 scripts/boil-helm-log.py link --root /path/to/project --stem <helm goal>
 ```
 
-boil always writes `.boil/status.jsonl` (append-only) and `.boil/STATUS.md` (rendered). When [helm](https://github.com/trbck/helm) is installed, the same snapshot is registered as a first-class helm object, so `helm boil` and the helm dashboard show the running session — its tickets, each ticket's frozen answer key, the judge's reasoning per attempt, and every manager decision with its reason — live and reviewable afterwards. No helm, no problem: the project-local files are the canonical record either way. See [`references/helm-status.md`](references/helm-status.md).
+boil always writes `.boil/status.jsonl` (append-only) and `.boil/STATUS.md` (rendered). When [helm](https://github.com/trbck/helm) is installed, the same snapshot is registered as a first-class helm object, so `helm boil` and the helm dashboard show the running session — the milestone being attempted, each attempt's verdict and counterexample, spend against budget, and the reviewer's findings — live and reviewable afterwards. `prepare` and `score` report automatically; no tool call by the model is involved. No helm, no problem: the project-local files are the canonical record either way. See [`references/helm-status.md`](references/helm-status.md).
 
 ## Trigger phrases
 
@@ -303,68 +324,54 @@ rsync -avz --delete --exclude='.git' -e ssh ~/.claude/skills/boil/ remote:.claud
 
 ```
 boil/
-├── SKILL.md                          Main entry — phases, hard rules, integration
-├── commands/boil.md                  /boil slash command
-├── requirements.txt                   Python dependency for story-run.py
-├── templates/                        charter, ladder, log, scorecard, CLAUDE.md snippet
-├── examples/governance/              filled charter + ladder showing evidence discipline
-├── references/
-│   ├── clanker-constitution.md      Baseline conduct layer — the Clanker Constitution
-│   │                                 verbatim (CC BY 4.0) + mapping to boil's hard rules
-│   ├── outer-loop.md                 Charter, maturity ladder L0-L5, evidence rules,
-│   │                                 the ticket-pool WIP rules, the three brakes,
-│   │                                 portfolio + audit protocol (absorbed from gate)
-│   ├── effort-tiers.md               T1/T2/T3: which ceremony a ticket pays and why
-│   ├── plain-english-output.md      Optional claudish-to-english wiring + scoping rules
-│   ├── brainstorm-questions.md       Phase 0 question pool for fuzzy goals
-│   ├── state-files.md                Templates for goal/memory/implementation/bugs/iter
-│   ├── ticket-system.md              Ticket schema + dispatch prompt + handoff rules
-│   ├── specialty-routing.md          specialty → platform dispatch profile
-│   ├── demo-formats.md               9 recipes: web UI, API, CLI, library, bug fix,
-│   │                                 test-only, performance, docs, refactor
-│   ├── self-correcting-loop.md       builder/judge/manager triad: answer-key contract,
-│   │                                 handoff formats, decision table, retry limit,
-│   │                                 escalation packet, red-team suite
-│   ├── helm-status.md                Status logging: event kinds, the session object,
-│   │                                 and how boil sessions render in helm
-│   ├── rubrics.md                    Semantic LLM-as-judge layer for non-deterministic
-│   │                                 checklist items
-│   └── stories.md                    User-experience contracts (BPM-style): functional +
-│                                     quant + UX assertions in one file, replayed by
-│                                     scripts/story-run.py
-└── scripts/
-    ├── story-run.py                  v0 runner — HTTP lane implemented,
-    │                                 SQL/Redis/UX require project adapters;
-    │                                 rubric requires judge verdict files
-    ├── story-run.sh                  thin wrapper for the .sh-style invocation
-    ├── boil-loop.py                  the manager: freezes answer keys, applies the
-    │                                 decision table, enforces the retry limit,
-    │                                 writes escalation packets
-    ├── boil-helm-log.py              status logging + the helm session bridge
-    ├── boil-now.py                   the session-start read; derives .boil/NOW.md
-    ├── boil-brakes.py                tick per iteration; check stall / WIP / budget
-    ├── boil-portfolio.py             regenerates PORTFOLIO.md; --check for CI/cron
-    ├── boil-migrate.py               folds a legacy .gate/ into .boil/
-    ├── boil_common.py                shared frontmatter/checkbox parsing helpers
-    ├── boil-doctor.py                validates a `.boil/` workspace; --final is the
-    │                                 termination gate (no FINAL.md without evidence)
-    ├── ticket-lint.py                lints ticket schema, tier, goal size, answer keys,
-    │                                 blockers, secrets
-    ├── vibe-check.py                 flags summaries without proof/demo/next steps
-    ├── boil-verify-iteration.sh      gates one iteration directory
-    ├── boil-run-iteration.sh         runs doctor/lint/story/test/iteration gates
-    ├── boil-sync-agents.py           writes AGENTS.md, Cursor rules, routing
-    ├── boil-dispatch-packet.py       writes compact per-ticket agent packets
-    ├── boil-debug-mode.py            creates systematic-debugging worksheets
-    ├── boil-pr-summary.py            generates a PR body from boil state
-    └── install-codex-skill.py        installs/updates this checkout in Codex
+├── SKILL.md                     What loads into context: phases, the loop, hard rules, router
+├── commands/boil.md             /boil slash command
+├── scripts/                     THE CONTROLLER (what the loop actually runs)
+│   ├── boil-check.py            compile · prepare · score · split · verify · report · status
+│   ├── boil-dispatch-packet.py  the implementer's packet — never the check
+│   ├── boil-guard.py            PreToolUse hook: no writes to, and no runs of, the ruler
+│   ├── boil-review.py           milestone-wise second-model review (roborev), one round + one fix
+│   ├── boil-brakes.py           stall / WIP / budget / controller-verdict / review brakes
+│   ├── boil-doctor.py           workspace validation; --final re-runs every check before FINAL
+│   ├── boil-now.py              the one session-start read (.boil/NOW.md)
+│   ├── boil-helm-log.py         status.jsonl / STATUS.md + the helm dashboard bridge
+│   ├── boil-assert-db.py        a SQL query + assertion as a check command (the data sensor)
+│   ├── boil-commit-guard.py     no AI attribution in commits; --install-hook
+│   ├── ticket-lint.py           goal size, {#id} binding, frozen-checks lint
+│   └── …                        legacy ticket-loop machinery (boil-loop.py, story-run.py,
+│                                vibe-check.py, iteration gates) — see references/legacy-ticket-loop.md
+├── bench/                       the convergence bench: every controller verdict on real code
+│   ├── run.py                   --implementer scripted (CI, ~10 s) | llm ($/green box, by hand)
+│   └── projects/                five seeded mini-repos (retry, stall→split, cap, tamper, review)
+├── tests/                       254 tests — every rule in the README names its test here
+├── references/                  loaded on demand by the router in SKILL.md
+│   ├── state-files.md           every .boil/ file and the milestones.json schema
+│   ├── effort-tiers.md          T1–T4: which ceremony a milestone pays and why
+│   ├── outer-loop.md            charter, maturity ladder, portfolio discipline
+│   ├── legacy-ticket-loop.md    the parked ticket loop, and how to migrate off it
+│   └── …                        demo formats, rubrics, stories, helm status, conduct
+├── templates/  examples/        charter/ladder templates, a minimal governance example
+└── requirements.txt
 ```
 
-`SKILL.md` is loaded into context whenever the skill triggers. The `references/` files are loaded on demand by the orchestrator as needed.
+`SKILL.md` is loaded into context whenever the skill triggers; everything under
+`references/` loads only when its trigger fires.
 
 ## How it works (one-paragraph version)
 
-The skill treats the session as a small software firm that knows what it costs. It reads the board once (`NOW.md`), then each iteration picks ready tickets and gives each one only as much process as its blast radius earns: most are handled directly, some go to a specialist subagent, and the expensive minority — money, auth, data loss, production — get the full adversarial protocol with a frozen answer key and an independent judge. It verifies with the project's real commands, re-tests from an angle the implementer did not use, and produces a demo you can check in 30 seconds. When agents find work outside their ticket they file proposals; anything past the WIP limit goes to the icebox unrouted. The loop stops when the checklist is green **and evidenced**, when you say stop, or when a brake fires — three iterations without a checkbox moving, a pool that outran the consumer, or a spent budget. A fired brake hands you the decision; it does not grant itself another attempt.
+The goal's checkboxes are compiled into deterministic checks — each one must fail today,
+pass on a known-good state, repeat across runs, and bind to exactly one box — and then
+frozen: hashed together with the files it depends on, off-limits to the implementer, who
+can neither read the check's command nor run it. From there the loop is two commands per
+milestone: `prepare` hands a packet (milestone statement, proxy gap, one counterexample
+from the last failure, required skills) to one fresh implementer, and `score` audits the
+diff, runs the check once, ticks the bound box itself with a machine-written evidence line,
+asks a second model to read the code when a deterministic trigger says it is worth the
+cost, and prints one status line. Four attempts per milestone, the same failure twice is a
+stall, touching the ruler aborts, spend is gated before dispatch — and when every box is
+green, `boil-doctor.py --final` re-runs every check before it believes any of it. What you
+get out is a demo per milestone and a report with the number that matters:
+**dollars per green checkbox**.
 
 ## Hard rules
 
@@ -415,38 +422,32 @@ If a ticket references a specialty not in the routing table, the orchestrator fa
 
 ## Guardrail scripts
 
-These scripts are the mechanical layer that pushes boil away from "vibe coding"
-and toward agentic looped development:
+The mechanical layer. The loop itself:
 
 ```bash
-# the loop's own gates
-python3 scripts/boil-now.py     --root /path/to/project --write   # THE session-start read
-python3 scripts/boil-brakes.py  tick  --root /path/to/project --iteration iter-001 --spent-usd 0.80
-python3 scripts/boil-brakes.py  check --root /path/to/project     # 0 continue / 2 restrict / 3 stop
-python3 scripts/boil-doctor.py  --final --root /path/to/project --write   # termination gate
-python3 scripts/boil-portfolio.py --root ~/workspace --check      # exits 1 on rule violations
-python3 scripts/boil-migrate.py --root /path/to/project --apply   # fold a legacy .gate/ in
+python3 scripts/boil-check.py compile --root P --spec P/.boil/milestones.json  # validate → bind → freeze
+python3 scripts/boil-check.py prepare --root P                    # next milestone → packet → guard check
+python3 scripts/boil-check.py score   --root P --milestone M3     # audit → check once → tick → review → status
+python3 scripts/boil-check.py report  --root P                    # attempts, first-pass rate, $ per green box
+python3 scripts/boil-check.py verify  --root P --write            # re-run every frozen check, stamp what passes
+python3 bench/run.py --implementer scripted                       # the whole protocol on real code (CI)
+```
 
-# T3 machinery
-python3 scripts/boil-loop.py init   --root /path/to/project --ticket T-0001   # freeze the key
-python3 scripts/boil-loop.py decide --root /path/to/project --ticket T-0001 --attempt 1
-python3 scripts/boil-loop.py status --root /path/to/project
-python3 scripts/boil-loop.py audit  --root /path/to/project     # loop-safety gate
-python3 scripts/boil-helm-log.py sync --root /path/to/project   # STATUS.md + helm session
-python3 scripts/boil-commit-guard.py --root /path/to/project   # no AI trailers in commits
-python3 scripts/boil-commit-guard.py --install-hook            # reject them at commit time
-python3 scripts/boil-doctor.py --root /path/to/project
-python3 scripts/ticket-lint.py --root /path/to/project
-python3 scripts/vibe-check.py /path/to/project/.boil/iterations/iter-001/summary.md
-bash scripts/boil-verify-iteration.sh iter-001 /path/to/project
-bash scripts/boil-run-iteration.sh iter-001 /path/to/project --test-cmd "pytest -q"
-python3 scripts/boil-sync-agents.py --root /path/to/project
-python3 scripts/boil-dispatch-packet.py T-0001 --root /path/to/project
-python3 scripts/boil-debug-mode.py --root /path/to/project --iteration iter-001 --ticket T-0001
-python3 scripts/boil-pr-summary.py --root /path/to/project --out /tmp/pr.md
-python3 scripts/install-codex-skill.py
+Session and project gates:
+
+```bash
+python3 scripts/boil-now.py     --root P --write                  # THE session-start read
+python3 scripts/boil-brakes.py  check --root P                    # 0 continue / 2 restrict / 3 stop
+python3 scripts/boil-doctor.py  --final --root P --write          # termination gate
+python3 scripts/boil-portfolio.py --root ~/workspace --check      # portfolio rules
+python3 scripts/boil-commit-guard.py --root P                     # no AI trailers; --install-hook
+python3 scripts/ticket-lint.py  --root P                          # goal size, binding, frozen checks
 python3 -m unittest discover -s tests
 ```
+
+Legacy ticket-loop machinery (`boil-loop.py`, `story-run.py`, `vibe-check.py`, the
+iteration-directory gates) still works for projects mid-flight on tickets — see
+[`references/legacy-ticket-loop.md`](references/legacy-ticket-loop.md).
 
 The minimal fixture in `examples/minimal-loop/` shows the expected state shape across
 all three scopes — charter/ladder/log, goal/tickets/proof-map, and the brake state
