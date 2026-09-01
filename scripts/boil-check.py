@@ -488,9 +488,12 @@ def run_milestone(root: Path, frozen: dict, m: dict, spent_usd: float, rerun: bo
     if forced_failure:
         rc, out = 1, f"AUDIT: {forced_failure}"
     else:
-        rc, out = run_cmd(root, m["check"], DEFAULT_TIMEOUT)
+        # the frozen record's timeout, not the global default — a 6-minute gate
+        # died at 300s on every scored attempt until this respected the knob
+        chk_timeout = int(m.get("timeout", DEFAULT_TIMEOUT))
+        rc, out = run_cmd(root, m["check"], chk_timeout)
         if rc == 0 and a.rerun:  # a pass must repeat: 84% of pass->fail transitions are flakes
-            rc2, out2 = run_cmd(root, m["check"], DEFAULT_TIMEOUT)
+            rc2, out2 = run_cmd(root, m["check"], chk_timeout)
             if rc2 != 0:
                 rc, out = rc2, "FLAKY: passed once then failed\n" + out2
     if rc == 0:
