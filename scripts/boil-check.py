@@ -310,6 +310,11 @@ def validate(root: Path, m: dict, runs: int) -> tuple[dict | None, str]:
         "baseline": "falsifiable" if fails_now else "already-green",
         "counterexample_at_compile": counterexample(first_out) if fails_now else "",
         "frozen_at": now(),
+        # score/verify read the timeout from THIS record; dropping it here silently
+        # reverted every long check to DEFAULT_TIMEOUT at run time (found 2026-09-01:
+        # a 6-minute full-suite gate died at 300s on every controller run while
+        # passing by hand, burning two attempts and a compile validation).
+        "timeout": int(m.get("timeout", DEFAULT_TIMEOUT)),
     }
     return fm, ""
 
@@ -349,7 +354,10 @@ def cmd_compile(a: argparse.Namespace) -> int:
             fm = dict(old, title=m.get("title", old.get("title")), after=list(m.get("after", [])),
                       kind=m.get("kind", old.get("kind")), tier=m.get("tier", old.get("tier")),
                       proxy_gap=m.get("proxy_gap", old.get("proxy_gap")),
-                      must_have=bool(m.get("must_have", old.get("must_have", True))))
+                      must_have=bool(m.get("must_have", old.get("must_have", True))),
+                      # timeout is a run-time knob, not part of the frozen ruler's
+                      # identity — the spec's current value wins on a carry.
+                      timeout=int(m.get("timeout", old.get("timeout", DEFAULT_TIMEOUT))))
             frozen["milestones"].append(fm)
             print(f"FROZEN {m['id']} hash={fm['hash']} baseline={fm['baseline']} (carried from {fm['frozen_at']})")
             continue
