@@ -644,14 +644,43 @@ def wire_guard(root: Path) -> None:
     p.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
 
 
+# The controller's own bookkeeping (status ledgers, dispatch packets, NOW/STATUS, goal text)
+# is never the implementer's work — auditing it made every quoted counterexample that
+# mentioned `git show` re-fail the next attempt (fomo2, 2026-09-03: two attempts lost).
+# The ruler itself (.boil/checks, .boil/milestones.json) stays in scope: the frozen hash is
+# the tamper detector of record, but a write there is also an audit finding.
+_RULER_PREFIXES = (".boil/checks/", ".boil/milestones.json")
+
+
+def _is_controller_state(rel: str) -> bool:
+    rel = rel.replace("\\", "/")
+    if rel.startswith(_RULER_PREFIXES):
+        return False
+    return rel.startswith(".boil/") or rel.startswith(".claude/")
+
+
+def _controller_state_stripped(diff: str) -> str:
+    """Drop the per-file chunks of a unified diff that belong to controller state."""
+    out: list[str] = []
+    skipping = False
+    for ln in diff.splitlines(keepends=True):
+        if ln.startswith("diff --git "):
+            path = ln.split(" b/", 1)[1].strip() if " b/" in ln else ""
+            skipping = _is_controller_state(path)
+        if not skipping:
+            out.append(ln)
+    return "".join(out)
+
+
 def diff_since(root: Path, head: str | None) -> str:
     """The attempt's diff: tracked changes since `head` plus every untracked file as added
-    lines, in unified-diff shape so the auditor sees `+++ b/<path>` headers."""
+    lines, in unified-diff shape so the auditor sees `+++ b/<path>` headers. Controller
+    state under .boil/ (except the ruler) and .claude/ is not the attempt's work."""
     if not head:
         return ""
-    parts = [_git(root, "diff", head) or ""]
+    parts = [_controller_state_stripped(_git(root, "diff", head) or "")]
     for rel in (_git(root, "ls-files", "--others", "--exclude-standard") or "").splitlines():
-        if not rel or _is_artifact(Path(rel)):
+        if not rel or _is_artifact(Path(rel)) or _is_controller_state(rel):
             continue
         try:
             body = (root / rel).read_text(encoding="utf-8", errors="replace")
