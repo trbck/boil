@@ -18,6 +18,7 @@ Examples:
 """
 
 import argparse
+import math
 import os
 import re
 import sys
@@ -28,6 +29,108 @@ import ka_common as K  # noqa: E402
 
 STOP = set("the a an of to and or for with in on at by is are be as it its that this "
            "how what when why do does not no from into than then".split())
+
+# --- BM25 (used only by cmd_search's ranked search) ---------------------------
+#
+# score()/terms() above stay untouched — --engine's ranking still uses them,
+# unchanged, exactly as before. Free-text --search gets its own tokenizer and
+# Okapi BM25 (k1=1.5, b=0.75) instead: no substring matching (a document
+# containing "brisk" no longer matches a query for "risk"), and IDF so a term
+# that appears in most of the corpus stops dominating ranking. Stats are
+# corpus-wide but computed fresh per call — the indexed corpus is small enough
+# (rules + chapter blobs + section titles: low thousands of tokens) that this
+# is microseconds, and it keeps the CLI a pure function of the on-disk index
+# with nothing to invalidate.
+#
+# The STOP set is still applied here (reused from above, just against real
+# tokens instead of substrings). IDF alone was tried and measured worse: many
+# documents in this corpus are short (section titles average ~6 words), so a
+# coincidental match on two stopwords ("when", "and") in a 6-word title still
+# outscores a genuine topical match buried in a 30-word rule, because BM25's
+# length normalization amplifies every term's contribution in short documents.
+# Dropping stopwords before scoring — not just discounting them via IDF —
+# is what tests/retrieval-questions.json showed was actually needed.
+
+BM25_K1 = 1.5
+BM25_B = 0.75
+# Verbatim phrase match is real signal (the user typed almost exactly what the
+# rule says) but must not swamp term-overlap ranking now that scores are
+# unbounded floats instead of small integers. Tuned against
+# tests/retrieval-questions.json — see the eval report for the sweep.
+PHRASE_BONUS = 2.0
+# Favours a chapter's own framing over its rules/sections when they're
+# fighting over the same handful of query terms. Swept 0.5-12 against the
+# eval set: hit@1 climbs from 0.467 at 0 up to 0.500 by ~3 and plateaus
+# there; MRR peaks (0.579) around 5 and falls off past ~10 as a chapter
+# starts beating its own more-specific rule outright on generic queries.
+# 5 sits at the plateau on hit@1 while still at MRR's peak — see the eval
+# report for the full sweep and the one rule-level regression it causes.
+CHAPTER_BOOST = 5.0
+
+_BM25_TOKEN_RE = re.compile(r"[a-z0-9_]+(?:[.%][a-z0-9_]+)*%?")
+
+
+def bm25_tokens(text):
+    """Word-boundary tokens for BM25: lowercase, keep v1.2 / 20% / work_mem
+    intact, drop the existing STOP set — see the note above for why IDF alone
+    isn't enough here."""
+    return [t for t in _BM25_TOKEN_RE.findall(text.lower()) if len(t) > 1 and t not in STOP]
+
+
+def _bm25_idf(doc_freq, n_docs):
+    """Robertson–Sparck Jones IDF with +1 smoothing so it never goes negative
+    even for a term in every document."""
+    return math.log((n_docs - doc_freq + 0.5) / (doc_freq + 0.5) + 1.0)
+
+
+def build_bm25_stats(token_lists):
+    """Document frequency and count over a list of already-tokenized documents.
+    This *is* "the merged corpus" — whatever run_search is about to score, in
+    the same call, is what IDF is computed from."""
+    n = len(token_lists)
+    df = {}
+    for toks in token_lists:
+        for t in set(toks):
+            df[t] = df.get(t, 0) + 1
+    return df, n
+
+
+def avg_len_by_type(typed_token_lists):
+    """Average document length per record type (rule / chapter / section).
+
+    Rule text (~14 tokens), a chapter's title+governs+thesis blob (~44) and a
+    bare section title (~3-4) are different *kinds* of document, not samples
+    of one distribution. A single corpus-wide avgdl makes BM25's length
+    normalization systematically favour section titles — a title matching one
+    query word outscores a chapter or rule matching the same word, purely
+    because the title is short — which was measured to actively hurt ranking
+    (see the eval report). Normalizing each type against its own average
+    (BM25F-style) fixes that while df/IDF above still comes from the one
+    merged corpus, as specified."""
+    totals, counts = {}, {}
+    for typ, toks in typed_token_lists:
+        totals[typ] = totals.get(typ, 0) + len(toks)
+        counts[typ] = counts.get(typ, 0) + 1
+    return {typ: (totals[typ] / counts[typ]) for typ in totals}
+
+
+def bm25_score(tokens, query_terms, df, avgdl, n_docs, k1=BM25_K1, b=BM25_B):
+    """Okapi BM25 of one document against a query's (already deduped) terms."""
+    if not tokens or not query_terms:
+        return 0.0
+    tf = {}
+    for t in tokens:
+        tf[t] = tf.get(t, 0) + 1
+    dl = len(tokens)
+    length_norm = 1 - b + b * (dl / avgdl if avgdl else 1.0)
+    total = 0.0
+    for t in query_terms:
+        f = tf.get(t, 0)
+        if not f:
+            continue
+        idf = _bm25_idf(df.get(t, 0), n_docs)
+        total += idf * (f * (k1 + 1)) / (f + k1 * length_norm)
+    return total
 
 
 def load_indexes(domain_id=None):
@@ -81,40 +184,68 @@ def tag(rec, multi):
 
 # --- commands ----------------------------------------------------------------
 
-def cmd_search(idx, query, limit, pack_filter, kind):
-    qt, phrase = terms(query), query.lower().strip()
+def run_search(idx, query, pack_filter=None, kind="all"):
+    """Rank every rule/chapter/section against `query` with BM25 and return
+    results, sorted best-first, as (score, type, ident, text, ctx) tuples.
+
+    Split out from cmd_search so callers other than the CLI (the retrieval
+    eval harness) can get the ranked list without scraping stdout.
+    """
+    query_terms = list(dict.fromkeys(bm25_tokens(query)))  # dedup, order-stable
+    phrase = query.lower().strip()
     multi = len(idx["domains"]) > 1
-    results = []
+
+    # Pass 1: collect every candidate document — this list *is* the corpus BM25's
+    # IDF is computed from, so stats reflect exactly what this call scans (a
+    # `--kind rules` search gets IDF over rules alone, not the whole index).
+    candidates = []  # (typ, ident, display_text, ctx, raw_text, tokens)
 
     if kind in ("all", "rules"):
         for rule in idx["rules"]:
             if pack_filter and rule["pack"] != pack_filter:
                 continue
-            s = score(rule["text"], qt, phrase)
-            if s:
-                results.append((s, "rule", tag(rule, multi), rule["text"],
-                                "%s · %s" % (rule["parent"], ",".join(rule["topics"]))))
+            candidates.append(("rule", tag(rule, multi), rule["text"],
+                                "%s · %s" % (rule["parent"], ",".join(rule["topics"])),
+                                rule["text"], bm25_tokens(rule["text"])))
 
     if kind in ("all", "chapters"):
         for ch in idx["chapters"] + idx["notes"]:
             blob = " ".join(filter(None, [ch.get("title"), ch.get("governs"), ch.get("thesis")]))
-            s = score(blob, qt, phrase)
-            if s:
-                results.append((s + 1, "chapter", tag(ch, multi), ch.get("title") or "",
-                                K.strip_md(ch.get("governs") or "")[:120]))
+            candidates.append(("chapter", tag(ch, multi), ch.get("title") or "",
+                                K.strip_md(ch.get("governs") or "")[:120],
+                                blob, bm25_tokens(blob)))
             for sec in ch.get("sections", []):
-                s2 = score(sec["title"], qt, phrase)
-                if s2:
-                    results.append((s2, "section", "%s§%s" % (tag(ch, multi), sec["key"]),
-                                    sec["title"], ch.get("title") or ""))
+                candidates.append(("section", "%s§%s" % (tag(ch, multi), sec["key"]),
+                                    sec["title"], ch.get("title") or "",
+                                    sec["title"], bm25_tokens(sec["title"])))
+
+    df, n_docs = build_bm25_stats([c[5] for c in candidates])
+    avgdl_by_type = avg_len_by_type([(c[0], c[5]) for c in candidates])
+
+    results = []
+    for typ, ident, display_text, ctx, raw_text, tokens in candidates:
+        overlap = any(t in tokens for t in query_terms)
+        if not overlap:
+            continue
+        s = bm25_score(tokens, query_terms, df, avgdl_by_type[typ], n_docs)
+        if phrase and phrase in raw_text.lower():
+            s += PHRASE_BONUS
+        if typ == "chapter":
+            s += CHAPTER_BOOST
+        results.append((s, typ, ident, display_text, ctx))
 
     results.sort(key=lambda r: (-r[0], r[2]))
+    return results
+
+
+def cmd_search(idx, query, limit, pack_filter, kind):
+    results = run_search(idx, query, pack_filter, kind)
     if not results:
         print("no matches for %r" % query)
         return
     print("# %d match(es) for %r\n" % (len(results), query))
     for s, typ, ident, text, ctx in results[:limit]:
-        print("[%2d] %-8s %-20s %s" % (s, typ, ident, K.strip_md(text)[:96]))
+        print("[%4.1f] %-8s %-20s %s" % (s, typ, ident, K.strip_md(text)[:96]))
         if ctx:
             print("                %s" % ctx[:106])
     if len(results) > limit:
