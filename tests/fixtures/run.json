@@ -1,0 +1,34 @@
+{
+  "manifest_version": 1,
+  "vault_tag": "probe-tag-a1b2c3",
+  "profile": "light",
+  "profile_steps": [
+    "1",
+    "2",
+    "10",
+    "15",
+    "16"
+  ],
+  "status": "running",
+  "started_at": "2026-09-04T18:31:25.344009+00:00",
+  "updated_at": "2026-09-04T18:31:36.837908+00:00",
+  "budget_usd": null,
+  "blocked_on": null,
+  "steps": {
+    "1": {
+      "status": "done",
+      "finished_at": "2026-09-04T18:31:36.559074+00:00"
+    },
+    "2": {
+      "status": "running",
+      "started_at": "2026-09-04T18:31:36.837461+00:00"
+    }
+  },
+  "chapters": {},
+  "spend": {
+    "estimated_usd": 0.0,
+    "sources_fetched": 0,
+    "notes_written": 0,
+    "agents_spawned": 0
+  }
+}

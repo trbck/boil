@@ -104,6 +104,34 @@ skill or process that produces markdown reports can write to `inbox/`; the contr
 Book packs are never auto-created from a single file, because a lone chapter mints IDs that
 mislead.
 
+### `advisor add` — research that becomes knowledge
+
+`advisor add "<question>"` runs deep research and files the result so its findings become
+citable rules. Only the model can invoke the `hyperresearch` skill, so this is a workflow, not
+a script:
+
+1. Confirm the question and the tier with the user (`light` by default — minutes, not an hour).
+2. Invoke the `hyperresearch` skill in the research root. It writes
+   `research/runs/<vault_tag>/run.json` and records every step transition there.
+3. Report progress between steps with `scripts/research_status.py <vault_tag>` — one line, e.g.
+   `run efield-a3f9b7 · light · step 10 (2/5 done) · running · 6 sources · $0.14 · 9 min elapsed`.
+   Do not poll in a tight loop; check it between steps.
+4. On completion, run `scripts/research_note.py --run <vault_tag> --dry-run`. **Show the user the
+   findings that would become rules and get an explicit yes** — `FORMAT.md` is explicit that a
+   sloppy findings section pollutes the constitution, so this gate is not optional.
+5. Run `scripts/research_note.py --run <vault_tag>` for real, then `scripts/ingest.py`, and
+   report the new rule IDs (`NOTE-<slug>-R1` …).
+
+```bash
+python3 scripts/research_status.py <vault_tag> --research-root ~/.advisor-research
+python3 scripts/research_note.py --run <vault_tag> --dry-run
+python3 scripts/research_note.py --run <vault_tag>
+python3 scripts/ingest.py
+```
+
+The note carries `run:` and `question:` frontmatter back to the manifest that produced it, so a
+stale finding can always be traced to the run that made it.
+
 **A whole domain** — create `domains/<id>/domain.json` and `packs.json`, then bootstrap the
 taxonomy rather than hand-authoring it:
 
