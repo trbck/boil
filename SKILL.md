@@ -313,6 +313,8 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `boil-now.py` | the session-start read; writes `NOW.md` |
 | `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's and the reviewer's last verdict |
 | `boil-review.py` | milestone-wise roborev: `review` (decide by risk score, one round, route findings), `close` (one re-review) |
+| `boil-reviewer.py` | who reviews: keeps roborev's `--agent` and `--model` together, falls back from a rate-limited codex to Ollama Cloud, probes codex and switches back when it answers (`resolve`, `apply`, `probe`, `status`, `reset`) |
+| `boil-roborev-hook.sh` | the Stop hook: resolves the reviewer, then fires roborev only on a declared milestone (`touch ~/.claude/.roborev-milestone`) |
 | `boil-doctor.py` | state validation; `--final` is the termination gate |
 | `boil-portfolio.py` | regenerate `PORTFOLIO.md`; `--check` exits 1 on violations |
 | `boil-migrate.py` | fold `.gate/` into `.boil/`; bootstrap the new files |

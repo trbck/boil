@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import importlib.util
 import json
 import os
 import re
@@ -49,10 +50,37 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+
+def _load_reviewer() -> tuple[object | None, str]:
+    """`boil-reviewer.py` owns the (agent, model) pair and the codex->Ollama fallback.
+    Its filename has a dash, so it is loaded by path rather than imported by name.
+
+    A swallowed import error here would be the very failure this whole change exists to
+    prevent: reviews stop happening and every milestone reads as an ordinary skip. So the
+    reason travels with the result, gets printed, and names itself in the ledger."""
+    p = Path(__file__).resolve().parent / "boil-reviewer.py"
+    if not p.is_file():
+        return None, f"{p.name} is missing"
+    spec = importlib.util.spec_from_file_location("boil_reviewer", p)
+    if not spec or not spec.loader:
+        return None, f"{p.name} could not be loaded"
+    mod = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as exc:
+        return None, f"{p.name} failed to load: {type(exc).__name__}: {exc}"
+    return mod, ""
+
+
+REVIEWER, REVIEWER_ERROR = _load_reviewer()
+if REVIEWER_ERROR:
+    print(f"boil-review: {REVIEWER_ERROR} — reviews fall back to roborev's own reviewer "
+          f"and no quota fallback is available", file=sys.stderr)
+
 DEFAULTS = {
     "enabled": True, "agent": "", "model": "", "every_lines": 150, "fix_min_severity": "high",
     "always_tiers": ["T3", "T4"], "risk_paths": [], "cost_usd": 0.0, "timeout_s": 900,
-    "reasoning": "",
+    "reasoning": "", "backup_agent": "", "backup_model": "",
 }
 SEVERITY = {"critical": 4, "high": 3, "medium": 2, "low": 1}
 NOISE_SUFFIXES = (".md", ".rst", ".txt")
@@ -290,29 +318,189 @@ def wait_done(root: Path, head: str, jid: int, timeout: int) -> dict | None:
     return None
 
 
-def run_review(root: Path, cfg: dict, base: str | None, head: str, dirty: bool) -> int | str | None:
-    """Enqueue and wait. Returns the job id, "timeout", or None when nothing is reviewable."""
-    args = ["review", "--wait", "--quiet"]
-    if base and base != head:
-        args += ["--since", base]
-    elif dirty:
-        args += ["--dirty"]
-    else:
-        return None
-    if cfg.get("agent"):
-        args += ["--agent", cfg["agent"]]
-    if cfg.get("model"):
-        args += ["--model", cfg["model"]]
+def _pair_flags(pair: dict) -> list[str]:
+    """`--agent` and `--model` always travel together.
+
+    Passing `--agent` alone lets roborev fill the model from its own global
+    `review_model`, which is how `codex` came to be handed the Ollama tag
+    `glm-5.3:cloud` and every review died on a 400. When the pair names no model
+    roborev's own default applies, and what is defended against is that
+    default being a model this agent cannot run."""
+    flags = ["--agent", pair["agent"]] if pair.get("agent") else []
+    if pair.get("model"):
+        flags += ["--model", pair["model"]]
+    return flags
+
+
+# An empty model means "boil has no preference", not "no model": roborev's own
+# `review_model` still applies, which is the point — it is the user's configured default
+# for reviews. What is never allowed is for that default to be one the resolved agent
+# cannot run; `_seal_global_model` clears only those, and leaves a runnable default alone.
+
+
+def _seal_global_model(root: Path, pair: dict) -> str:
+    """When the pair names no model we send a bare `--agent`, and roborev then fills the
+    model from its own `review_model` / `review_model_fast`. That is precisely how `codex`
+    came to be handed `glm-5.3:cloud`. There is no CLI way to say "no model", so the leak is
+    closed at the source: a global default that the resolved agent cannot run is cleared.
+
+    Narrow on purpose — a global model the agent *can* run is left alone, because that is
+    the user's choice, not a leak. Returns a note when something was repaired."""
+    exe = roborev_bin()
+    if not exe or pair.get("model") or REVIEWER is None:
+        return ""
+    def get(key: str) -> str:
+        rc, out = rb(root, "config", "get", key, timeout=20)
+        return (out or "").strip().splitlines()[-1].strip() if rc == 0 and (out or "").strip() else ""
+
+    repaired: list[str] = []
+    failed: list[str] = []
+    # Each tier is its own pair. Judging `review_model_fast` against the *primary* agent
+    # would clear a perfectly good `review_agent_fast=claude-code` + Ollama-tag fast tier
+    # — the "user's choice, not a leak" case this is supposed to protect.
+    for akey, mkey in (("review_agent", "review_model"), ("review_agent_fast", "review_model_fast")):
+        leaked = get(mkey)
+        agent = get(akey) or pair["agent"]
+        if not leaked or REVIEWER.repair({"agent": agent, "model": leaked})["model"]:
+            continue                       # unset, or a model that agent can actually run
+        rc, err = rb(root, "config", "set", "--global", mkey, "", timeout=20)
+        if rc != 0:
+            # The clear is the only thing standing between a bare `--agent` and the 400.
+            # Failing it quietly would reproduce the original bug exactly.
+            failed.append(f"{mkey}={leaked!r} ({err.strip()[:120] or f'exit {rc}'})")
+            continue
+        repaired.append(f"{mkey}={leaked!r}")
+    if failed:
+        return (f"COULD NOT clear roborev global {', '.join(failed)} — {pair['agent']} cannot "
+                f"run it, so this review is expected to fail; fix roborev's config by hand")
+    if repaired:
+        return (f"cleared roborev global {', '.join(repaired)} — {pair['agent']} cannot run it "
+                f"and a bare --agent would have inherited it")
+    return ""
+
+
+def _attempt(root: Path, cfg: dict, scope: list[str], pair: dict,
+             head: str) -> tuple[int | str | None, str]:
+    """Run one review. Returns (job id | "timeout" | None, the CLI's own output).
+
+    The output matters when no job appears: roborev can refuse before it ever enqueues
+    (auth, a rate limit on the daemon side, a bad flag), and that text is then the only
+    evidence of why. Discarding it would make those failures unclassifiable, so a
+    quota wall hit before enqueue could never reach the fallback."""
+    seal = _seal_global_model(root, pair)
+    if seal:
+        print(f"  reviewer: {seal}", file=sys.stderr)
+    args = ["review", "--wait", "--quiet", *scope, *_pair_flags(pair)]
     if cfg.get("reasoning"):
         args += ["--reasoning", cfg["reasoning"]]
     before = max((j.get("id", 0) for j in list_jobs(root)), default=0)
-    rc, _ = rb(root, *args, timeout=int(cfg.get("timeout_s", 900)))
+    rc, out = rb(root, *args, timeout=int(cfg.get("timeout_s", 900)))
     if rc == 124:
-        return "timeout"
+        return "timeout", out
     # The job we just paid for: newest id above the snapshot, preferring one that names HEAD.
     new = [j for j in list_jobs(root) if j.get("id", 0) > before]
     mine = [j for j in new if covers(j, head)] or new
-    return mine[-1]["id"] if mine else None
+    return (mine[-1]["id"] if mine else None), out
+
+
+def _outcome(root: Path, jid: int) -> tuple[str, str]:
+    """(status, error) for a job we just ran, read back from the queue listing —
+    a failed job has no review, so `show --job` cannot tell us why it died."""
+    job = next((j for j in list_jobs(root) if j.get("id") == jid), None)
+    if not job:
+        return "unknown", ""
+    return (job.get("status") or "unknown"), (job.get("error") or "")
+
+
+def _report(root: Path, agent: str, model: str, kind: str, detail: str) -> None:
+    """Record how a review went. Bookkeeping only: an unwritable ~/.boil must not cost the
+    caller the job id it already paid for, because losing it means no ledger entry, an
+    open roborev job, and the same milestone reviewed and billed again next time."""
+    if REVIEWER is None:
+        return
+    try:
+        REVIEWER.main(["report", "--root", str(root), "--agent", agent, "--model", model,
+                       "--outcome", kind, "--detail", detail[:500]])
+    except Exception as exc:                    # noqa: BLE001 — never fatal
+        print(f"  reviewer: could not record the {kind} outcome ({type(exc).__name__}: {exc}) — "
+              f"the review itself is unaffected", file=sys.stderr)
+
+
+def reviewer_pair(root: Path, cfg: dict) -> tuple[dict, dict]:
+    """The pair to review with, and the record explaining the choice."""
+    if REVIEWER is None:                       # resolver missing: honour the config verbatim
+        return ({"agent": cfg.get("agent") or "", "model": cfg.get("model") or ""},
+                {"using": "config", "reason": "boil-reviewer.py unavailable"})
+    pair, _state, rec = REVIEWER.resolve_pair(root)
+    return pair, rec
+
+
+def run_review(root: Path, cfg: dict, base: str | None, head: str,
+               dirty: bool) -> tuple[int | str | None, dict]:
+    """Enqueue and wait, falling back to the backup reviewer on a quota wall.
+
+    Returns (job id | "timeout" | None, a record of which reviewer ran and why)."""
+    if base and base != head:
+        scope = ["--since", base]
+    elif dirty:
+        scope = ["--dirty"]
+    else:
+        return None, {}
+
+    pair, rec = reviewer_pair(root, cfg)
+    trail: list[dict] = []
+    # Keyed by the pair, not the agent: a project whose primary is `claude-code` with no
+    # model has a backup that is also `claude-code`, on the Ollama tag. Deduplicating by
+    # agent alone would call that "already tried" and skip the one reviewer left.
+    tried: set[tuple[str, str]] = set()
+
+    for _ in range(2):                          # primary, then at most one fallback
+        key = (pair.get("agent") or "", pair.get("model") or "")
+        if key in tried:
+            break
+        # An empty agent reaches here only when the resolver failed to load. Sending no
+        # `--agent` is the pre-resolver behaviour and still gets the code reviewed by
+        # roborev's own default, which beats reviewing nothing at all.
+        tried.add(key)
+        jid, cli = _attempt(root, cfg, scope, pair, head)
+        entry = {"agent": pair["agent"], "model": pair.get("model") or "", "job": jid,
+                 "why": rec.get("reason", "")}
+        if jid == "timeout":
+            trail.append({**entry, "outcome": "timeout"})
+            return jid, {"reviewer": pair, "trail": trail}
+        if jid is None:
+            # roborev refused before enqueuing. Its own output is the only evidence of why,
+            # and a quota refusal here deserves the same fallback as one mid-review.
+            err, status = cli, "no job"
+        else:
+            status, err = _outcome(root, int(jid))
+        kind = "ok" if status == "done" else (REVIEWER.classify(err) if REVIEWER else "fail")
+        trail.append({**entry, "outcome": kind, "status": status})
+        _report(root, pair["agent"], pair.get("model") or "", kind, err)
+        if kind == "ok":
+            return jid, {"reviewer": pair, "trail": trail}
+
+        # A job that did not finish carries no findings, and an empty finding list reads as
+        # CLEAN. Returning its id would turn a dead reviewer into a green milestone, so the
+        # id is dropped here and the caller records the failure instead.
+        if kind == "incompatible":
+            # Not a quota wall: the pair itself is impossible. Falling back would deliver a
+            # green review and bury the configuration bug, so this stops.
+            print(f"  reviewer: {pair['agent']} + {pair.get('model') or '(agent default)'} is an "
+                  f"impossible pair — fix the configuration; no fallback", file=sys.stderr)
+            return None, {"reviewer": pair, "trail": trail}
+        if kind == "fail" or REVIEWER is None:
+            return None, {"reviewer": pair, "trail": trail}
+
+        # A quota wall: the primary cannot review this round, but the backup can.
+        _primary, backup = REVIEWER.pairs(root)
+        if (backup["agent"], backup.get("model") or "") in tried:
+            return None, {"reviewer": pair, "trail": trail}
+        print(f"  reviewer: {pair['agent']} hit a {kind} wall — falling back to "
+              f"{backup['agent']} {backup.get('model') or '(agent default)'}", file=sys.stderr)
+        pair, rec = backup, {"reason": f"{kind} on {entry['agent']}"}
+
+    return None, {"reviewer": pair, "trail": trail}
 
 
 def parse_findings(output: str) -> list[dict]:
@@ -415,31 +603,52 @@ def cmd_review(a: argparse.Namespace) -> int:
     if not prior:
         rb(root, "snooze", "-d", "8h")   # boil owns review cadence now; quiet the agent-hook nag
     adopted = jobs_for_head(root, head)
-    jid: int | str | None
+    jid: int | str | None = None
+    extra: dict = {}                     # which reviewer ran, for the ledger
     if adopted:
         job = adopted[-1]
         jid = job["id"]
         if job.get("status") != "done" and not wait_done(root, head, jid, int(cfg["timeout_s"])):
-            record(root, {"milestone": node["id"], "event": "PENDING", "reason": reason, "job": jid, "lines": lines})
-            print(f"PENDING {node['id']}: adopted roborev job {jid} is still {job.get('status')}")
-            return 71
-    else:
-        jid = run_review(root, cfg, base, head, dirty)
+            status, err = _outcome(root, int(jid))
+            if status not in ("failed", "skipped"):
+                record(root, {"milestone": node["id"], "event": "PENDING", "reason": reason,
+                              "job": jid, "lines": lines})
+                print(f"PENDING {node['id']}: adopted roborev job {jid} is still {job.get('status')}")
+                return 71
+            # An adopted job that died carries no findings, and adopting it would let the
+            # daemon's failure stand in for a review. It also holds the evidence of *why*
+            # the reviewer died, so it feeds the fallback ladder before we review ourselves.
+            kind = REVIEWER.classify(err) if REVIEWER else "fail"
+            _report(root, job.get("agent") or "", job.get("model") or "", kind, err)
+            print(f"  reviewer: adopted job {jid} {status} ({kind}) — reviewing again "
+                  f"rather than inheriting its silence", file=sys.stderr)
+            adopted, jid = [], None
+    if jid is None:
+        jid, run = run_review(root, cfg, base, head, dirty)
+        rv = {"reviewer": (run.get("reviewer") or {}).get("agent", ""),
+              "reviewer_model": (run.get("reviewer") or {}).get("model", ""),
+              "attempts": run.get("trail") or []}
         if jid == "timeout":
-            record(root, {"milestone": node["id"], "event": "PENDING", "reason": reason, "lines": lines})
+            record(root, {"milestone": node["id"], "event": "PENDING", "reason": reason, "lines": lines, **rv})
             print(f"PENDING {node['id']}: review did not finish within {cfg['timeout_s']}s — re-run `review` later")
             return 71
         if jid is None:
-            record(root, {"milestone": node["id"], "event": "SKIP", "reason": "roborev returned no job", "lines": lines})
-            print(f"SKIP {node['id']}: roborev returned no job")
+            reason_no = "every reviewer failed" if rv["attempts"] else "roborev returned no job"
+            if REVIEWER_ERROR:
+                reason_no += f" (reviewer resolver unavailable: {REVIEWER_ERROR})"
+            record(root, {"milestone": node["id"], "event": "SKIP", "reason": reason_no, "lines": lines, **rv})
+            print(f"SKIP {node['id']}: {reason_no}")
+            for t in rv["attempts"]:
+                print(f"  {t['agent']} {t.get('model') or '(agent default)'} -> {t['outcome']}")
             return 0
+        extra.update(rv)
     job = show_job(root, int(jid)) or {}
     findings = [] if is_clean(job) else parse_findings(job.get("output") or "")
     must, deferred = split(findings, cfg["fix_min_severity"])
     cost = float(cfg.get("cost_usd") or 0)
     base_rec = {"milestone": node["id"], "reason": reason, "job": int(jid), "head": head, "base": base,
                 "lines": lines, "adopted": bool(adopted), "dirty_uncommitted": dirty and base != head,
-                "spent_usd": cost}
+                "spent_usd": cost, **extra}
     if not findings:
         close_job(root, int(jid), f"boil: clean review at milestone {node['id']}")
         record(root, {**base_rec, "event": "CLEAN", "deferred": []})
@@ -480,10 +689,22 @@ def cmd_close(a: argparse.Namespace) -> int:
     remaining: list[dict] = list(rv.get("findings", []))
     jid = None
     if head and (head != base or dirty):
-        jid = run_review(root, cfg, base, head, dirty)
+        jid, run = run_review(root, cfg, base, head, dirty)
+        reviewer = (run.get("reviewer") or {}).get("agent", "")
         if jid == "timeout":
-            record(root, {"milestone": node["id"], "event": "PENDING", "reason": "re-review timed out"})
+            record(root, {"milestone": node["id"], "event": "PENDING", "reason": "re-review timed out",
+                          "reviewer": reviewer})
             print(f"PENDING {node['id']}: re-review did not finish — re-run `close` later")
+            return 71
+        if jid is None:
+            # No usable re-review. `remaining` would come out empty and close the fix node
+            # on the strength of a review that never ran, so the findings stay unverified.
+            trail = "; ".join(f"{t['agent']} -> {t['outcome']}" for t in (run.get("trail") or [])) \
+                or "roborev returned no job"
+            record(root, {"milestone": node["id"], "event": "PENDING",
+                          "reason": f"re-review could not run ({trail})", "reviewer": reviewer})
+            print(f"PENDING {node['id']}: re-review could not run ({trail}) — "
+                  f"the {len(remaining)} finding(s) stay open; re-run `close` later")
             return 71
         job = show_job(root, int(jid)) if jid else {}
         findings = [] if is_clean(job or {}) else parse_findings((job or {}).get("output") or "")

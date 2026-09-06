@@ -391,7 +391,9 @@ editing `tests/`, any `protect` path, the frozen ruler, or a `| human` evidence 
 ### `review` — milestone-wise second-model review (optional, top-level in `milestones.json`)
 
 ```json
-"review": {"enabled": true, "agent": "codex", "every_lines": 150, "fix_min_severity": "high",
+"review": {"enabled": true, "agent": "codex", "model": "",
+           "backup_agent": "claude-code", "backup_model": "glm-5.3:cloud",
+           "every_lines": 150, "fix_min_severity": "high",
            "always_tiers": ["T3", "T4"], "risk_paths": ["**/auth/**", "**/migrations/**"],
            "cost_usd": 0.0, "timeout_s": 900, "reasoning": ""}
 ```
@@ -401,9 +403,73 @@ editing `tests/`, any `protect` path, the frozen ruler, or a `| human` evidence 
 | `every_lines` | fire once this many unreviewed *source* lines have accumulated since the last review (docs, lockfiles, `.boil/` never count); `0` = every milestone with a diff |
 | `always_tiers` / `risk_paths` | milestones that are always reviewed regardless of size; globs are matched against changed paths |
 | `fix_min_severity` | findings at or above this become the `<M>-fix` node; lower ones are deferred into `.boil/log.md` |
-| `agent` | the reviewer — pick a different model family from the implementer |
-| `model` | the reviewer's model, passed as roborev `--model`. With `agent: claude-code` and an Ollama `:cloud` tag (e.g. `deepseek-v4-pro:cloud`) the review runs on Ollama through the `claude-ollama` wrapper — no Codex/Anthropic quota involved |
+| `agent` | the primary reviewer — pick a different model family from the implementer. Default `codex` |
+| `model` | the reviewer's model, passed as roborev `--model`. Empty means boil states no preference, so roborev's own `review_model` applies — except when that default is one the agent cannot run, which boil clears before the call. An Ollama tag (anything with a `:`) only ever rides with `agent: claude-code`, which reaches Ollama through the `claude-ollama` wrapper; paired with `codex` it is dropped, because Codex rejects it with a 400 |
+| `backup_agent` / `backup_model` | who reviews while the primary is rate limited. Default `claude-code` + `glm-5.3:cloud`, i.e. Ollama Cloud, which spends no Codex or Anthropic quota |
 | `cost_usd` | charged per review against `budget_usd`; a review that would overrun is skipped |
+
+#### When the primary reviewer is rate limited
+
+`scripts/boil-reviewer.py` owns the `(agent, model)` pair, and nothing else picks half of
+it. roborev stores the two as independent settings, so they drift: on 2026-09-04 its
+`review_agent` said `codex` while `review_model` still held `glm-5.3:cloud` from the period
+when reviews ran on Ollama, and six milestone reviews died on
+
+    The 'glm-5.3:cloud' model is not supported when using Codex with a ChatGPT account.
+
+nobody noticed, because a failed review is silent — it just means no second opinion ever
+arrives. So `boil-review.py` now sends `--agent` and `--model` together, always, rather
+than sending a bare `--agent` and letting roborev fill the model from its own global
+default.
+
+The fallback is a ladder, not a switch:
+
+| Event | What happens |
+|---|---|
+| codex returns a quota / rate-limit error | the round retries immediately on `backup_agent` + `backup_model`, so the milestone still gets reviewed; a cooldown starts |
+| a later milestone, still inside the cooldown | goes straight to the backup; codex is not retried and no call is wasted |
+| the cooldown lapses | `roborev check-agents --agent codex` runs a real smoke-test prompt. Only a pass returns the loop to codex; a fail lengthens the cooldown one rung (15m, 30m, 1h, 2h, 4h) |
+| codex answers the probe | the cooldown is cleared and the strike count resets — the loop is back on the primary |
+| a project whose `agent` is something else entirely | unaffected. The state records *which* agent is limited, so a codex wall never pushes a gemini-reviewed project onto a backup it never needed |
+
+The cooldown is a lower bound on *when to ask*, never the answer itself. That is why the
+loop returns to codex when codex is actually available rather than when a timer expired.
+
+The fallback is consulted on every path a reviewer can die on, not just the obvious one:
+a job that fails mid-review, a `roborev review` that refuses before it ever enqueues (where
+the CLI's own output is the only evidence), and a job the post-commit hook already enqueued
+for this HEAD and which failed — adopting that one would let the daemon's failure stand in
+for a review. A reviewer that produced no finished job is recorded as a SKIP, never a
+CLEAN: an empty finding list otherwise reads as a clean bill of health, which is worse than
+no review at all.
+
+A 400 for an impossible agent/model pair is deliberately **not** classified as a quota hit.
+Treating it as one would route around it forever and hide the configuration bug; it is
+reported loudly instead, and `boil-doctor.py` fails its `reviewer-pair` check on it.
+
+Two layers recover independently and are given the same two pairs. `boil-reviewer.py
+apply` writes the *policy* into roborev's global config — `review_agent`/`review_model` as
+the primary and `review_backup_agent`/`review_backup_model` as the backup — so roborev's
+own quota fallback and its `agent_quota_cooldown` timer keep working for every path that
+does not go through boil (a repo's post-commit hook, a bare `roborev review`, the daemon).
+`apply` never writes the backup into `review_agent`: that would leave the daemon with no
+primary to return to. boil-review.py meanwhile passes the momentary pair as flags, where
+the probe-verified switch-back applies.
+
+A project may pin its own `agent`, and boil honours it — reviewing with a different model
+family from the implementer is the point. But a pin can go stale in a way nothing else
+catches: ttengine pinned `claude-code` while roborev's global model was an Ollama tag, so
+the pin meant "review on Ollama"; once that global was emptied the same pin quietly meant
+"review on real Claude", a different provider and a different bill, with the config
+untouched and the pair still perfectly coherent. `boil-reviewer.py status` therefore prints
+a `note` line whenever a project's pinned agent differs from the machine's `review_agent`,
+and `boil-doctor.py` shows it on the `reviewer-pair` check **without failing** — a
+deliberate pin is allowed, and a doctor that goes red on a legitimate choice is a doctor
+people learn to ignore.
+
+State lives in `~/.boil/reviewer.json` — machine-wide, not per-repo, because a codex quota
+is an account fact and every project on the box hits the same wall. `boil-reviewer.py
+status` says who is reviewing right now and why; `reset` forgets a cooldown.
 
 `compile` also records `base_sha` (HEAD at first freeze — the accumulator's origin, never
 moved by a recompile), keeps `<M>-fix` nodes across recompiles, and appends one record per
