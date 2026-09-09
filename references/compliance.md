@@ -1,9 +1,9 @@
 # Compliance manifests
 
-Every artifact produced in `implement` mode carries a manifest. It is a short header, not
+Every artifact produced in `produce` mode carries a manifest. It is a short header, not
 paperwork.
 
-**The point:** 551 numbered rules are only useful if you can tell, later, which ones a piece of
+**The point:** a numbered rule is only useful if you can tell, later, which ones a piece of
 code actually honoured. Without a manifest, a violation is indistinguishable from an oversight six
 months on — and the reviewer has to re-derive the whole design to find out. The manifest converts
 "trust me" into something checkable.

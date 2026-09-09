@@ -7,8 +7,9 @@ registry, and the skill's own description is generated from whichever domains ar
 
 The repository root *is* the skill, so installing is a clone into your skills directory.
 
+<!-- STATS: rewritten by scripts/build_index.py — do not hand-edit the line below. -->
 ```
-2 domains · 754 rules · 49 book chapters · 26 topic shards · 10k indexed engine symbols
+2 domains · 798 rules · 49 book chapters · 26 topic shards
 ```
 
 ## Why it exists
@@ -87,8 +88,8 @@ python3 scripts/lookup.py --engine vbtpro --symbol Portfolio.from_signals
 **Reports and notes** — drop markdown in `inbox/`, then:
 
 ```bash
-python3 scripts/ingest.py --dry-run
-python3 scripts/ingest.py
+python3 scripts/ingest.py --domain <id> --dry-run
+python3 scripts/ingest.py --domain <id>
 ```
 
 Sections headed *Key findings* / *Recommendations* / *Takeaways* become citable `derived` rules.

@@ -1,6 +1,6 @@
 # Rules — Data sourcing & integrity
 
-`60` rules · ~942 words · ~1271 tokens
+`77` rules · ~1469 words · ~1983 tokens
 
 Cite by ID. `primary` rules come from books; `derived` rules come from your own notes and research and must never silently override a primary rule — if they conflict, say so.
 
@@ -123,4 +123,31 @@ Cite by ID. `primary` rules come from books; `derived` rules come from your own 
 <sub>Machine Learning for Trading, 3rd ed.</sub>
 
 - **ML4T-24-R14** — **Choose frameworks on state visibility, replay, and policy enforcement,** not benchmarks.
+
+### NOTE-alpaca-index-options-spx-vix-xsp — Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-alpaca-index-options-spx-vix-xsp-R1** — **Alpaca supports Cboe index options — SPX, SPXW, VIX, VIXW, DJX and XSP — cash-settled and European-style, confirmed per contract by the API (`style=european`, `size=100`).** The prior note's envelope covered only American-style equity and ETF options and should not be read as excluding index options.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R3** — **Local implied-vol inversion is mandatory rather than optional for index options**, since there is no served field to fall back on even at decision time.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R4** — **VIX options must be priced off VIX futures forwards, not spot VIX.** Inverting implied vol against spot VIX with a Black-Scholes helper returns a confidently wrong number, so equity-option greeks code is not transferable to VIX without substituting the forward.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R6** — **Cash settlement removes assignment into the underlying**, eliminating the "assignment into a falling name" failure mode that dominates cash-secured-put and covered-call archetypes on equities.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R7** — **Multi-leg calendars and diagonals are blocked on index options**, because Alpaca's `mleg` rule requires European-style legs to share an expiration; the permission to trade calendars applies only to American-style equity options.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R8** — **Index option history reaches back to at least March 2024, comparable to equity options**, so index archetypes are no less backtestable than equity ones.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R9** — **Index options carry a ×100 multiplier against the index level, so contract notional dwarfs a small account** — one SPX contract near a 6,400 index level is roughly $640,000 of notional. VIX, at an index level typically in the teens, is the only one of these whose per-contract notional is small enough for a five-figure account.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R11** — **Treat `NOTE-options-strategies-on-alpaca-fmp-R1` as scoped to equity and ETF options.** For index options the stronger statement holds: no greeks or IV are served at all.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R12** — **Do not reuse spot-based Black-Scholes IV inversion for VIX options.** Substitute the VIX futures forward for spot, or exclude VIX from any greek-conditioned archetype.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R16** — **Size index-option positions off the ×100 multiplier against the index level, not against an equity-scale notional assumption.**
+
+### NOTE-options-strategies-on-alpaca-fmp — Options Strategies on Alpaca + FMP: What the Envelope Actually Allows  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-options-strategies-on-alpaca-fmp-R6** — **FMP's earnings calendar is a mutable record with no versioning** and no distinct confirmed flag, so historical dates are realised dates — a silent lookahead for any earnings-timed strategy [24].
+- **NOTE-options-strategies-on-alpaca-fmp-R7** — **FMP's dividend endpoints and stock-grade events are genuinely point-in-time**, while estimates, price-target consensus and price-target summary are not; consensus carries no date field at all [16][17][19][20][21].
+- **NOTE-options-strategies-on-alpaca-fmp-R13** — **Start with single-leg, Level 1 structures** — covered calls and cash-secured puts on a small liquid universe. They avoid the atomicity mismatch, the approval ceiling and the greeks gap simultaneously.
+- **NOTE-options-strategies-on-alpaca-fmp-R14** — **Audit the earnings sleeves' date provenance immediately.** If dates came from FMP's mutable calendar, the samples carry lookahead that flatters results invisibly [24]. This is the highest-value check available right now.
+- **NOTE-options-strategies-on-alpaca-fmp-R15** — **Build the dividend early-assignment filter next.** It is mechanical [36][37], uses the one FMP endpoint that is reliably point-in-time [16][17], and improves every short-call structure including the existing condor sleeve.
+- **NOTE-options-strategies-on-alpaca-fmp-R17** — **Decide explicitly about greeks.** Either build a local IV/greeks pipeline from historical bid/ask and underlying bars — accepting ownership of the solver, including its documented 0DTE and deep-OTM failures [6] — or exclude greek-conditioned archetypes. Do not leave this implicit.
+- **NOTE-options-strategies-on-alpaca-fmp-R18** — **Resolve the multi-leg simulation gap before gating any new multi-leg sleeve**, via custom simulation callbacks or an explicit all-or-none pre-check, so simulated fills cannot violate the venue's coverage rule [1][38].
 

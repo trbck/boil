@@ -1,6 +1,6 @@
 # Rules — Live execution & operations
 
-`77` rules · ~1207 words · ~1629 tokens
+`97` rules · ~1851 words · ~2498 tokens
 
 Cite by ID. `primary` rules come from books; `derived` rules come from your own notes and research and must never silently override a primary rule — if they conflict, say so.
 
@@ -150,4 +150,34 @@ Cite by ID. `primary` rules come from books; `derived` rules come from your own 
 <sub>Machine Learning for Trading, 3rd ed.</sub>
 
 - **ML4T-27-R7** — **Allocate frontier attention by time-to-return:** DeFi and AI governance now, quantum as monitoring only.
+
+### NOTE-alpaca-index-options-spx-vix-xsp — Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-alpaca-index-options-spx-vix-xsp-R1** — **Alpaca supports Cboe index options — SPX, SPXW, VIX, VIXW, DJX and XSP — cash-settled and European-style, confirmed per contract by the API (`style=european`, `size=100`).** The prior note's envelope covered only American-style equity and ETF options and should not be read as excluding index options.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R2** — **Index options receive NO greeks and NO implied volatility from Alpaca — zero of 26,214 sampled VIX/SPX/XSP contracts carried either, while quotes were served for all of them.** This corrects `NOTE-options-strategies-on-alpaca-fmp-R1`, which recorded greeks as "live-snapshot only": that is true for equity options but optimistic for index options, where none exist in any form.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R3** — **Local implied-vol inversion is mandatory rather than optional for index options**, since there is no served field to fall back on even at decision time.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R4** — **VIX options must be priced off VIX futures forwards, not spot VIX.** Inverting implied vol against spot VIX with a Black-Scholes helper returns a confidently wrong number, so equity-option greeks code is not transferable to VIX without substituting the forward.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R6** — **Cash settlement removes assignment into the underlying**, eliminating the "assignment into a falling name" failure mode that dominates cash-secured-put and covered-call archetypes on equities.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R7** — **Multi-leg calendars and diagonals are blocked on index options**, because Alpaca's `mleg` rule requires European-style legs to share an expiration; the permission to trade calendars applies only to American-style equity options.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R8** — **Index option history reaches back to at least March 2024, comparable to equity options**, so index archetypes are no less backtestable than equity ones.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R9** — **Index options carry a ×100 multiplier against the index level, so contract notional dwarfs a small account** — one SPX contract near a 6,400 index level is roughly $640,000 of notional. VIX, at an index level typically in the teens, is the only one of these whose per-contract notional is small enough for a five-figure account.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R10** — **Alpaca's index-option order acceptance is documented but unverified by a fill here**, unlike the equity multi-leg path, where a real 4-leg order was accepted and a naked short was rejected with code 40310000.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R11** — **Treat `NOTE-options-strategies-on-alpaca-fmp-R1` as scoped to equity and ETF options.** For index options the stronger statement holds: no greeks or IV are served at all.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R12** — **Do not reuse spot-based Black-Scholes IV inversion for VIX options.** Substitute the VIX futures forward for spot, or exclude VIX from any greek-conditioned archetype.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R15** — **Verify index-option order acceptance with one small paper order before designing around it**, mirroring how the equity multi-leg envelope was established by a real accepted order rather than by documentation.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R16** — **Size index-option positions off the ×100 multiplier against the index level, not against an equity-scale notional assumption.**
+
+### NOTE-options-strategies-on-alpaca-fmp — Options Strategies on Alpaca + FMP: What the Envelope Actually Allows  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-options-strategies-on-alpaca-fmp-R1** — **Greeks and implied volatility are served only as live snapshots**; no historical greeks exist in the API or SDK, so any IV- or greek-conditioned signal is unbacktestable without locally recomputing from bid/ask and underlying bars [6][7][9][11][15].
+- **NOTE-options-strategies-on-alpaca-fmp-R3** — **Level 3 permits four-leg atomic `mleg` orders but not uncovered shorts**, which require Level 4; the binding rule is that all legs must be covered within the same order, which constrains rolling more than entry [1][4].
+- **NOTE-options-strategies-on-alpaca-fmp-R9** — **Execution style decides survival** — 1.3 cents effective spread for timed trades against 6.2–8.1 cents for naive spread-crossing, and a scheduled bot is firmly in the second group [29].
+- **NOTE-options-strategies-on-alpaca-fmp-R11** — **Paper trading performs no liquidity or market-impact modelling** and lags live on assignment reporting by a day, so it validates logic, not edge [3][13][14].
+- **NOTE-options-strategies-on-alpaca-fmp-R12** — **Rank by turnover and execution patience, not gross Sharpe.** The cost evidence says this is the axis that determines survival [28][29]. Prefer low-turnover, held-to-expiry structures.
+- **NOTE-options-strategies-on-alpaca-fmp-R19** — **Budget the paid OPRA data tier** as a fixed cost of doing options work; the indicative feed is randomised and unsuitable for both live trading and realistic cost modelling [8].
+- **NOTE-options-strategies-on-alpaca-fmp-R20** — **Settle two open questions cheaply**: whether equity and option legs combine in one `mleg` order [1][2], and whether the short-vol sleeve's "empty historical option bars" premise is now stale. Both are single test orders or single queries.
 

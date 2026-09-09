@@ -65,6 +65,14 @@ All modes share two obligations: **cite what you assert**, and **name what you c
 
 **Output:** Findings table, most severe first: severity, location, finding, rule ID, fix.
 
+## Gates — Decision-making under uncertainty
+
+_This domain defines no gates. `plan` mode's gate step does not apply here — say so in the plan rather than inventing gates to fill the section, and carry the domain's own standing caveats instead._
+
+## Checklist: review — Decision-making under uncertainty
+
+_This domain ships no review checklist. Walk the target against the governing rule shards instead, and say in the findings that no curated checklist covered it — an uncovered review is weaker evidence than a checklisted one, and the reader is entitled to know which they have._
+
 ## Gates — Quantitative trading & investment strategy
 
 _Fix these before iterating. Changing one mid-stream makes results incomparable across attempts, so improvements stop being interpretable as stronger signal and become changed definitions._
@@ -80,9 +88,9 @@ _Fix these before iterating. Changing one mid-stream makes results incomparable 
 Also settle, for this domain:
 
 - **Archetype** — Left-skew (mean reversion) or right-skew (trend following)? Determines the failure mode, the right risk metric, and whether stops even apply. `ASSP-09-R2` `ASSP-09-R3`
-- **Edge as a number** — Gain expectancy decomposed into win rate, average win, average loss — and which module you are attacking. 
+- **Edge as a number** — Gain expectancy decomposed into win rate, average win, average loss — and which module you are attacking.
 - **Cost sensitivity** — Break-even cost against assumed cost. `ML4T-16-R9`
-- **Exposure envelope** — Gross, net, net beta, concentration. 
+- **Exposure envelope** — Gross, net, net beta, concentration.
 
 ## Checklist: review — Quantitative trading & investment strategy
 

@@ -14,7 +14,7 @@
   "live trading operations and MLOps",
   "auditing strategy code or a research plan"
  ],
- "corpus_fingerprint": "e0e0746fe442",
+ "corpus_fingerprint": "622bfe1eba8d",
  "packs": [
   {
    "id": "ml4t",
@@ -3930,25 +3930,205 @@
    "rule_count": 15
   }
  ],
- "notes": [],
+ "notes": [
+  {
+   "file": "domains/trading/knowledge/notes/audit/21-gate-audit-of-the-strategies-repo-seven-changes-two-falsi.md",
+   "title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "category": "audit",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "authority": "derived",
+   "pinned_topics": [
+    "backtesting",
+    "portfolio",
+    "costs",
+    "process"
+   ],
+   "sections": [
+    {
+     "key": "method",
+     "number": null,
+     "title": "Method",
+     "start_line": 11,
+     "end_line": 18,
+     "subsections": []
+    },
+    {
+     "key": "what-the-repo-already-do",
+     "number": null,
+     "title": "What the repo already does better than the checklist asks",
+     "start_line": 19,
+     "end_line": 26,
+     "subsections": []
+    },
+    {
+     "key": "falsified-during-verific",
+     "number": null,
+     "title": "Falsified during verification — do not re-derive",
+     "start_line": 69,
+     "end_line": 83,
+     "subsections": []
+    },
+    {
+     "key": "caveat-on-authority",
+     "number": null,
+     "title": "Caveat on authority",
+     "start_line": 84,
+     "end_line": 90,
+     "subsections": []
+    }
+   ],
+   "meta": {},
+   "problems": [],
+   "id": "NOTE-21-gate-audit-of-the-strategies",
+   "topics": [
+    "backtesting",
+    "portfolio",
+    "costs",
+    "process"
+   ],
+   "rule_count": 7
+  },
+  {
+   "file": "domains/trading/knowledge/notes/research/options-strategies-on-alpaca-fmp-what-the-envelope-actually.md",
+   "title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "category": "research",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "authority": "derived",
+   "pinned_topics": [
+    "options",
+    "costs",
+    "data",
+    "execution",
+    "risk"
+   ],
+   "sections": [
+    {
+     "key": "1",
+     "number": 1,
+     "title": "Alpaca Options API Surface and Its Limits",
+     "start_line": 13,
+     "end_line": 153,
+     "subsections": []
+    },
+    {
+     "key": "2",
+     "number": 2,
+     "title": "FMP Fields Usable as Options Signals",
+     "start_line": 154,
+     "end_line": 210,
+     "subsections": []
+    },
+    {
+     "key": "3",
+     "number": 3,
+     "title": "Archetypes That Fit the Envelope",
+     "start_line": 211,
+     "end_line": 369,
+     "subsections": []
+    },
+    {
+     "key": "4",
+     "number": 4,
+     "title": "Implications for Existing Sleeves",
+     "start_line": 370,
+     "end_line": 419,
+     "subsections": []
+    },
+    {
+     "key": "sources",
+     "number": null,
+     "title": "Sources",
+     "start_line": 488,
+     "end_line": 532,
+     "subsections": []
+    }
+   ],
+   "meta": {
+    "domain": "trading",
+    "question": "What do Alpaca's options API and FMP's data actually support for systematic options trading, and which options strategy archetypes are viable inside those limits?",
+    "run": "alpaca-fmp-options-feasibility-747fe6"
+   },
+   "problems": [],
+   "id": "NOTE-options-strategies-on-alpaca-fmp",
+   "topics": [
+    "options",
+    "costs",
+    "data",
+    "execution",
+    "risk"
+   ],
+   "rule_count": 21
+  },
+  {
+   "file": "domains/trading/knowledge/notes/research/alpaca-index-options-spx-vix-xsp-envelope-and-a-correction-t.md",
+   "title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "category": "research",
+   "source": "manual",
+   "date": "2026-09-09",
+   "authority": "derived",
+   "pinned_topics": [
+    "options",
+    "data",
+    "execution",
+    "risk"
+   ],
+   "sections": [
+    {
+     "key": "method",
+     "number": null,
+     "title": "Method",
+     "start_line": 9,
+     "end_line": 16,
+     "subsections": []
+    },
+    {
+     "key": "what-is-available",
+     "number": null,
+     "title": "What is available",
+     "start_line": 17,
+     "end_line": 25,
+     "subsections": []
+    },
+    {
+     "key": "the-greeks-gap-measured",
+     "number": null,
+     "title": "The greeks gap — measured, not inferred",
+     "start_line": 26,
+     "end_line": 40,
+     "subsections": []
+    },
+    {
+     "key": "history-depth",
+     "number": null,
+     "title": "History depth",
+     "start_line": 41,
+     "end_line": 47,
+     "subsections": []
+    }
+   ],
+   "meta": {
+    "domain": "trading",
+    "question": "Does Alpaca support index options such as VIX and SPX, and how does that change the equity-options envelope previously recorded?"
+   },
+   "problems": [],
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "topics": [
+    "options",
+    "data",
+    "execution",
+    "risk"
+   ],
+   "rule_count": 16
+  }
+ ],
  "engines": [
   {
    "id": "vbtpro",
    "title": "VectorBT PRO documentation",
-   "files": {
-    "docs": {
-     "file": "domains/trading/knowledge/vbtpro/llms-docs.txt",
-     "headings": 820,
-     "bytes": 3039779
-    },
-    "api": {
-     "file": "domains/trading/knowledge/vbtpro/llms-full.txt",
-     "headings": 9972,
-     "bytes": 18680414
-    }
-   },
-   "manifest_sections": 40,
-   "manifest_entries": 322
+   "files": {},
+   "manifest_sections": 0
   }
  ],
  "rules": [
@@ -11403,6 +11583,694 @@
    ],
    "authority": "primary",
    "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R1",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 1,
+   "text": "**A gate's false-positive rate is a function of sample size, and reporting a verdict without it is a category error.** The same §21 battery passes 4.0% of no-edge draws at n≈2500 and 8.5% at n≈317 — a 2.1× difference that the verdict line does not carry. Any gate report should print its own calibrated error rate for the sleeve's sample regime beside the verdict.",
+   "topics": [
+    "backtesting",
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R2",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 2,
+   "text": "**Turnover cost does much of a gate's rejecting, so low-turnover strategies face a materially weaker gate.** Switching turnover cost off roughly doubles the null pass rate (4.0% → 9.0% daily, 8.5% → 12.5% event) and roughly triples the near-pass rate. A gate's headline size is therefore only earned by strategies that actually pay for their turnover.",
+   "topics": [
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R3",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 3,
+   "text": "**A block bootstrap cannot generate a left-skew strategy's lethal event, because that event is by construction absent from the sample the strategy survived.** Demonstrated: a synthetic left-skew sleeve scoring §21 PASS 7/7 shows a −27.9% deepest-decile drawdown and 9% of paths negative once single-day replace-mode jumps are injected at 1.5× the worst observed day. The clean bootstrap on such a sleeve measures nothing and reads as reassurance.",
+   "topics": [
+    "backtesting",
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R4",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 4,
+   "text": "**Anchor a break-even cost ratio to the harshest cost the sweep certifies at, never the cheapest tested.** Anchoring to the cheapest row turned a sleeve with 6.7bps break-even into \"3.3× headroom\"; anchoring to the 20bps corner the gate actually certifies at reports 0.3× and flags it. Where the sweep never crosses zero, extrapolate the terminal slope and label it extrapolated — reporting \">max tested\" collapses a Sharpe of 1.7 and a Sharpe of 0.05 into one indistinguishable line.",
+   "topics": [
+    "backtesting",
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R5",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 5,
+   "text": "**New gate content must ship reported-but-not-gating until every candidate has a reading.** Adding a gating checkbox to an established battery retroactively flips the verdict on every stored report, which is the mid-stream definition change `ML4T-01` warns against: improvements stop being interpretable as stronger signal and become changed definitions. Promotion to a gating check is a separate deliberate pass.",
+   "topics": [
+    "backtesting",
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R6",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 6,
+   "text": "**Declaration coverage is the honest measure of whether a choice is frozen, and it is usually far lower than assumed.** In a repo with a mature gate, 11 of 29 sleeves could be given an archetype declaration from their own stated mechanism and only 6 of 29 a holding-period declaration; the rest were reported as undeclared rather than guessed. An audit that reports a mechanism as \"added\" without its coverage number has not measured anything.",
+   "topics": [
+    "backtesting",
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-21-gate-audit-of-the-strategies-R7",
+   "pack": "notes",
+   "parent": "NOTE-21-gate-audit-of-the-strategies",
+   "parent_title": "§21 gate audit of the strategies repo — seven changes, two falsified hypotheses",
+   "ordinal": 7,
+   "text": "**Guard the switch, not the default.** A configuration whose default is safe can still be unsafe to change: the risk lives in the transition, and the effective control is to require the governing rule ID in the change's written reason, so the acknowledgement lands in the audit journal instead of a dismissed dialog.",
+   "topics": [
+    "backtesting",
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "claude-code-review",
+   "date": "2026-08-28",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R1",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 1,
+   "text": "**Alpaca supports Cboe index options — SPX, SPXW, VIX, VIXW, DJX and XSP — cash-settled and European-style, confirmed per contract by the API (`style=european`, `size=100`).** The prior note's envelope covered only American-style equity and ETF options and should not be read as excluding index options.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R2",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 2,
+   "text": "**Index options receive NO greeks and NO implied volatility from Alpaca — zero of 26,214 sampled VIX/SPX/XSP contracts carried either, while quotes were served for all of them.** This corrects `NOTE-options-strategies-on-alpaca-fmp-R1`, which recorded greeks as \"live-snapshot only\": that is true for equity options but optimistic for index options, where none exist in any form.",
+   "topics": [
+    "execution",
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R3",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 3,
+   "text": "**Local implied-vol inversion is mandatory rather than optional for index options**, since there is no served field to fall back on even at decision time.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R4",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 4,
+   "text": "**VIX options must be priced off VIX futures forwards, not spot VIX.** Inverting implied vol against spot VIX with a Black-Scholes helper returns a confidently wrong number, so equity-option greeks code is not transferable to VIX without substituting the forward.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R5",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 5,
+   "text": "**European-style, cash-settled index options carry no early-assignment risk at all**, so a dividend early-assignment guard is irrelevant to them; such a guard remains necessary for American-style equity and ETF short calls.",
+   "topics": [
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R6",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 6,
+   "text": "**Cash settlement removes assignment into the underlying**, eliminating the \"assignment into a falling name\" failure mode that dominates cash-secured-put and covered-call archetypes on equities.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R7",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 7,
+   "text": "**Multi-leg calendars and diagonals are blocked on index options**, because Alpaca's `mleg` rule requires European-style legs to share an expiration; the permission to trade calendars applies only to American-style equity options.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R8",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 8,
+   "text": "**Index option history reaches back to at least March 2024, comparable to equity options**, so index archetypes are no less backtestable than equity ones.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R9",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 9,
+   "text": "**Index options carry a ×100 multiplier against the index level, so contract notional dwarfs a small account** — one SPX contract near a 6,400 index level is roughly $640,000 of notional. VIX, at an index level typically in the teens, is the only one of these whose per-contract notional is small enough for a five-figure account.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R10",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 10,
+   "text": "**Alpaca's index-option order acceptance is documented but unverified by a fill here**, unlike the equity multi-leg path, where a real 4-leg order was accepted and a naked short was rejected with code 40310000.",
+   "topics": [
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R11",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 11,
+   "text": "**Treat `NOTE-options-strategies-on-alpaca-fmp-R1` as scoped to equity and ETF options.** For index options the stronger statement holds: no greeks or IV are served at all.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R12",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 12,
+   "text": "**Do not reuse spot-based Black-Scholes IV inversion for VIX options.** Substitute the VIX futures forward for spot, or exclude VIX from any greek-conditioned archetype.",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R13",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 13,
+   "text": "**Drop the dividend early-assignment guard from index-option designs** and keep it for American-style equity short calls, where the risk is real and mechanical.",
+   "topics": [
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R14",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 14,
+   "text": "**Prefer index options where the archetype's main risk is assignment path** rather than direction, since cash settlement removes that risk entirely.",
+   "topics": [
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R15",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 15,
+   "text": "**Verify index-option order acceptance with one small paper order before designing around it**, mirroring how the equity multi-leg envelope was established by a real accepted order rather than by documentation.",
+   "topics": [
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-alpaca-index-options-spx-vix-xsp-R16",
+   "pack": "notes",
+   "parent": "NOTE-alpaca-index-options-spx-vix-xsp",
+   "parent_title": "Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1",
+   "ordinal": 16,
+   "text": "**Size index-option positions off the ×100 multiplier against the index level, not against an equity-scale notional assumption.**",
+   "topics": [
+    "data",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "manual",
+   "date": "2026-09-09",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R1",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 1,
+   "text": "**Greeks and implied volatility are served only as live snapshots**; no historical greeks exist in the API or SDK, so any IV- or greek-conditioned signal is unbacktestable without locally recomputing from bid/ask and underlying bars [6][7][9][11][15].",
+   "topics": [
+    "execution",
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R2",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 2,
+   "text": "**Options history begins February 2024**, giving roughly two and a half years covering one benign volatility regime with an unsampled tail [5].",
+   "topics": [
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R3",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 3,
+   "text": "**Level 3 permits four-leg atomic `mleg` orders but not uncovered shorts**, which require Level 4; the binding rule is that all legs must be covered within the same order, which constrains rolling more than entry [1][4].",
+   "topics": [
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R4",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 4,
+   "text": "**Ratio spreads, calendars and diagonals are permitted**, contrary to common assumption; the leg-ratio rule is a normalisation, not a prohibition [1][2].",
+   "topics": [
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R5",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 5,
+   "text": "**Open interest is absent from every options endpoint**, removing the conventional liquidity screen [7][9].",
+   "topics": [
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R6",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 6,
+   "text": "**FMP's earnings calendar is a mutable record with no versioning** and no distinct confirmed flag, so historical dates are realised dates — a silent lookahead for any earnings-timed strategy [24].",
+   "topics": [
+    "costs",
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R7",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 7,
+   "text": "**FMP's dividend endpoints and stock-grade events are genuinely point-in-time**, while estimates, price-target consensus and price-target summary are not; consensus carries no date field at all [16][17][19][20][21].",
+   "topics": [
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R8",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 8,
+   "text": "**The volatility risk premium is roughly the size of one round-trip cost**: about $0.43 per ATM delta-hedged call against a $0.375 mean spread [28].",
+   "topics": [
+    "costs",
+    "risk"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R9",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 9,
+   "text": "**Execution style decides survival** — 1.3 cents effective spread for timed trades against 6.2–8.1 cents for naive spread-crossing, and a scheduled bot is firmly in the second group [29].",
+   "topics": [
+    "costs",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R10",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 10,
+   "text": "**The mandated backtest engine has no atomic multi-leg fill semantics** and no native options instrument, though it does support fixed per-contract fees correctly [38][39][40].",
+   "topics": [
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R11",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 11,
+   "text": "**Paper trading performs no liquidity or market-impact modelling** and lags live on assignment reporting by a day, so it validates logic, not edge [3][13][14].",
+   "topics": [
+    "costs",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R12",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 12,
+   "text": "**Rank by turnover and execution patience, not gross Sharpe.** The cost evidence says this is the axis that determines survival [28][29]. Prefer low-turnover, held-to-expiry structures.",
+   "topics": [
+    "costs",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R13",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 13,
+   "text": "**Start with single-leg, Level 1 structures** — covered calls and cash-secured puts on a small liquid universe. They avoid the atomicity mismatch, the approval ceiling and the greeks gap simultaneously.",
+   "topics": [
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R14",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 14,
+   "text": "**Audit the earnings sleeves' date provenance immediately.** If dates came from FMP's mutable calendar, the samples carry lookahead that flatters results invisibly [24]. This is the highest-value check available right now.",
+   "topics": [
+    "costs",
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R15",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 15,
+   "text": "**Build the dividend early-assignment filter next.** It is mechanical [36][37], uses the one FMP endpoint that is reliably point-in-time [16][17], and improves every short-call structure including the existing condor sleeve.",
+   "topics": [
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R16",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 16,
+   "text": "**Model costs as per-contract commission plus spread as a fraction of premium**, calibrated to the conventional effective spread rather than the sophisticated-trader figure [29]. Report break-even cost against assumed cost.",
+   "topics": [
+    "costs"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R17",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 17,
+   "text": "**Decide explicitly about greeks.** Either build a local IV/greeks pipeline from historical bid/ask and underlying bars — accepting ownership of the solver, including its documented 0DTE and deep-OTM failures [6] — or exclude greek-conditioned archetypes. Do not leave this implicit.",
+   "topics": [
+    "costs",
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R18",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 18,
+   "text": "**Resolve the multi-leg simulation gap before gating any new multi-leg sleeve**, via custom simulation callbacks or an explicit all-or-none pre-check, so simulated fills cannot violate the venue's coverage rule [1][38].",
+   "topics": [
+    "costs",
+    "data"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R19",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 19,
+   "text": "**Budget the paid OPRA data tier** as a fixed cost of doing options work; the indicative feed is randomised and unsuitable for both live trading and realistic cost modelling [8].",
+   "topics": [
+    "costs",
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R20",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 20,
+   "text": "**Settle two open questions cheaply**: whether equity and option legs combine in one `mleg` order [1][2], and whether the short-vol sleeve's \"empty historical option bars\" premise is now stale. Both are single test orders or single queries.",
+   "topics": [
+    "execution"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
+  },
+  {
+   "id": "NOTE-options-strategies-on-alpaca-fmp-R21",
+   "pack": "notes",
+   "parent": "NOTE-options-strategies-on-alpaca-fmp",
+   "parent_title": "Options Strategies on Alpaca + FMP: What the Envelope Actually Allows",
+   "ordinal": 21,
+   "text": "**State the one-regime limitation in every options gate.** With an unsampled tail, deflated-Sharpe and cross-validation machinery cannot see the risk that matters most [5][12].",
+   "topics": [
+    "risk",
+    "backtesting"
+   ],
+   "authority": "derived",
+   "source": "hyperresearch",
+   "date": "2026-09-05",
+   "domain": "trading"
   }
  ],
  "topics": {
@@ -11525,7 +12393,27 @@
    "ML4T-18-R9",
    "ML4T-22-R6",
    "ML4T-25-R5",
-   "ML4T-26-R15"
+   "ML4T-26-R15",
+   "NOTE-21-gate-audit-of-the-strategies-R1",
+   "NOTE-21-gate-audit-of-the-strategies-R2",
+   "NOTE-21-gate-audit-of-the-strategies-R3",
+   "NOTE-21-gate-audit-of-the-strategies-R4",
+   "NOTE-21-gate-audit-of-the-strategies-R5",
+   "NOTE-21-gate-audit-of-the-strategies-R6",
+   "NOTE-21-gate-audit-of-the-strategies-R7",
+   "NOTE-options-strategies-on-alpaca-fmp-R10",
+   "NOTE-options-strategies-on-alpaca-fmp-R11",
+   "NOTE-options-strategies-on-alpaca-fmp-R12",
+   "NOTE-options-strategies-on-alpaca-fmp-R14",
+   "NOTE-options-strategies-on-alpaca-fmp-R16",
+   "NOTE-options-strategies-on-alpaca-fmp-R17",
+   "NOTE-options-strategies-on-alpaca-fmp-R18",
+   "NOTE-options-strategies-on-alpaca-fmp-R19",
+   "NOTE-options-strategies-on-alpaca-fmp-R4",
+   "NOTE-options-strategies-on-alpaca-fmp-R5",
+   "NOTE-options-strategies-on-alpaca-fmp-R6",
+   "NOTE-options-strategies-on-alpaca-fmp-R8",
+   "NOTE-options-strategies-on-alpaca-fmp-R9"
   ],
   "regime": [
    "ASSP-03-R6",
@@ -11629,7 +12517,27 @@
    "ML4T-26-R7",
    "ML4T-26-R8",
    "ML4T-26-R9",
-   "ML4T-27-R7"
+   "ML4T-27-R7",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R1",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R10",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R11",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R12",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R15",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R16",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R2",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R3",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R4",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R6",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R7",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R8",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R9",
+   "NOTE-options-strategies-on-alpaca-fmp-R1",
+   "NOTE-options-strategies-on-alpaca-fmp-R11",
+   "NOTE-options-strategies-on-alpaca-fmp-R12",
+   "NOTE-options-strategies-on-alpaca-fmp-R19",
+   "NOTE-options-strategies-on-alpaca-fmp-R20",
+   "NOTE-options-strategies-on-alpaca-fmp-R3",
+   "NOTE-options-strategies-on-alpaca-fmp-R9"
   ],
   "backtesting": [
    "ASSP-05-R7",
@@ -11716,7 +12624,14 @@
    "ML4T-23-R16",
    "ML4T-23-R8",
    "ML4T-26-R4",
-   "ML4T-27-R8"
+   "ML4T-27-R8",
+   "NOTE-21-gate-audit-of-the-strategies-R1",
+   "NOTE-21-gate-audit-of-the-strategies-R3",
+   "NOTE-21-gate-audit-of-the-strategies-R4",
+   "NOTE-21-gate-audit-of-the-strategies-R5",
+   "NOTE-21-gate-audit-of-the-strategies-R6",
+   "NOTE-21-gate-audit-of-the-strategies-R7",
+   "NOTE-options-strategies-on-alpaca-fmp-R21"
   ],
   "modeling": [
    "ML4T-01-R9",
@@ -11893,7 +12808,24 @@
    "ML4T-16-R12",
    "ML4T-22-R9",
    "ML4T-23-R5",
-   "ML4T-24-R14"
+   "ML4T-24-R14",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R1",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R11",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R12",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R16",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R3",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R4",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R6",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R7",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R8",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R9",
+   "NOTE-options-strategies-on-alpaca-fmp-R13",
+   "NOTE-options-strategies-on-alpaca-fmp-R14",
+   "NOTE-options-strategies-on-alpaca-fmp-R15",
+   "NOTE-options-strategies-on-alpaca-fmp-R17",
+   "NOTE-options-strategies-on-alpaca-fmp-R18",
+   "NOTE-options-strategies-on-alpaca-fmp-R6",
+   "NOTE-options-strategies-on-alpaca-fmp-R7"
   ],
   "features": [
    "ML4T-02-R5",
@@ -12047,7 +12979,15 @@
    "ML4T-19-R7",
    "ML4T-19-R8",
    "ML4T-19-R9",
-   "ML4T-26-R18"
+   "ML4T-26-R18",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R13",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R14",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R2",
+   "NOTE-alpaca-index-options-spx-vix-xsp-R5",
+   "NOTE-options-strategies-on-alpaca-fmp-R1",
+   "NOTE-options-strategies-on-alpaca-fmp-R2",
+   "NOTE-options-strategies-on-alpaca-fmp-R21",
+   "NOTE-options-strategies-on-alpaca-fmp-R8"
   ],
   "sizing": [
    "ASSP-04-R11",

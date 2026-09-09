@@ -3,8 +3,8 @@
 Drop zone for markdown to be added to the corpus. Anything here is staged, not yet indexed.
 
 ```bash
-python3 scripts/ingest.py --dry-run   # show where each file would land, change nothing
-python3 scripts/ingest.py             # file them, then rebuild the index
+python3 scripts/ingest.py --domain <id> --dry-run   # show where each file would land, change nothing
+python3 scripts/ingest.py --domain <id>             # file them, then rebuild the index
 ```
 
 Originals move to `inbox/processed/` with a timestamp. Nothing is deleted, so a misrouted file is

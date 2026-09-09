@@ -352,6 +352,25 @@ def cmd_engine(pack_id, query, symbol, show_offset, limit, max_bytes, role_filte
         sys.exit("no engine index for %r — run build_index.py" % pack_id)
     eng = K.load_json(path)
 
+    # A licensed source is gitignored, so a clone keeps the index but not the bytes.
+    # Every query then returns "no matches", which reads as "the engine cannot do that"
+    # — the opposite of the truth, and enough to send a caller off writing by hand what
+    # the tool already implements. Say which failure this actually is.
+    present = {r: i for r, i in eng["files"].items()
+               if os.path.exists(os.path.join(K.ROOT, i["file"]))}
+    if not present:
+        names = (", ".join(sorted(i["file"] for i in eng["files"].values()))
+                 or "none of its declared sources are on disk")
+        sys.exit("engine %r is indexed but its sources are absent: %s\n"
+                 "Engine RETRIEVAL is unavailable — the capability is unknown, not missing. "
+                 "Do not conclude the tool lacks a feature from this result.\n"
+                 "Licensed files are gitignored by design; copy them back to enable it."
+                 % (pack_id, names))
+    if len(present) < len(eng["files"]):
+        sys.stderr.write("warning: %d of %d %s sources absent — results are partial\n"
+                         % (len(eng["files"]) - len(present), len(eng["files"]), pack_id))
+    eng["files"] = present
+
     if show_offset is not None:
         for role, info in eng["files"].items():
             for head in info["headings"]:

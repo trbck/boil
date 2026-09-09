@@ -91,8 +91,8 @@ The corpus is meant to grow. Two paths:
 and run:
 
 ```bash
-python3 scripts/ingest.py --dry-run   # show routing, change nothing
-python3 scripts/ingest.py             # file it, then rebuild the index
+python3 scripts/ingest.py --domain <id> --dry-run   # show routing, change nothing
+python3 scripts/ingest.py --domain <id>             # file it, then rebuild the index
 ```
 
 Findings sections (`## Key findings`, `## Recommendations`, …) become citable `derived` rules. Any
@@ -119,14 +119,16 @@ a script:
 4. On completion, run `scripts/research_note.py --run <vault_tag> --dry-run`. **Show the user the
    findings that would become rules and get an explicit yes** — `FORMAT.md` is explicit that a
    sloppy findings section pollutes the constitution, so this gate is not optional.
-5. Run `scripts/research_note.py --run <vault_tag>` for real, then `scripts/ingest.py`, and
-   report the new rule IDs (`NOTE-<slug>-R1` …).
+5. Run `scripts/research_note.py --run <vault_tag>` for real, then `scripts/ingest.py --domain
+   <id>` — `--domain` is required whenever more than one domain is installed, and
+   `research_note.py --domain` does not carry through, it only records frontmatter. Report the
+   new rule IDs (`NOTE-<slug>-R1` …).
 
 ```bash
 python3 scripts/research_status.py <vault_tag> --research-root ~/.advisor-research
 python3 scripts/research_note.py --run <vault_tag> --dry-run
 python3 scripts/research_note.py --run <vault_tag>
-python3 scripts/ingest.py
+python3 scripts/ingest.py --domain <id>
 ```
 
 The note carries `run:` and `question:` frontmatter back to the manifest that produced it, so a

@@ -1,6 +1,6 @@
 # Rules — Risk, drawdown & survival
 
-`41` rules · ~725 words · ~978 tokens
+`49` rules · ~960 words · ~1296 tokens
 
 Cite by ID. `primary` rules come from books; `derived` rules come from your own notes and research and must never silently override a primary rule — if they conflict, say so.
 
@@ -104,4 +104,22 @@ Cite by ID. `primary` rules come from books; `derived` rules come from your own 
 <sub>Machine Learning for Trading, 3rd ed.</sub>
 
 - **ML4T-26-R18** — **Halt immediately on hard loss limits.** Do not wait for review; do not trade out of the hole.
+
+### NOTE-alpaca-index-options-spx-vix-xsp — Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correction to R1  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-alpaca-index-options-spx-vix-xsp-R2** — **Index options receive NO greeks and NO implied volatility from Alpaca — zero of 26,214 sampled VIX/SPX/XSP contracts carried either, while quotes were served for all of them.** This corrects `NOTE-options-strategies-on-alpaca-fmp-R1`, which recorded greeks as "live-snapshot only": that is true for equity options but optimistic for index options, where none exist in any form.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R5** — **European-style, cash-settled index options carry no early-assignment risk at all**, so a dividend early-assignment guard is irrelevant to them; such a guard remains necessary for American-style equity and ETF short calls.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R13** — **Drop the dividend early-assignment guard from index-option designs** and keep it for American-style equity short calls, where the risk is real and mechanical.
+- **NOTE-alpaca-index-options-spx-vix-xsp-R14** — **Prefer index options where the archetype's main risk is assignment path** rather than direction, since cash settlement removes that risk entirely.
+
+### NOTE-options-strategies-on-alpaca-fmp — Options Strategies on Alpaca + FMP: What the Envelope Actually Allows  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-options-strategies-on-alpaca-fmp-R1** — **Greeks and implied volatility are served only as live snapshots**; no historical greeks exist in the API or SDK, so any IV- or greek-conditioned signal is unbacktestable without locally recomputing from bid/ask and underlying bars [6][7][9][11][15].
+- **NOTE-options-strategies-on-alpaca-fmp-R2** — **Options history begins February 2024**, giving roughly two and a half years covering one benign volatility regime with an unsampled tail [5].
+- **NOTE-options-strategies-on-alpaca-fmp-R8** — **The volatility risk premium is roughly the size of one round-trip cost**: about $0.43 per ATM delta-hedged call against a $0.375 mean spread [28].
+- **NOTE-options-strategies-on-alpaca-fmp-R21** — **State the one-regime limitation in every options gate.** With an unsampled tail, deflated-Sharpe and cross-validation machinery cannot see the risk that matters most [5][12].
 

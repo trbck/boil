@@ -1,6 +1,6 @@
 # Rules — Backtesting & validation
 
-`85` rules · ~1352 words · ~1825 tokens
+`92` rules · ~1771 words · ~2390 tokens
 
 Cite by ID. `primary` rules come from books; `derived` rules come from your own notes and research and must never silently override a primary rule — if they conflict, say so.
 
@@ -168,4 +168,21 @@ Cite by ID. `primary` rules come from books; `derived` rules come from your own 
 <sub>Machine Learning for Trading, 3rd ed.</sub>
 
 - **ML4T-27-R8** — **Treat model governance as measurable risk,** not philosophy — interpretability, bias, robustness, auditability each have techniques and metrics.
+
+### NOTE-21-gate-audit-of-the-strategies — §21 gate audit of the strategies repo — seven changes, two falsified hypotheses  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-21-gate-audit-of-the-strategies-R1** — **A gate's false-positive rate is a function of sample size, and reporting a verdict without it is a category error.** The same §21 battery passes 4.0% of no-edge draws at n≈2500 and 8.5% at n≈317 — a 2.1× difference that the verdict line does not carry. Any gate report should print its own calibrated error rate for the sleeve's sample regime beside the verdict.
+- **NOTE-21-gate-audit-of-the-strategies-R3** — **A block bootstrap cannot generate a left-skew strategy's lethal event, because that event is by construction absent from the sample the strategy survived.** Demonstrated: a synthetic left-skew sleeve scoring §21 PASS 7/7 shows a −27.9% deepest-decile drawdown and 9% of paths negative once single-day replace-mode jumps are injected at 1.5× the worst observed day. The clean bootstrap on such a sleeve measures nothing and reads as reassurance.
+- **NOTE-21-gate-audit-of-the-strategies-R4** — **Anchor a break-even cost ratio to the harshest cost the sweep certifies at, never the cheapest tested.** Anchoring to the cheapest row turned a sleeve with 6.7bps break-even into "3.3× headroom"; anchoring to the 20bps corner the gate actually certifies at reports 0.3× and flags it. Where the sweep never crosses zero, extrapolate the terminal slope and label it extrapolated — reporting ">max tested" collapses a Sharpe of 1.7 and a Sharpe of 0.05 into one indistinguishable line.
+- **NOTE-21-gate-audit-of-the-strategies-R5** — **New gate content must ship reported-but-not-gating until every candidate has a reading.** Adding a gating checkbox to an established battery retroactively flips the verdict on every stored report, which is the mid-stream definition change `ML4T-01` warns against: improvements stop being interpretable as stronger signal and become changed definitions. Promotion to a gating check is a separate deliberate pass.
+- **NOTE-21-gate-audit-of-the-strategies-R6** — **Declaration coverage is the honest measure of whether a choice is frozen, and it is usually far lower than assumed.** In a repo with a mature gate, 11 of 29 sleeves could be given an archetype declaration from their own stated mechanism and only 6 of 29 a holding-period declaration; the rest were reported as undeclared rather than guessed. An audit that reports a mechanism as "added" without its coverage number has not measured anything.
+- **NOTE-21-gate-audit-of-the-strategies-R7** — **Guard the switch, not the default.** A configuration whose default is safe can still be unsafe to change: the risk lives in the transition, and the effective control is to require the governing rule ID in the change's written reason, so the acknowledgement lands in the audit journal instead of a dismissed dialog.
+
+### NOTE-options-strategies-on-alpaca-fmp — Options Strategies on Alpaca + FMP: What the Envelope Actually Allows  *(derived)*
+
+<sub>Research notes & reports</sub>
+
+- **NOTE-options-strategies-on-alpaca-fmp-R21** — **State the one-regime limitation in every options gate.** With an unsampled tail, deflated-Sharpe and cross-validation machinery cannot see the risk that matters most [5][12].
 

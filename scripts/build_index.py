@@ -25,6 +25,10 @@ ROUTER_GOVERNS_CHARS = 110
 # Capped so a fifth domain cannot dilute the description into uselessness --
 # the description is the sole determinant of whether the skill fires at all.
 SCOPE_PER_DOMAIN = 6
+# Frontmatter is capped at 1024 characters by the skill spec, and it is loaded into
+# every conversation whether or not the skill fires. The trigger phrases are the only
+# part that decides whether it fires, so they are the last thing trimmed.
+MAX_FRONTMATTER_CHARS = 1024
 ENGINE_DESC_CHARS = 90
 # Weight a rule inherits from its parent chapter's topics, in units where one
 # distinct keyword match is worth 3. Set near one match so subject matter wins
@@ -373,6 +377,25 @@ def collect_files(pack):
                   if f.endswith(".md") and not f.startswith("_"))
 
 
+def corpus_fingerprint(domain):
+    """Recompute a domain's fingerprint from disk without building anything.
+
+    The point of the fingerprint is to say whether two builds saw the same corpus.
+    That is only useful if something checks it: a generated/ tree older than the
+    knowledge it indexes answers questions from a snapshot while claiming to answer
+    from the corpus, and nothing about the output looks wrong.
+    """
+    files = []
+    for pack in K.load_domain_packs(domain):
+        if pack["kind"] == "engine":
+            files += [p for p in (os.path.join(pack["abs_path"], n)
+                                  for n in pack.get("sources", {}).values())
+                      if os.path.exists(p)]
+        else:
+            files += collect_files(pack)
+    return fingerprint(files)
+
+
 def build_domain(domain, quiet=False):
     """Build every artifact for one domain into generated/<domain-id>/."""
     packs = K.load_domain_packs(domain)
@@ -477,23 +500,67 @@ def render_description(indexes):
     """
     titles = [ix.get("title") for ix in indexes if ix.get("title")]
     total = sum(len(ix.get("rules", [])) for ix in indexes)
-    scope = []
-    for ix in indexes:
-        scope.extend((ix.get("scope") or [])[:SCOPE_PER_DOMAIN])
+    # Kept per domain so that trimming for length sheds evenly instead of silently
+    # muting whichever domain happens to be listed last.
+    groups = [list((ix.get("scope") or [])[:SCOPE_PER_DOMAIN]) for ix in indexes]
 
-    parts = ["Grounded, citation-backed advisor over knowledge distilled from books"]
+    # Deliberately no summary of what the skill *does*: a description that recites the
+    # workflow becomes a shortcut the model follows instead of reading the skill body.
+    # Triggering conditions only.
+    head = "Citation-backed advisor over knowledge distilled from books"
     if titles:
-        parts[0] += ", currently covering " + join_and(titles)
-    parts[0] += "."
-    parts.append("It answers questions, designs and produces work, and audits existing artefacts, "
-                 "citing a stable rule ID from %d indexed rules for every claim." % total)
-    if scope:
-        parts.append("Use this skill whenever the user is working on " + "; ".join(scope) + ".")
-    parts.append("Also use it when they ask what the literature or \"the books\" say on these "
-                 "topics, when they want existing work or a plan reviewed against that literature, "
-                 "or when they want to add new markdown knowledge to the corpus. Trigger it even "
-                 "when the user never mentions the books, the corpus, or this skill by name.")
-    return " ".join(parts)
+        head += ", covering " + join_and(titles)
+    head += "."
+    tail = ("Also use it when they ask what the literature says on these topics, when they want "
+            "work reviewed against it, or when adding markdown knowledge to the corpus — even if "
+            "they never mention the books or this skill.")
+
+    def compose():
+        phrases = [p for g in groups for p in g]
+        parts = [head]
+        if phrases:
+            parts.append("Use when the user is working on " + "; ".join(phrases) + ".")
+        parts.append(tail)
+        return " ".join(parts)
+
+    # `name: advisor` plus `description: ` plus the YAML fences the caller adds.
+    budget = MAX_FRONTMATTER_CHARS - (len("description: ") + 40)
+    while len(compose()) > budget and any(len(g) > 1 for g in groups):
+        max(groups, key=len).pop()
+    return compose()
+
+
+README_STATS_MARK = "<!-- STATS: rewritten by scripts/build_index.py"
+
+
+def stamp_readme_stats(indexes, quiet=False):
+    """Keep README's headline counts honest.
+
+    A hand-typed corpus size is wrong the first time anything is ingested, and it is
+    the first number a reader sees. Engine symbol counts are deliberately excluded:
+    licensed sources are absent on most machines, so including them would make the
+    line flip back and forth between checkouts.
+    """
+    path = os.path.join(K.ROOT, "README.md")
+    if not os.path.exists(path):
+        return
+    text = K.read_text(path)
+    if README_STATS_MARK not in text:
+        return
+    stats = "%d domain%s · %d rules · %d book chapters · %d topic shards" % (
+        len(indexes), "" if len(indexes) == 1 else "s",
+        sum(len(ix.get("rules", [])) for ix in indexes),
+        sum(len(ix.get("chapters", [])) for ix in indexes),
+        sum(len(ix.get("topics", {})) for ix in indexes))
+    head, sep, rest = text.partition(README_STATS_MARK)
+    line_end = rest.index("\n") + 1
+    body = rest[line_end:]
+    start = body.index("```") + 3
+    end = body.index("```", start)
+    new = head + sep + rest[:line_end] + body[:start] + "\n" + stats + "\n" + body[end:]
+    if new != text:
+        K.write_text(path, new)
+        log("README.md stats stamped (%s)" % stats, quiet)
 
 
 def render_domains_table(indexes):
@@ -544,7 +611,8 @@ def render_gates_summary(domains):
                       % (gates.get("label", "Gates"), gates.get("source", ""), dom["id"],
                          names, gates.get("rationale", "")))
     if not blocks:
-        return "_No gates defined._"
+        return ("_No installed domain defines gates. In `plan` mode, say that explicitly "
+                "instead of improvising a gate list._")
     return "\n\n".join(blocks)
 
 
@@ -595,8 +663,16 @@ def render_workflows(domains, quiet=False):
                 out.append("")
                 for item in extra:
                     ids = " ".join("`%s`" % r for r in item.get("rules", []))
-                    out.append("- **%s** — %s %s" % (item["name"], item["must_state"], ids))
+                    out.append(("- **%s** — %s %s" % (item["name"], item["must_state"], ids))
+                               .rstrip())
                 out.append("")
+        else:
+            out.append("## Gates — %s" % dom.get("title", dom["id"]))
+            out.append("")
+            out.append("_This domain defines no gates. `plan` mode's gate step does not apply "
+                       "here — say so in the plan rather than inventing gates to fill the "
+                       "section, and carry the domain's own standing caveats instead._")
+            out.append("")
 
         checklists = K.load_optional(dom, "checklists")
         if checklists:
@@ -612,6 +688,14 @@ def render_workflows(domains, quiet=False):
                     out.append("| %s | %s | %s |"
                                % (item.get("severity", ""), item["defect"], ids))
                 out.append("")
+        else:
+            out.append("## Checklist: review — %s" % dom.get("title", dom["id"]))
+            out.append("")
+            out.append("_This domain ships no review checklist. Walk the target against the "
+                       "governing rule shards instead, and say in the findings that no curated "
+                       "checklist covered it — an uncovered review is weaker evidence than a "
+                       "checklisted one, and the reader is entitled to know which they have._")
+            out.append("")
 
     out.append("## Retrieval budget")
     out.append("")
@@ -684,8 +768,12 @@ def render_retrieval_examples(indexes):
     sec_id = ("%s§%s" % (chap_id, chapter["sections"][0]["key"])
               if chapter and chapter.get("sections") else "<CHAPTER>§1")
 
+    # Unscoped BM25 leaks across domains: a trading question phrased in plain English
+    # can rank a decisions chapter first. Scoping is the default form, not the footnote.
+    multi = len(indexes) > 1
+    scope = ("--domain %s " % indexes[0]["domain"]) if multi else ""
     rows = [
-        ('python3 scripts/lookup.py --search "%s"' % truncate(query, 46),
+        ('python3 scripts/lookup.py %s--search "%s"' % (scope, truncate(query, 46)),
          "rank rules+chapters+sections"),
         ("python3 scripts/lookup.py --topic %s" % topic, "one rule shard"),
         ("python3 scripts/lookup.py --rule %s" % rule_id, "verify a single rule"),
@@ -694,19 +782,23 @@ def render_retrieval_examples(indexes):
     ]
     width = max(len(cmd) for cmd, _ in rows)
     lines = ["%-*s  # %s" % (width, cmd, note) for cmd, note in rows]
-    lines.append("python3 scripts/lookup.py --list domains|chapters|topics|packs|notes")
-    if len(indexes) > 1:
-        lines.append("python3 scripts/lookup.py --domain %s --search \"...\"   "
-                     "# restrict to one domain" % indexes[0]["domain"])
+    lines.append("%-*s  # or: chapters, topics, packs, notes"
+                 % (width, "python3 scripts/lookup.py --list domains"))
+    if multi:
+        lines.append("%-*s  # every domain at once — leakier; only when the domain is "
+                     "genuinely unclear" % (width, 'python3 scripts/lookup.py --search "..."'))
     return "\n".join(lines)
 
 
 def engine_packs(indexes):
     # An engine whose sources are absent (a fresh clone of a repo that gitignores
     # licensed docs) indexed no headings. Instructions for slicing it would tell the
-    # model to run a command that returns nothing.
+    # model to run a command that returns nothing. A committed index outlives the bytes
+    # it was built from, so presence in the index is not evidence the files are here —
+    # check the disk.
     return [(ix["domain"], eng) for ix in indexes for eng in ix.get("engines", [])
-            if eng.get("files")]
+            if any(os.path.exists(os.path.join(K.ROOT, f["file"]))
+                   for f in (eng.get("files") or {}).values())]
 
 
 def render_engine_rule(indexes):
@@ -763,6 +855,7 @@ def render_skill(indexes, quiet=False):
                      ("CAVEATS", render_caveats(indexes))):
         text = text.replace("{{%s}}" % key, val)
     K.write_text(os.path.join(K.ROOT, "SKILL.md"), text)
+    stamp_readme_stats(indexes, quiet)
     log("SKILL.md regenerated (%d domains, %d rules, description %d words)"
         % (len(indexes), total, len(render_description(indexes).split())), quiet)
 

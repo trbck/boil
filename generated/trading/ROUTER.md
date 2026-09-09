@@ -4,7 +4,7 @@ Always-loaded map of this domain's corpus. Resolve a question to a small number 
 
 _Systematic trading: research process, signals, regime detection, position sizing, portfolio construction, risk and drawdown control, transaction costs, backtesting rigour, and live execution._
 
-`domain: trading`  ·  `corpus: e0e0746fe442`
+`domain: trading`  ·  `corpus: 622bfe1eba8d`
 
 ## Packs
 
@@ -13,7 +13,7 @@ _Systematic trading: research process, signals, regime detection, position sizin
 | `ml4t` | book | Machine Learning for Trading, 3rd ed. | `process`, `data`, `features`, `modeling`, `backtesting`, `tooling`, `execution` |
 | `assp` | book | Algorithmic Short Selling with Python, 2nd ed. | `regime`, `signals`, `sizing`, `portfolio`, `risk`, `costs`, `psychology` |
 | `notes` | notes | Research notes & reports | — |
-| `vbtpro` | engine | VectorBT PRO documentation | `tooling`, `backtesting` |
+| `vbtpro` | engine · **sources absent** | VectorBT PRO documentation | `tooling`, `backtesting` |
 
 When packs disagree, prefer the one authoritative on the topic in question — and say that a disagreement existed. See `domains/trading/conflicts.md`.
 
@@ -21,17 +21,17 @@ When packs disagree, prefer the one authoritative on the topic in question — a
 
 | Topic | Rules | ~Tokens | File |
 |---|---|---|---|
-| `backtesting` | 85 | ~1825 | `generated/rules/backtesting.md` |
-| `costs` | 65 | ~1572 | `generated/rules/costs.md` |
-| `data` | 60 | ~1271 | `generated/rules/data.md` |
-| `execution` | 77 | ~1629 | `generated/rules/execution.md` |
+| `backtesting` | 92 | ~2390 | `generated/rules/backtesting.md` |
+| `costs` | 85 | ~2656 | `generated/rules/costs.md` |
+| `data` | 77 | ~1983 | `generated/rules/data.md` |
+| `execution` | 97 | ~2498 | `generated/rules/execution.md` |
 | `features` | 109 | ~2446 | `generated/rules/features.md` |
 | `modeling` | 113 | ~2589 | `generated/rules/modeling.md` |
 | `portfolio` | 62 | ~1459 | `generated/rules/portfolio.md` |
 | `process` | 52 | ~1084 | `generated/rules/process.md` |
 | `psychology` | 17 | ~421 | `generated/rules/psychology.md` |
 | `regime` | 23 | ~575 | `generated/rules/regime.md` |
-| `risk` | 41 | ~978 | `generated/rules/risk.md` |
+| `risk` | 49 | ~1296 | `generated/rules/risk.md` |
 | `signals` | 41 | ~926 | `generated/rules/signals.md` |
 | `sizing` | 18 | ~398 | `generated/rules/sizing.md` |
 | `tooling` | 77 | ~1642 | `generated/rules/tooling.md` |
@@ -79,15 +79,11 @@ When packs disagree, prefer the one authoritative on the topic in question — a
 
 ## Notes & reports
 
-_None yet. Drop markdown in `inbox/` and run `python3 scripts/ingest.py`._
-
-## Engine packs
-
-| ID | Title | Router | Indexed headings |
-|---|---|---|---|
-| `vbtpro` | VectorBT PRO documentation | `generated/engines/vbtpro.md` | 10792 |
-
-Engine content is retrieved by symbol, never loaded whole: `python3 scripts/lookup.py --engine <id> --search "<query>"`.
+| ID | Title | Category | Source | Date | Topics | Findings |
+|---|---|---|---|---|---|---|
+| `NOTE-21-gate-audit-of-the-strategies` | §21 gate audit of the strategies repo — seven changes, two… | audit | claude-code-review | 2026-08-28 | `backtesting` `portfolio` `costs` `process` | 7 |
+| `NOTE-options-strategies-on-alpaca-fmp` | Options Strategies on Alpaca + FMP: What the Envelope Actua… | research | hyperresearch | 2026-09-05 | `options` `costs` `data` `execution` `risk` | 21 |
+| `NOTE-alpaca-index-options-spx-vix-xsp` | Alpaca Index Options (SPX/VIX/XSP) — Envelope, and a Correc… | research | manual | 2026-09-09 | `options` `data` `execution` `risk` | 16 |
 
 ## Standing caveats
 
@@ -105,5 +101,4 @@ python3 scripts/lookup.py --domain trading --search "..."
 python3 scripts/lookup.py --rule ML4T-01-R1
 python3 scripts/lookup.py --chapter ML4T-01
 python3 scripts/lookup.py --section ML4T-01§1
-python3 scripts/lookup.py --engine vbtpro --search "<capability>"
 ```

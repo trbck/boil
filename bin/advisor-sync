@@ -52,9 +52,31 @@ if [ "$ACTION" = "check" ]; then
   TARGET="$LINK"
   [ -L "$LINK" ] && TARGET="$(cd "$(dirname "$LINK")" && cd "$(readlink "$LINK")" && pwd)"
   say "installed at $LINK"
-  [ -L "$LINK" ] && say "  → symlink to $TARGET"
   [ -f "$TARGET/SKILL.md" ] || die "SKILL.md missing — the install is incomplete"
   need python3
+
+  # A second writable clone is the failure this check exists to catch. Ingestion
+  # writes wherever it is run, so the install that answers questions can hold rules
+  # the checkout under version control has never seen — and those IDs resolve on
+  # this machine and nowhere else, which is exactly what a citation is supposed to
+  # rule out.
+  if [ -L "$LINK" ]; then
+    say "  → symlink to $TARGET"
+  elif [ -d "$TARGET/.git" ]; then
+    say "  ! $LINK is an independent git clone, not a link to $CHECKOUT."
+    say "    Anything ingested here never reaches the checkout, and vice versa."
+    UNSAVED="$(git -C "$TARGET" status --porcelain -- \
+                 ':(exclude)generated' ':(exclude)SKILL.md' \
+                 ':(exclude)references/workflows.md')"
+    if [ -n "$UNSAVED" ]; then
+      say "    uncommitted knowledge here:"
+      printf '      %s\n' $(echo "$UNSAVED" | awk '{print $2}')
+      say "    commit it, or copy it into $CHECKOUT, before it is lost."
+    fi
+  else
+    say "  → plain copy (snapshot); ingest in $CHECKOUT instead"
+  fi
+
   python3 "$TARGET/scripts/validate_pack.py"
   python3 "$TARGET/scripts/lookup.py" --list domains
   exit 0

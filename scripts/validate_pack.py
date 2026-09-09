@@ -18,6 +18,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import ka_common as K  # noqa: E402
+import build_index as B  # noqa: E402
 
 # Chapters this thin are usually a truncated paste rather than a deliberate summary.
 MIN_RULES_WARN = 3
@@ -183,6 +184,28 @@ def main():
                 print("   ! %s" % warn)
             total_err += len(errors)
             total_warn += len(warnings)
+
+    # A second writable clone (an install directory that ingests, a packaging tree)
+    # drifts from the one under version control, and the citations it hands out
+    # resolve there and nowhere else. Nothing else in the pipeline notices.
+    for dom in domains:
+        recorded = None
+        index_path = os.path.join(dom["generated"], "index.json")
+        if os.path.exists(index_path):
+            recorded = K.load_json(index_path).get("corpus_fingerprint")
+        if not recorded:
+            print("%-10s %-8s %-7s %3s          FAIL" % (dom["id"], "index", "-", "-"))
+            print("   ✗ no generated index — run build_index.py")
+            total_err += 1
+            continue
+        actual = B.corpus_fingerprint(dom)
+        if actual != recorded:
+            print("%-10s %-8s %-7s %3s          ok" % (dom["id"], "index", "-", "-"))
+            print("   ! generated/ is stale: indexed %s, corpus is now %s — run "
+                  "build_index.py. (An engine pack whose licensed sources are absent "
+                  "on this machine also shifts the fingerprint; rebuild and re-check "
+                  "to tell the two apart.)" % (recorded, actual))
+            total_warn += 1
 
     # Rule IDs embed the pack prefix, so two packs sharing one prefix would mint
     # colliding IDs across domains and silently corrupt every citation.
