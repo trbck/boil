@@ -83,6 +83,11 @@ python3 scripts/lookup.py --section "ASSP-09§5"                    # read the r
 python3 scripts/lookup.py --engine vbtpro --symbol Portfolio.from_signals
 ```
 
+The last line needs the engine pack's licensed sources, which are gitignored and so
+absent from a clone. Without them engine retrieval reports itself unavailable rather
+than returning nothing — a query that came back empty would read as "the tool cannot
+do that", which is not what an absent file means.
+
 ## Adding knowledge
 
 **Reports and notes** — drop markdown in `inbox/`, then:
@@ -173,3 +178,29 @@ Each `ROUTER.md` carries a corpus fingerprint. If it disagrees with the domain's
 rebuild before trusting an answer. The build is deterministic and timestamp-free, and the
 fingerprint is computed over repo-relative paths, so the same corpus yields the same id on any
 machine and a clean rebuild produces an empty diff.
+
+`validate_pack.py` recomputes the fingerprint from disk and warns when `generated/` lags, so a
+stale index is a reported condition rather than something you have to remember to notice.
+
+## Testing
+
+```bash
+python3 -m pytest tests -q                 # contracts, ID stability, documented commands
+python3 scripts/rule_baseline.py           # no cited ID has vanished or changed meaning
+python3 scripts/eval_retrieval.py --scoped # retrieval quality, one domain per question
+python3 scripts/check_citations.py answer.md   # do the IDs in this answer exist?
+```
+
+Three things are checked that the corpus itself cannot tell you:
+
+- **The ID contract.** `tests/rule-ids.baseline` pins every rule ID to a content hash. An ID that
+  disappears breaks citations that point at it; an ID whose `primary` text changes underneath it
+  is worse, because those citations still resolve — to different words. Both fail the build.
+  Regenerate deliberately with `scripts/rule_baseline.py --update`, after fixing the citations.
+- **The documented commands.** Every read-only command in a ```bash block in the docs is extracted
+  and run. Documentation that is never executed drifts silently; this is how the `ingest.py`
+  examples were wrong for as long as two domains had been installed.
+- **Citations in output.** `check_citations.py` resolves every ID-shaped token in a piece of
+  advisor output and reports what does not exist. A fabricated ID is worse than a missing one — it
+  imitates the diligence it lacks — and it is the one failure here that a script can catch
+  outright. `--require-citations` additionally fails an answer that grounded nothing at all.
