@@ -3,6 +3,7 @@ controller that exists (prepare → one implementer → score), not the ticket l
 
 from __future__ import annotations
 
+import ast
 import re
 import unittest
 from pathlib import Path
@@ -52,5 +53,41 @@ class DocsTest(unittest.TestCase):
         self.assertIn(f"{words[n]}, each mechanically checkable", rules)
 
 
+
+
+class TestFileHygieneTest(unittest.TestCase):
+    """A `unittest.main()` guard above a test class silently disables it.
+
+    Run as `python tests/test_x.py`, execution stops at the guard, so every class defined
+    below it is never created — the suite reports OK having skipped them without saying so.
+    It had happened in six of these files, `test_verifier_first.py` hiding thirteen
+    classes, and twice in `test_review.py` during this change alone. Both times by the most
+    natural action there is: appending a class to the end of the file. Position cannot be
+    remembered, so it is checked.
+
+    Read with `ast`, not string search: the guard's own name appears inside string literals
+    in this very file, and a text scan trips over them."""
+
+    def test_the_main_guard_is_the_last_thing_in_every_test_file(self) -> None:
+        hidden = {}
+        for path in sorted((ROOT / "tests").glob("test_*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            guard = next((n for n in tree.body
+                          if isinstance(n, ast.If) and "__main__" in ast.dump(n.test)), None)
+            if guard is None:
+                continue
+            below = [n.name for n in tree.body
+                     if isinstance(n, (ast.ClassDef, ast.FunctionDef)) and n.lineno > guard.lineno]
+            if below:
+                hidden[path.name] = below
+        self.assertEqual(
+            hidden, {},
+            "these test classes sit below a unittest.main() guard, so running the file "
+            "directly never creates them: " + repr(hidden))
+
+
+# At the very bottom on purpose, and checked there by TestFileHygieneTest in test_docs.py.
+# Run as `python tests/<file>.py`, execution stops here, so any class defined below this
+# guard is never created and the suite reports OK having silently skipped it.
 if __name__ == "__main__":
     unittest.main()

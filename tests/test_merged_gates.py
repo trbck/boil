@@ -446,8 +446,6 @@ class NowTest(unittest.TestCase):
         self.assertIn("STOP", proc.stdout)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class ClaudeSessionTrailerTest(unittest.TestCase):
@@ -463,3 +461,10 @@ class ClaudeSessionTrailerTest(unittest.TestCase):
         self.assertTrue(bcg.AI_PATTERN.search("Claude-Session: https://claude.ai/code/session_01X"))
         self.assertTrue(bcg.AI_PATTERN.search("Codex-Session: https://chatgpt.com/codex/x"))
         self.assertFalse(bcg.AI_PATTERN.search("uses the claude-ollama wrapper for reviews"))
+
+
+# At the very bottom on purpose, and checked there by TestFileHygieneTest in test_docs.py.
+# Run as `python tests/<file>.py`, execution stops here, so any class defined below this
+# guard is never created and the suite reports OK having silently skipped it.
+if __name__ == "__main__":
+    unittest.main()

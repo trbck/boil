@@ -1084,15 +1084,6 @@ class ApplyIsAllOrNothingTest(unittest.TestCase):
         finally:
             p.close()
 
-
-# At the very bottom on purpose. This guard used to sit mid-file, so `python
-# tests/test_review.py` executed and exited before the classes below it were even defined
-# — a safety net that looked present and never ran, which is precisely the failure mode
-# these tests exist to catch.
-if __name__ == "__main__":
-    unittest.main()
-
-
 class IncompatiblePairStopsTest(unittest.TestCase):
     """The no-fallback stop for an impossible pair, exercised directly. A green backup
     review would bury the configuration bug, and the bug would then outlive everyone who
@@ -1208,3 +1199,12 @@ class PolicyDriftNoteTest(unittest.TestCase):
             self.assertIn("pins agent", pair["message"])
         finally:
             p.close()
+
+
+# At the very bottom on purpose, and asserted to stay there by GuardIsLastTest below's
+# sibling check. This guard sat mid-file twice: `python tests/test_review.py` then executed
+# and exited before the classes under it were even defined — a safety net that looked
+# present and never ran, which is the exact failure these tests exist to catch. Appending a
+# class is the natural thing to do, so the position has to be checked, not remembered.
+if __name__ == "__main__":
+    unittest.main()

@@ -143,8 +143,6 @@ class ControllerEmitsStatusTest(unittest.TestCase):
             p.close()
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class HelmDirDetectionTest(unittest.TestCase):
@@ -167,3 +165,10 @@ class HelmDirDetectionTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
             self.assertTrue((hd / "runs" / "sessions" / "proj.json").is_file())
             self.assertIn('"session": "written"', r.stdout)
+
+
+# At the very bottom on purpose, and checked there by TestFileHygieneTest in test_docs.py.
+# Run as `python tests/<file>.py`, execution stops here, so any class defined below this
+# guard is never created and the suite reports OK having silently skipped it.
+if __name__ == "__main__":
+    unittest.main()

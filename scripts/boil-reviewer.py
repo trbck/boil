@@ -571,7 +571,8 @@ def cmd_probe(a: argparse.Namespace) -> int:
             # Any failed probe of the current primary advances the ladder. Skipping it when
             # a cooldown already binds would leave `cooldown_until` in the past, and every
             # later resolve would probe again immediately — the backoff would never happen.
-            start_cooldown(s, f"probe failed: {detail}", agent=primary["agent"])
+            start_cooldown(s, f"probe failed: {detail}", agent=primary["agent"],
+                           model=primary.get("model") or "")
         save_state(s)
     if restored:
         print(f"{primary['agent']} is back — reviews return to it")
