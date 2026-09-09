@@ -20,7 +20,9 @@ Exit status is 1 if anything was fabricated, so it can gate a test or a hook.
 Only prefixes this corpus actually defines are considered, so ordinary prose
 ("COVID-19", "GPT-4") is never mistaken for a citation. The cost of that choice
 is that an ID invented under a *made-up* prefix reads as ordinary text; it is
-`--strict` that catches those.
+`--strict` that catches those. `--strict` casts a wider net and will flag genuine
+prose that happens to be ID-shaped ("COVID-19"), so read its output rather than
+trusting the count.
 """
 
 import argparse
@@ -61,7 +63,8 @@ def find_citations(text, prefixes, strict=False):
     """
     if strict:
         # Any all-caps token that looks like an identifier, whoever minted it.
-        pattern = r"\b([A-Z][A-Z0-9]{2,5})-((?:[A-Za-z0-9]+-)*[A-Za-z0-9]+)(§\d+)?\b"
+        pattern = (r"\b([A-Z][A-Z0-9]{2,5})-((?=[A-Za-z0-9-]*\d)"
+                   r"(?:[A-Za-z0-9]+-)*[A-Za-z0-9]+)(§\d+)?\b")
     else:
         pattern = (r"\b(%s)-((?:[A-Za-z0-9]+-)*[A-Za-z0-9]+)(§\d+)?\b"
                    % "|".join(sorted(map(re.escape, prefixes))))
