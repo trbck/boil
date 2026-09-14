@@ -119,7 +119,9 @@ the box, or the box already carries `{#id}`) — compile stamps the tag, and fro
 only the controller ticks that box. On brownfield milestones pair a new-behaviour assertion
 with an `already_green` regression guard. One rejection freezes nothing (fix the spec,
 compile again); a recompile carries unchanged checks forward. A drafted-but-unfrozen spec
-is a lint error.
+is a lint error. A box about something on a page gets a **visual check**: `iris <url>
+--selector '<css>' --json -o <artifact>.png` exits 1 until the element renders and leaves the
+screenshot as the demo (`references/demo-formats.md`; `scripts/boil-iris-setup.sh` installs it).
 Milestone schema: `references/state-files.md`.
 
 Set `budget.json` `goal_usd` to arm the budget brake. A goal with no budget has
@@ -188,6 +190,8 @@ explained away.
 One user-visible artifact per passed milestone. **Never skip it.** The demo is a real
 invocation of the built thing — the command and its captured output, the curl and its
 response, the screenshot — not a description. Recipes: `references/demo-formats.md`.
+Anything with a page is photographed with `iris` (CLI, or the MCP `capture` tool when it is
+connected) and the image is read before the demo is written — red/green for pixels.
 
 ### 2d — The status line is the report
 
@@ -322,6 +326,7 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `boil-loop.py` | the T3 adversarial protocol — blast-radius milestones only |
 | `boil-commit-guard.py` | no AI attribution in commits; run before any push |
 | `boil-assert-db.py` | a data check as a command: `--db --query --assert`; exit 0/1/2 is the verdict |
+| `boil-iris-setup.sh` | the camera: installs `iris`, a Chrome launcher, and its MCP `capture` tool for claude + codex; `iris <url> --selector … --json` is a visual check |
 | `boil-guard.py` | PreToolUse hook: the worker never edits tests/, `protect` paths, or the frozen ruler; `--settings-json` wires it |
 | `boil-run-iteration.sh` | with frozen checks: doctor + lint + verify + brakes + NOW; otherwise the legacy iteration gates |
 | `bench/run.py` | the convergence bench: every controller verdict on real code (`--implementer scripted`, CI) and the effectiveness numbers (`--implementer llm`) |
@@ -350,6 +355,9 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
   `references/helm-status.md` has the contract.
 - `/loop` wraps boil for unattended runs; `/schedule` for recurring ones.
 - `hound` MCP over `WebFetch` for JS-heavy or bot-walled research fetches.
+- `iris` is the camera: `iris <url> --selector '<css>' -o shot.png --json` (exit code = verdict)
+  or the MCP `capture` tool. `scripts/boil-iris-setup.sh` installs it, writes a Chrome launcher
+  that survives restricted user namespaces, and registers it for `claude` and `codex`.
 
 ## Mental model
 
