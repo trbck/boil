@@ -16,7 +16,7 @@
         "`lookup.py --search` to collect candidate rules and sections.",
         "`lookup.py --topic <topic>` for the governing shard when the question is topic-shaped.",
         "`lookup.py --section` to read the reasoning behind rules you intend to cite.",
-        "Check the domain conflict registry; if the question touches an entry, present both positions."
+        "`lookup.py --conflicts <ID>` for each rule you will lean on; if an entry exists, present both positions."
       ]
     },
     {
@@ -30,7 +30,7 @@
       "output": "A position-by-position table with IDs, then what determines which applies.",
       "steps": [
         "Retrieve the governing rules for each position separately, so neither is summarised through the other.",
-        "Consult the conflict registry first — a curated entry beats an improvised comparison.",
+        "Consult the conflict registry first (`lookup.py --conflicts <ID or word>`) — a curated entry beats an improvised comparison.",
         "State the discriminating condition explicitly. A comparison that just picks a winner is not useful, because the loser was written by someone who had a reason."
       ]
     },
@@ -80,7 +80,8 @@
         "Identify what it is, so the right shards and checklist apply.",
         "Walk it against the domain checklist, then against the governing shards.",
         "Severity means consequence, not confidence: high invalidates the result, medium biases it, low is hygiene.",
-        "Distinguish 'this is wrong' from 'this is undocumented', and say plainly when something is fine. A review that manufactures findings to look thorough is worse than no review."
+        "Distinguish 'this is wrong' from 'this is undocumented', and say plainly when something is fine. A review that manufactures findings to look thorough is worse than no review.",
+        "Verify every cited ID in one `lookup.py --rule` call, then run `check_citations.py` on the findings before sending."
       ]
     }
   ]

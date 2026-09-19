@@ -20,7 +20,8 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DOCS = ["SKILL.md", "README.md", "FORMAT.md", "inbox/README.md",
-        "references/workflows.md", "references/compliance.md"]
+        "references/workflows.md", "references/compliance.md",
+        "references/maintaining.md"]
 
 # Placeholders a real value can stand in for. Anything else makes the line
 # un-runnable, and it is skipped rather than guessed at.

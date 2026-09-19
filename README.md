@@ -113,7 +113,8 @@ Three tiers, so the corpus never loads whole:
 | 2 | `generated/<domain>/rules/<topic>.md` | 0.4–2k tokens each | per topic |
 | 3 | chapter sections, engine slices | on demand | per question |
 
-The full corpus is ~120k tokens; a typical grounded answer costs 8–15k.
+The full corpus is roughly 280k tokens and growing (the exact figure is stamped into
+`SKILL.md` at build time); a typical grounded answer costs 8–15k.
 
 **Rule IDs** are `<PACK>-<CH>-R<n>` (`ASSP-09-R7`), sections `<PACK>-<CH>§<n>` (`ASSP-09§5`). They
 derive from chapter and ordinal position, so they stay stable across rebuilds. Renumbering rules in
@@ -161,7 +162,7 @@ generated/<id>/     build output — ROUTER.md · rules/ · engines/ · index.js
 inbox/              drop zone for new markdown
 bin/advisor-sync    install or update from git
 scripts/            build_index · ingest · validate_pack · lookup · suggest_* · package_domain
-references/         workflows · compliance
+references/         workflows · compliance · maintaining
 templates/          SKILL.md.tmpl · modes.default.json
 dist/               exported bundles (gitignored)
 docs/               design.md — why it is built this way · roadmap.md — where it is going
@@ -188,7 +189,7 @@ stale index is a reported condition rather than something you have to remember t
 python3 -m pytest tests -q                 # contracts, ID stability, documented commands
 python3 scripts/rule_baseline.py           # no cited ID has vanished or changed meaning
 python3 scripts/eval_retrieval.py --scoped # retrieval quality, one domain per question
-python3 scripts/check_citations.py answer.md   # do the IDs in this answer exist?
+python3 scripts/check_citations.py answer.md   # do the IDs in this answer exist? (the skill runs this on every answer)
 ```
 
 Three things are checked that the corpus itself cannot tell you:

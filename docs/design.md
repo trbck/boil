@@ -5,7 +5,7 @@ decision is revisited rather than adding a second account of it.
 
 ## Problem
 
-A corpus of distilled trading-book chapters (~120k tokens, growing) needs to support four jobs:
+A corpus of distilled trading-book chapters (~120k tokens at the time; ~280k now, growing) needs to support four jobs:
 research, strategy design, implementation, and audit of existing code — while staying extensible
 along **two** axes: more books, and more capability packs (vectorbtpro first).
 

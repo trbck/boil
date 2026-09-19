@@ -62,6 +62,27 @@ if [ "$ACTION" = "check" ]; then
   # rule out.
   if [ -L "$LINK" ]; then
     say "  → symlink to $TARGET"
+    # The link is fine; what it points at can still be stale. An install that is
+    # behind its remote, or on a side branch, or carrying uncommitted edits, answers
+    # questions from a corpus nobody else has -- the same drift as a second clone,
+    # one step removed.
+    if [ -d "$TARGET/.git" ]; then
+      HEAD_BRANCH="$(git -C "$TARGET" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+      HEAD_SHA="$(git -C "$TARGET" rev-parse --short HEAD 2>/dev/null || echo '?')"
+      say "    at $HEAD_BRANCH@$HEAD_SHA"
+      [ "$HEAD_BRANCH" = "$BRANCH" ] || say "  ! on branch $HEAD_BRANCH, not $BRANCH"
+      if git -C "$TARGET" fetch --quiet origin "$BRANCH" 2>/dev/null; then
+        BEHIND="$(git -C "$TARGET" rev-list --count "HEAD..origin/$BRANCH" 2>/dev/null || echo 0)"
+        [ "$BEHIND" = "0" ] || say "  ! $BEHIND commit(s) behind origin/$BRANCH -- run bin/advisor-sync"
+      else
+        say "    (could not fetch origin; behind-ness unknown)"
+      fi
+      DIRTY_INSTALL="$(git -C "$TARGET" status --porcelain 2>/dev/null)"
+      if [ -n "$DIRTY_INSTALL" ]; then
+        say "  ! uncommitted changes in the install (rules minted here resolve nowhere else):"
+        printf '      %s\n' $(echo "$DIRTY_INSTALL" | awk '{print $2}')
+      fi
+    fi
   elif [ -d "$TARGET/.git" ]; then
     say "  ! $LINK is an independent git clone, not a link to $CHECKOUT."
     say "    Anything ingested here never reaches the checkout, and vice versa."

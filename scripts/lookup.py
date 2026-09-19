@@ -10,7 +10,8 @@ domain, so search spans domains by default and `--domain` narrows it.
 Examples:
     python3 scripts/lookup.py --search "position sizing under drawdown"
     python3 scripts/lookup.py --domain trading --topic sizing
-    python3 scripts/lookup.py --rule ASSP-09-R7
+    python3 scripts/lookup.py --rule ASSP-09-R7 ASSP-06-R4      # verify every ID you cite, in one call
+    python3 scripts/lookup.py --conflicts ASSP-09-R7            # registry entries citing an ID (or a word)
     python3 scripts/lookup.py --chapter ASSP-09
     python3 scripts/lookup.py --section "ASSP-09§5"
     python3 scripts/lookup.py --engine vbtpro --symbol Portfolio.from_signals
@@ -257,11 +258,18 @@ def _strip_domain(ref):
     return ref.split(":", 1)[1] if ":" in ref else ref
 
 
-def cmd_rule(idx, rule_id):
-    want = _strip_domain(rule_id).upper()
-    hits = [r for r in idx["rules"] if r["id"].upper() == want]
-    if not hits:
-        sys.exit("unknown rule id: %s" % rule_id)
+def cmd_rule(idx, rule_ids):
+    """Print one or more rules. Several at once, because verifying every ID an
+    answer cites is the normal case, and a shell loop of single lookups is what
+    blows the retrieval budget. Exit status is 1 if any ID did not resolve."""
+    missing = []
+    hits = []
+    for rule_id in rule_ids:
+        want = _strip_domain(rule_id).upper()
+        found = [r for r in idx["rules"] if r["id"].upper() == want]
+        if not found:
+            missing.append(rule_id)
+        hits.extend(found)
     for rule in hits:
         print("# %s" % rule["id"])
         print()
@@ -274,6 +282,8 @@ def cmd_rule(idx, rule_id):
         print("- authority: %s" % rule.get("authority", "primary"))
         if len(hits) > 1:
             print()
+    if missing:
+        sys.exit("unknown rule id%s: %s" % ("s" if len(missing) > 1 else "", ", ".join(missing)))
 
 
 def _find_doc(idx, doc_id):
@@ -419,6 +429,81 @@ def cmd_engine(pack_id, query, symbol, show_offset, limit, max_bytes, role_filte
         print("\n... %d more (raise --limit)" % (len(hits) - limit))
 
 
+# --- conflict registry ---------------------------------------------------------
+
+_ENTRY_HEAD = re.compile(r"^### +([A-Z]+\d+) +[—–-]+ +(.*)$")
+_ROW_ENTRY = re.compile(r"^\| +([A-Z]+\d+) +\| +(.*?) +\|")
+_ID_TOKEN = re.compile(r"\b[A-Z][A-Z0-9]*-\d+(?:-R\d+|§\d+)?\b")
+
+
+def registry_entries(domain_id=None):
+    """Parse each domain's conflicts.md into addressable entries.
+
+    Two shapes occur: headed blocks (`### C3 — title` followed by a table and a
+    resolution) and one-row convergences in a table (`| V6 | conclusion | ids | ids |`).
+    Both become {domain, id, title, body, ids}. The file is hand-curated, so this
+    parser is deliberately lenient: an entry it cannot parse is skipped, never
+    guessed at.
+    """
+    out = []
+    for dom in K.load_domains(domain_id):
+        path = K.domain_path(dom, "conflicts", "conflicts.md")
+        if not os.path.exists(path):
+            continue
+        lines = K.read_text(path).split("\n")
+        i = 0
+        while i < len(lines):
+            m = _ENTRY_HEAD.match(lines[i])
+            if m:
+                j = i + 1
+                while j < len(lines) and not (lines[j].startswith("#") or lines[j].startswith("---")):
+                    j += 1
+                body = "\n".join(lines[i:j]).rstrip()
+                out.append({"domain": dom["id"], "id": m.group(1), "title": m.group(2).strip(),
+                            "body": body, "ids": set(_ID_TOKEN.findall(body))})
+                i = j
+                continue
+            m = _ROW_ENTRY.match(lines[i])
+            if m and not lines[i].startswith("| #"):
+                title = re.sub(r"\*\*", "", m.group(2)).strip()
+                out.append({"domain": dom["id"], "id": m.group(1), "title": title,
+                            "body": lines[i], "ids": set(_ID_TOKEN.findall(lines[i]))})
+            i += 1
+    return out
+
+
+def cmd_conflicts(query, domain_id):
+    entries = registry_entries(domain_id)
+    if not entries:
+        sys.exit("no conflict registry found" + (" for domain %s" % domain_id if domain_id else ""))
+    if not query:
+        for e in entries:
+            print("%-10s %-4s %s" % (e["domain"], e["id"], e["title"][:100]))
+        print()
+        print("(%d entries; `--conflicts <rule or chapter ID | topic | word>` prints the matching ones)"
+              % len(entries))
+        return
+    q = _strip_domain(query).strip()
+    qid = q.upper()
+    hits = []
+    for e in entries:
+        if e["id"] == qid:
+            hits.append(e)
+        elif any(cid == qid or cid.startswith(qid + "-") or cid.startswith(qid + "§") for cid in e["ids"]):
+            hits.append(e)
+        elif q.lower() in e["body"].lower():
+            hits.append(e)
+    if not hits:
+        print("no registry entry cites or mentions %r" % query)
+        print("(that is a finding, not an error: say the conflict registry does not cover it)")
+        return
+    print("# %d registry entr%s for %r" % (len(hits), "y" if len(hits) == 1 else "ies", query))
+    for e in hits:
+        print()
+        print("<!-- %s:%s from domains/%s/conflicts.md -->" % (e["domain"], e["id"], e["domain"]))
+        print(e["body"])
+
+
 def cmd_list(idx, what):
     if what == "domains":
         for dom in idx["domains"]:
@@ -451,7 +536,8 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--domain", help="restrict to one domain")
     ap.add_argument("--search")
-    ap.add_argument("--rule")
+    ap.add_argument("--rule", nargs="+", metavar="ID",
+                    help="print one or more rules; exits 1 if any is unknown")
     ap.add_argument("--chapter")
     ap.add_argument("--section")
     ap.add_argument("--topic")
@@ -463,6 +549,9 @@ def main():
     ap.add_argument("--kind", default="all", choices=["all", "rules", "chapters"])
     ap.add_argument("--limit", type=int, default=15)
     ap.add_argument("--max-bytes", type=int, default=40000)
+    ap.add_argument("--conflicts", nargs="?", const="", metavar="QUERY",
+                    help="conflict/convergence registry entries citing an ID or mentioning a word; "
+                         "no argument lists every entry")
     ap.add_argument("--list", dest="list_what",
                     choices=["domains", "packs", "chapters", "topics", "notes"])
     args = ap.parse_args()
@@ -470,6 +559,9 @@ def main():
     if args.engine:
         return cmd_engine(args.engine, args.search, args.symbol, args.show_offset,
                           args.limit, args.max_bytes, args.role, args.domain)
+
+    if args.conflicts is not None:
+        return cmd_conflicts(args.conflicts, args.domain)
 
     idx = load_indexes(args.domain)
     if args.list_what:

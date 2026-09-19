@@ -17,7 +17,7 @@ All modes share two obligations: **cite what you assert**, and **name what you c
 2. `lookup.py --search` to collect candidate rules and sections.
 3. `lookup.py --topic <topic>` for the governing shard when the question is topic-shaped.
 4. `lookup.py --section` to read the reasoning behind rules you intend to cite.
-5. Check the domain conflict registry; if the question touches an entry, present both positions.
+5. `lookup.py --conflicts <ID>` for each rule you will lean on; if an entry exists, present both positions.
 
 **Output:** Direct answer first, then evidence with IDs, then caveats. Not a literature review — they asked a question.
 
@@ -26,7 +26,7 @@ All modes share two obligations: **cite what you assert**, and **name what you c
 *"how do these differ" · "what do the sources disagree on" · "X versus Y"*
 
 1. Retrieve the governing rules for each position separately, so neither is summarised through the other.
-2. Consult the conflict registry first — a curated entry beats an improvised comparison.
+2. Consult the conflict registry first (`lookup.py --conflicts <ID or word>`) — a curated entry beats an improvised comparison.
 3. State the discriminating condition explicitly. A comparison that just picks a winner is not useful, because the loser was written by someone who had a reason.
 
 **Output:** A position-by-position table with IDs, then what determines which applies.
@@ -62,6 +62,7 @@ All modes share two obligations: **cite what you assert**, and **name what you c
 3. Walk it against the domain checklist, then against the governing shards.
 4. Severity means consequence, not confidence: high invalidates the result, medium biases it, low is hygiene.
 5. Distinguish 'this is wrong' from 'this is undocumented', and say plainly when something is fine. A review that manufactures findings to look thorough is worse than no review.
+6. Verify every cited ID in one `lookup.py --rule` call, then run `check_citations.py` on the findings before sending.
 
 **Output:** Findings table, most severe first: severity, location, finding, rule ID, fix.
 

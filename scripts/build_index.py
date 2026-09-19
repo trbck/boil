@@ -24,7 +24,7 @@ ROUTER_GOVERNS_CHARS = 110
 # Scope phrases contributed by each domain to the generated skill description.
 # Capped so a fifth domain cannot dilute the description into uselessness --
 # the description is the sole determinant of whether the skill fires at all.
-SCOPE_PER_DOMAIN = 6
+SCOPE_PER_DOMAIN = 10
 # Frontmatter is capped at 1024 characters by the skill spec, and it is loaded into
 # every conversation whether or not the skill fires. The trigger phrases are the only
 # part that decides whether it fires, so they are the last thing trimmed.
@@ -491,43 +491,53 @@ def join_and(items):
     return "%s and %s" % (", ".join(items[:-1]), items[-1])
 
 
-def render_description(indexes):
+def compose_description(indexes):
     """Compose the skill's frontmatter description from installed domains.
 
     Generated rather than hand-written because a multi-domain skill otherwise
     needs a description broad enough to cover everything, which is exactly the
     kind of vague description that fails to trigger.
+
+    Returns (text, dropped): the phrases that did not fit are returned so the
+    build can say so. The 1024-character cap is enforced silently by the runtime,
+    and a trigger that was trimmed to fit is indistinguishable from one that was
+    never written -- the skill simply stops firing for that topic.
     """
     titles = [ix.get("title") for ix in indexes if ix.get("title")]
-    total = sum(len(ix.get("rules", [])) for ix in indexes)
     # Kept per domain so that trimming for length sheds evenly instead of silently
     # muting whichever domain happens to be listed last.
     groups = [list((ix.get("scope") or [])[:SCOPE_PER_DOMAIN]) for ix in indexes]
+    dropped = [p for ix in indexes for p in (ix.get("scope") or [])[SCOPE_PER_DOMAIN:]]
 
-    # Deliberately no summary of what the skill *does*: a description that recites the
-    # workflow becomes a shortcut the model follows instead of reading the skill body.
-    # Triggering conditions only.
-    head = "Citation-backed advisor over knowledge distilled from books"
-    if titles:
-        head += ", covering " + join_and(titles)
-    head += "."
-    tail = ("Also use it when they ask what the literature says on these topics, when they want "
-            "work reviewed against it, or when adding markdown knowledge to the corpus — even if "
-            "they never mention the books or this skill.")
+    # Triggering conditions only, and "Use when" first: a description that recites
+    # what the skill does, or how, becomes a shortcut the model follows instead of
+    # reading the skill body -- and every character spent on it is a trigger that
+    # no longer fits under the cap.
+    tail = ("Also use when they ask what the literature says, want work reviewed against it, "
+            "or are adding markdown to the corpus, even if they never mention books or this skill.")
+    # Domain titles are deliberately not in the description: the Installed-domains
+    # table in the body names them, and the characters buy another trigger phrase.
+    covers = ""
 
     def compose():
         phrases = [p for g in groups for p in g]
-        parts = [head]
+        parts = []
         if phrases:
             parts.append("Use when the user is working on " + "; ".join(phrases) + ".")
         parts.append(tail)
+        if covers:
+            parts.append(covers)
         return " ".join(parts)
 
     # `name: advisor` plus `description: ` plus the YAML fences the caller adds.
     budget = MAX_FRONTMATTER_CHARS - (len("description: ") + 40)
     while len(compose()) > budget and any(len(g) > 1 for g in groups):
-        max(groups, key=len).pop()
-    return compose()
+        dropped.append(max(groups, key=len).pop())
+    return compose(), dropped
+
+
+def render_description(indexes):
+    return compose_description(indexes)[0]
 
 
 README_STATS_MARK = "<!-- STATS: rewritten by scripts/build_index.py"
@@ -760,8 +770,9 @@ def render_retrieval_examples(indexes):
     ix = indexes[0]
     query = (ix.get("scope") or [ix.get("title", "the topic")])[0]
     topic = _first(sorted(ix.get("topics", {}) or {}), "<topic>")
-    rule = _first(ix.get("rules", []))
-    rule_id = rule["id"] if rule else "<ID>"
+    rules = ix.get("rules", [])
+    rule_id = rules[0]["id"] if rules else "<ID>"
+    rule_ids = " ".join(r["id"] for r in rules[:2]) if rules else "<ID> <ID>"
     chapter = _first([c for c in ix.get("chapters", []) if c.get("sections")],
                      _first(ix.get("chapters", [])))
     chap_id = chapter["id"] if chapter else "<CHAPTER>"
@@ -776,7 +787,8 @@ def render_retrieval_examples(indexes):
         ('python3 scripts/lookup.py %s--search "%s"' % (scope, truncate(query, 46)),
          "rank rules+chapters+sections"),
         ("python3 scripts/lookup.py --topic %s" % topic, "one rule shard"),
-        ("python3 scripts/lookup.py --rule %s" % rule_id, "verify a single rule"),
+        ("python3 scripts/lookup.py --rule %s" % rule_ids, "verify every ID you cite, one call"),
+        ("python3 scripts/lookup.py --conflicts %s" % rule_id, "registry entries citing an ID, or mentioning a word"),
         ("python3 scripts/lookup.py --chapter %s" % chap_id, "metadata + section map"),
         ('python3 scripts/lookup.py --section "%s"' % sec_id, "one section's text"),
     ]
@@ -841,7 +853,8 @@ def render_skill(indexes, quiet=False):
     for dom in domains:
         for mode in K.load_modes(dom):
             modes.setdefault(mode["id"], mode)
-    for key, val in (("DESCRIPTION", render_description(indexes)),
+    description, dropped = compose_description(indexes)
+    for key, val in (("DESCRIPTION", description),
                      ("RULE_TOTAL", str(total)),
                      ("DOMAINS", render_domains_table(indexes)),
                      ("ID_EXAMPLES", render_id_examples(indexes)),
@@ -856,8 +869,14 @@ def render_skill(indexes, quiet=False):
         text = text.replace("{{%s}}" % key, val)
     K.write_text(os.path.join(K.ROOT, "SKILL.md"), text)
     stamp_readme_stats(indexes, quiet)
-    log("SKILL.md regenerated (%d domains, %d rules, description %d words)"
-        % (len(indexes), total, len(render_description(indexes).split())), quiet)
+    log("SKILL.md regenerated (%d domains, %d rules, description %d chars)"
+        % (len(indexes), total, len(description)), quiet)
+    if dropped:
+        log("  ! description at the %d-char frontmatter cap: %d trigger phrase(s) omitted, "
+            "so the skill will not fire on them --" % (MAX_FRONTMATTER_CHARS, len(dropped)), quiet)
+        for phrase in dropped:
+            log("      - %s" % phrase, quiet)
+        log("    shorten the `scope` phrases in domain.json to fit more.", quiet)
 
 
 def main():

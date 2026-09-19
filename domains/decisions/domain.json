@@ -4,15 +4,15 @@
   "title": "Decision-making under uncertainty",
   "summary": "Applying computer science to human decisions: when to stop searching, how to balance exploring against exploiting, sorting and caching, scheduling, Bayesian prediction, overfitting, constraint relaxation, deliberate randomness, and strategic interaction.",
   "scope": [
-    "deciding when to stop searching and commit",
-    "balancing exploration against exploitation",
+    "optimal stopping: when to stop searching and commit",
+    "explore/exploit trade-offs and bandits",
     "scheduling, prioritising and ordering work",
-    "predicting from sparse evidence and choosing priors",
-    "overfitting, and when to deliberately think less",
-    "simplifying an intractable problem by relaxing constraints",
-    "using randomness deliberately in search and decision-making",
-    "designing protocols, queues and backoff under congestion",
-    "anticipating other people's strategies and reducing their cognitive load"
+    "priors and prediction from sparse evidence",
+    "overfitting and when to think less",
+    "relaxing constraints to simplify intractable problems",
+    "randomness in search and sampling",
+    "queues, backoff and congestion",
+    "game theory and mechanism design"
   ],
   "packs": "packs.json",
   "taxonomy": "taxonomy.json",
