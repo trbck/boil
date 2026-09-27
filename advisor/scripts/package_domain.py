@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Export one domain as a self-contained `.skill` bundle.
 
-Git is the primary distribution channel (see `bin/advisor-sync`). This exists for
+Git is the primary distribution channel (it ships inside boil, see `boil advise`). This exists for
 runtimes that cannot clone — a cloud sandbox, a shared skill registry, a colleague
 who should get the decisions corpus and nothing else.
 

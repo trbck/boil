@@ -521,3 +521,10 @@ Issues and PRs welcome. The skill itself was iteratively refined; if you find a 
 boil integrates third-party tools by reference (it invokes, does not vendor them) — notably
 [hound-mcp](https://github.com/dondai1234/master-fetch) as its web-fetch tool and
 [lsdf-core](https://github.com/ec1980/lsdf-core) for the codebase index. See `NOTICE.md`.
+
+## Advisor
+
+`advisor/` holds 798 rules distilled from books (decision-making, trading), each with a stable ID.
+`boil advise lookup …` retrieves them with the same flags `lookup.py` always had; `boil advise
+decide/record` lets a loop answer a `kind: decision` blocker from a cited rule instead of asking
+you, logged to `.boil/decisions.md` for veto. Retire a rule with `boil advise retire ID --reason`.

@@ -95,7 +95,6 @@ generated/<id>/             build output — never hand-edit
   index.json                  machine-readable index
 inbox/                      drop zone for new markdown
 scripts/                    build_index · ingest · validate_pack · lookup · suggest_*
-bin/advisor-sync            install or update this skill from git
 references/                 workflows.md · compliance.md · maintaining.md (this file)
 templates/                  SKILL.md.tmpl · modes.default.json
 ```
