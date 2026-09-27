@@ -149,6 +149,9 @@ Use this flow:
 
 1. Set `status: blocked`, `type: human-action`, `priority: P0` when the loop cannot continue without it, and `working_on: "blocked on user action: <safe summary>"`.
 2. Fill `human_action.required: true`, `reason`, and `safe_summary`. The `reason` can be more specific but still must not contain secrets. The `safe_summary` is what external tools may see.
+   - `kind: decision` — optional. Marks a product/design judgment the advisor may answer. Absent means not advisable. Never set it for credentials, access, hardware, accounts, budget, or tamper. `boil-loop.py escalate` sets it only for `ESCALATE-STALL`.
+   - `advised: D-NNNN` — written by `boil advise record` when a cited rule answered it; the ticket goes back to `status: todo`, `required: false`. A `veto:` in `.boil/decisions.md` reverses both on the next `boil-now` (`boil advise sweep`).
+   - **For `kind: decision`, before step 3:** run `boil advise decide --question "<safe_summary>" --ticket <id>`, answer the packet with one verdict line, then `boil advise record … --ticket <id>`. Exit 0 → the advisor decided; skip steps 3–5. Exit 3 → continue with step 3 as usual.
 3. If the ignored local bridge exists at `<boil-skill-repo>/.susi-human-blockers/add_blocker.py`, run it from the project repo to add the Susi task. Record the returned task id in `human_action.susi_task_id` and `human_action.susi_sync_status: created`.
 4. If the bridge reports a Pushover result, record it in `human_action.pushover_status`. Pushover sends only after the To Do item is created, and its message must use the same secret-free safe summary.
 5. If the bridge is absent or fails, set `human_action.susi_sync_status: skipped` or `failed`, set `human_action.pushover_status: skipped` or `failed` as appropriate, keep the ticket blocked, and surface the action in the iteration summary.

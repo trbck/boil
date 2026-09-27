@@ -203,6 +203,44 @@ class UnsolvableTaskTest(unittest.TestCase):
         self.assertEqual(second.returncode, EXIT_TERMINAL)
 
 
+
+class AdvisableEscalationTest(unittest.TestCase):
+    """Only a stall is a judgment question the advisor may answer (`kind: decision`).
+    The brakes — limit, budget, tamper — always reach the human untouched."""
+
+    def _stalled(self) -> LoopHarness:
+        h = LoopHarness(self)
+        sig = "suite:key:AssertionError:expected 3 got 5"
+        h.attempt(1, JUDGE_FAIL.format(n=1, sig=sig, reason="off by two"))
+        h.attempt(2, JUDGE_FAIL.format(n=2, sig=sig, reason="off by two"))
+        return h
+
+    def _forced(self, reason: str) -> tuple[LoopHarness, subprocess.CompletedProcess[str]]:
+        h = LoopHarness(self)
+        h.attempt(1, JUDGE_FAIL.format(n=1, sig="suite:key:sig1", reason="wrong"))
+        return h, h.loop("escalate", "--convert-ticket", "--force", "--reason", reason)
+
+    def test_stall_ticket_is_kind_decision_with_hint(self) -> None:
+        h = self._stalled()
+        proc = h.loop("escalate", "--convert-ticket")
+        self.assertEqual(proc.returncode, EXIT_TERMINAL, proc.stdout + proc.stderr)
+        self.assertIn("kind: decision", h.ticket.read_text(encoding="utf-8"))
+        self.assertIn("advisable: boil advise decide", proc.stdout)
+
+    def test_limit_is_not_advisable(self) -> None:
+        h = LoopHarness(self)
+        for n in (1, 2, 3):
+            h.attempt(n, JUDGE_FAIL.format(n=n, sig=f"suite:key:sig{n}", reason=f"r{n}"))
+        proc = h.loop("escalate", "--convert-ticket")
+        self.assertNotIn("kind: decision", h.ticket.read_text(encoding="utf-8"))
+        self.assertNotIn("advisable:", proc.stdout)
+
+    def test_budget_and_tamper_are_not_advisable(self) -> None:
+        for reason in ("ESCALATE-BUDGET", "ABORT-TAMPER"):
+            h, proc = self._forced(reason)
+            self.assertNotIn("kind: decision", h.ticket.read_text(encoding="utf-8"), reason)
+            self.assertNotIn("advisable:", proc.stdout, reason)
+
 class ConfidentlyWrongTest(unittest.TestCase):
     """Scenario 2 — the builder returns 100/100 confidence and green claims over work
     that does not satisfy the key.

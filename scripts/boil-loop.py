@@ -659,6 +659,11 @@ def _human_question(loop: dict[str, Any]) -> str:
             "possible as specified, or do two requirements conflict?")
 
 
+# A stall is a judgment question ("which contradictory requirement wins?") the advisor may
+# answer from a cited rule. Every other terminal reason is a brake and stays human-only.
+ADVISABLE = ("ESCALATE-STALL",)
+
+
 def cmd_escalate(args) -> int:
     root = Path(args.root).resolve()
     loop = _load_loop(root, args.ticket)
@@ -675,8 +680,9 @@ def cmd_escalate(args) -> int:
     _atomic_write(dest, packet)
 
     safe = _human_question(loop)
+    advisable = loop.get("terminal_reason", "").startswith(ADVISABLE)
     if args.convert_ticket:
-        _convert_ticket(root, args.ticket, safe)
+        _convert_ticket(root, args.ticket, safe, kind="decision" if advisable else "")
     log_event(root, "boil.loop.escalate", ticket=args.ticket,
               status=loop.get("terminal_reason", "").split(":", 1)[0],
               detail=safe, quiet=args.no_log)
@@ -684,10 +690,12 @@ def cmd_escalate(args) -> int:
     print(f"  human decision needed: {safe}")
     if args.convert_ticket:
         print(f"  {args.ticket} converted to a blocked human-action ticket (P0)")
+    if advisable:
+        print(f'  advisable: boil advise decide --question "{safe}" --ticket {args.ticket}')
     return 3
 
 
-def _convert_ticket(root: Path, ticket: str, safe_summary: str) -> None:
+def _convert_ticket(root: Path, ticket: str, safe_summary: str, kind: str = "") -> None:
     tpath = _ticket_path(root, ticket)
     meta, text = _frontmatter(tpath)
     text = _set_top_level(text, "type", "type: human-action")
@@ -698,6 +706,7 @@ def _convert_ticket(root: Path, ticket: str, safe_summary: str) -> None:
     human = "\n".join([
         "human_action:",
         "  required: true",
+        *([f"  kind: {kind}"] if kind else []),
         f'  reason: "self-correcting loop escalated after exhausting its retry limit"',
         f'  safe_summary: "{safe_summary}"',
         f'  susi_task_id: ""',
