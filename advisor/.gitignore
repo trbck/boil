@@ -1,0 +1,39 @@
+# --- Licensed vendor documentation (engine packs) ----------------------------
+# Engine packs hold large proprietary vendor docs. Redistributing them would
+# breach the vendor licence, so they are excluded and each install supplies its
+# own copy. If your remote is private AND your licence permits it, remove these.
+#
+# NOTE: these are path-shaped. Moving a domain moves the corpus with it — after
+# any restructure, re-check with:
+#     git status --porcelain -uall | grep -iE 'llms|\.index\.json'
+domains/*/knowledge/vbtpro/*.txt
+
+# Generic guard: any llms*.txt convention file dropped into a knowledge pack.
+domains/*/knowledge/*/llms*.txt
+domains/*/knowledge/**/llms*.txt
+
+# --- Derived engine indexes --------------------------------------------------
+# Multi-MB, useless without the sources above, and cheap to regenerate:
+#     python3 scripts/build_index.py
+generated/*/engines/*.index.json
+
+# --- Ingest archive ----------------------------------------------------------
+# Timestamped originals kept after ingestion. Local safety net, not shared state.
+inbox/processed/
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- OS ----------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# --- Bootstrapping review queues ---------------------------------------------
+# Regenerable drafts from suggest_taxonomy.py / suggest_conflicts.py. Promote what
+# survives review into taxonomy.json / conflicts.md; the drafts themselves are noise.
+domains/*/taxonomy.suggested.json
+domains/*/registry.candidates.md
+dist/

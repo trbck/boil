@@ -1,0 +1,88 @@
+{
+  "$schema": "internal://modes.v1",
+  "comment": "Default mode set, shared by every domain. Modes are deliberately domain-neutral: what varies between domains is the GATES a plan must satisfy and the CHECKLIST a review runs, both supplied by the domain. A domain overrides this wholesale by setting 'modes' in its domain.json.",
+  "modes": [
+    {
+      "id": "research",
+      "label": "research",
+      "triggers": [
+        "what does the literature say",
+        "how should I think about X",
+        "what's the accepted approach to"
+      ],
+      "output": "Direct answer first, then evidence with IDs, then caveats. Not a literature review — they asked a question.",
+      "steps": [
+        "Read the domain ROUTER and locate governing chapters by their Governs line.",
+        "`lookup.py --search` to collect candidate rules and sections.",
+        "`lookup.py --topic <topic>` for the governing shard when the question is topic-shaped.",
+        "`lookup.py --section` to read the reasoning behind rules you intend to cite.",
+        "`lookup.py --conflicts <ID>` for each rule you will lean on; if an entry exists, present both positions."
+      ]
+    },
+    {
+      "id": "compare",
+      "label": "compare",
+      "triggers": [
+        "how do these differ",
+        "what do the sources disagree on",
+        "X versus Y"
+      ],
+      "output": "A position-by-position table with IDs, then what determines which applies.",
+      "steps": [
+        "Retrieve the governing rules for each position separately, so neither is summarised through the other.",
+        "Consult the conflict registry first (`lookup.py --conflicts <ID or word>`) — a curated entry beats an improvised comparison.",
+        "State the discriminating condition explicitly. A comparison that just picks a winner is not useful, because the loser was written by someone who had a reason."
+      ]
+    },
+    {
+      "id": "plan",
+      "label": "plan",
+      "triggers": [
+        "design a",
+        "turn this idea into a spec",
+        "how would I build"
+      ],
+      "output": "A spec whose sections answer every domain gate, each material choice carrying the rule ID that motivated it, plus an explicit list of what remains unresolved.",
+      "steps": [
+        "Retrieve the governing chapters for this kind of work, plus any process-level shard.",
+        "Answer every gate the domain defines. If the user has not supplied one, ask or state an explicit assumption — never leave a gate silently unset.",
+        "Attach the rule ID that motivated each material choice.",
+        "End with what is still unresolved. That list is what the next session picks up."
+      ]
+    },
+    {
+      "id": "produce",
+      "label": "produce",
+      "triggers": [
+        "write it",
+        "build it",
+        "draft the"
+      ],
+      "output": "The artefact, plus a compliance manifest listing rules honoured, rules knowingly violated with reasons, and open assumptions.",
+      "steps": [
+        "Require a plan first. Producing an unspecified artefact just relocates the ambiguity.",
+        "Load the rule shards governing what you are about to write.",
+        "For engine packs, resolve real symbols with `lookup.py --engine`; do not write a large API from memory.",
+        "Emit the compliance manifest (references/compliance.md). If a rule must be violated, record the reason — the failure being prevented is silent violation, not violation."
+      ]
+    },
+    {
+      "id": "review",
+      "label": "review",
+      "triggers": [
+        "review this",
+        "audit this",
+        "what's wrong with"
+      ],
+      "output": "Findings table, most severe first: severity, location, finding, rule ID, fix.",
+      "steps": [
+        "Read the target fully before judging.",
+        "Identify what it is, so the right shards and checklist apply.",
+        "Walk it against the domain checklist, then against the governing shards.",
+        "Severity means consequence, not confidence: high invalidates the result, medium biases it, low is hygiene.",
+        "Distinguish 'this is wrong' from 'this is undocumented', and say plainly when something is fine. A review that manufactures findings to look thorough is worse than no review.",
+        "Verify every cited ID in one `lookup.py --rule` call, then run `check_citations.py` on the findings before sending."
+      ]
+    }
+  ]
+}

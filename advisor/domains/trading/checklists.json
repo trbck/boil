@@ -1,0 +1,107 @@
+{
+  "$schema": "internal://checklists.v1",
+  "comment": "Domain-specific defect checklists consumed by the generic 'review' mode. Every rules[] entry is validated against the built index, so a checklist cannot cite an ID that does not exist.",
+  "checklists": {
+    "review": {
+      "label": "Strategy, backtest and portfolio defects",
+      "items": [
+        {
+          "defect": "Same-bar signal computation and execution",
+          "severity": "high",
+          "rules": [
+            "ML4T-16-R4",
+            "ASSP-05-R7"
+          ]
+        },
+        {
+          "defect": "P&L computed after the position resize, so today's fill earns today's move",
+          "severity": "high",
+          "rules": [
+            "ASSP-06-R4"
+          ]
+        },
+        {
+          "defect": "No cost model, or costs bolted on after the fact",
+          "severity": "high",
+          "rules": [
+            "ML4T-16-R8",
+            "ML4T-16-R9"
+          ]
+        },
+        {
+          "defect": "Full-sample statistics used to build labels or regime thresholds",
+          "severity": "high",
+          "rules": [
+            "ML4T-16-R12"
+          ]
+        },
+        {
+          "defect": "Optimised parameters with no out-of-sample confirmation",
+          "severity": "high",
+          "rules": [
+            "ML4T-16-R18",
+            "ML4T-17-R6"
+          ]
+        },
+        {
+          "defect": "Variance-driven allocation across strategies of mixed skew",
+          "severity": "high",
+          "rules": [
+            "ASSP-09-R4"
+          ]
+        },
+        {
+          "defect": "Stop losses applied to a mean-reversion strategy whose premise is overshoot",
+          "severity": "medium",
+          "rules": [
+            "ASSP-05-R11"
+          ]
+        },
+        {
+          "defect": "Sharpe annualised without adjusting for serial dependence",
+          "severity": "medium",
+          "rules": [
+            "ML4T-16-R16"
+          ]
+        },
+        {
+          "defect": "Trials counted nominally rather than effectively",
+          "severity": "medium",
+          "rules": [
+            "ML4T-16-R17"
+          ]
+        },
+        {
+          "defect": "Max drawdown read as a standalone quality measure",
+          "severity": "medium",
+          "rules": [
+            "ML4T-16-R10"
+          ]
+        },
+        {
+          "defect": "Equal weighting with no risk-contribution check",
+          "severity": "medium",
+          "rules": [
+            "ASSP-06-R7",
+            "ML4T-17-R7"
+          ]
+        },
+        {
+          "defect": "Borrow, locate or short-sale restriction ignored on the short side",
+          "severity": "medium",
+          "rules": [
+            "ASSP-07-R2",
+            "ASSP-07-R3"
+          ]
+        },
+        {
+          "defect": "Survivorship bias asserted as disqualifying without checking which way it runs",
+          "severity": "low",
+          "rules": [
+            "ASSP-03-R5"
+          ]
+        }
+      ]
+    }
+  }
+}

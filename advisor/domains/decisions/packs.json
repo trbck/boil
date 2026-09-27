@@ -1,0 +1,20 @@
+{
+  "$schema": "internal://packs.v1",
+  "packs": [
+    {
+      "id": "atlb",
+      "kind": "book",
+      "prefix": "ATLB",
+      "title": "Algorithms to Live By",
+      "author": "Brian Christian & Tom Griffiths",
+      "publisher": "HarperCollins",
+      "year": 2016,
+      "path": "knowledge/atlb",
+      "authoritative_on": ["stopping", "explore_exploit", "scheduling", "prediction", "overfitting", "relaxation", "randomness", "networking", "game_theory"],
+      "caveats": [
+        "Popular-science synthesis, not a primary source. It reports results from optimal stopping, bandit theory, scheduling and Bayesian statistics accurately but informally; cite it for the decision heuristic, not for a proof.",
+        "Numeric thresholds (37%, Gittins indices, Bayes rules) assume the stated model. Check the assumptions hold before transferring a constant."
+      ]
+    }
+  ]
+}

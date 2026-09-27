@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "data": {
+    "manifest_version": 1,
+    "vault_tag": "probe-tag-a1b2c3",
+    "profile": "light",
+    "profile_steps": [
+      "1",
+      "2",
+      "10",
+      "15",
+      "16"
+    ],
+    "status": "running",
+    "started_at": "2026-09-04T18:31:25.344009+00:00",
+    "updated_at": "2026-09-04T18:31:36.837908+00:00",
+    "budget_usd": null,
+    "blocked_on": null,
+    "steps": {
+      "1": {
+        "status": "done",
+        "finished_at": "2026-09-04T18:31:36.559074+00:00"
+      },
+      "2": {
+        "status": "running",
+        "started_at": "2026-09-04T18:31:36.837461+00:00"
+      }
+    },
+    "chapters": {},
+    "spend": {
+      "estimated_usd": 0.0,
+      "sources_fetched": 0,
+      "notes_written": 0,
+      "agents_spawned": 0
+    },
+    "resume": {
+      "next_step": "2",
+      "done_steps": [
+        "1"
+      ],
+      "remaining_steps": [
+        "2",
+        "10",
+        "15",
+        "16"
+      ],
+      "chapters_pending": []
+    },
+    "possibly_stalled": false,
+    "escalations": {
+      "queued": 0,
+      "in_progress": 0,
+      "fetched": 0,
+      "needs_human": 0,
+      "abandoned": 0
+    }
+  },
+  "vault": "/tmp/claude-1000/-home-trbck-workspace-slim-llm-memory/6f2bd6d8-fde4-40ac-ac51-10aa23b82283/scratchpad/hrprobe",
+  "timestamp": "2026-09-04T18:31:37.114632+00:00"
+}

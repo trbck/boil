@@ -1,0 +1,86 @@
+{
+  "$schema": "internal://packs.v1",
+  "comment": "Registry of knowledge packs. 'kind' selects the indexer: book = distilled chapter md satisfying the chapter contract in FORMAT.md; engine = large vendor docs indexed by byte offset; notes = free-form md (research reports, own conventions) filed by category. Add a pack here, drop its files under path/, then run scripts/build_index.py. To add ad-hoc documents instead, drop them in inbox/ and run scripts/ingest.py.",
+  "packs": [
+    {
+      "id": "ml4t",
+      "kind": "book",
+      "prefix": "ML4T",
+      "title": "Machine Learning for Trading, 3rd ed.",
+      "author": "Stefan Jansen",
+      "publisher": "Packt",
+      "year": 2026,
+      "path": "knowledge/ml4t",
+      "authoritative_on": [
+        "process",
+        "data",
+        "features",
+        "modeling",
+        "backtesting",
+        "tooling",
+        "execution"
+      ],
+      "caveats": [
+        "Chapter 20 is absent from the distilled set (numbering jumps 19 -> 21). Treat any Ch. 20 reference as unindexed."
+      ]
+    },
+    {
+      "id": "assp",
+      "kind": "book",
+      "prefix": "ASSP",
+      "title": "Algorithmic Short Selling with Python, 2nd ed.",
+      "author": "Laurent Bernut",
+      "publisher": "Packt",
+      "year": 2026,
+      "path": "knowledge/assp",
+      "authoritative_on": [
+        "regime",
+        "signals",
+        "sizing",
+        "portfolio",
+        "risk",
+        "costs",
+        "psychology"
+      ],
+      "caveats": [
+        "ASSP-06 ships DELIBERATE lookahead bias for pedagogy (signal alignment + P&L computed after resize). Never inherit its P&L ordering without fixing both.",
+        "ASSP-05 pairs-trading thresholds are optimized on a single pair and are explicitly not expected to generalize."
+      ]
+    },
+    {
+      "id": "notes",
+      "kind": "notes",
+      "prefix": "NOTE",
+      "title": "Research notes & reports",
+      "path": "knowledge/notes",
+      "authority": "derived",
+      "recursive": true,
+      "authoritative_on": [],
+      "caveats": [
+        "Derived material: own research output, agent reports, working conventions. Cite it as such and never let it silently override a book rule -- if it contradicts one, surface the disagreement."
+      ]
+    },
+    {
+      "id": "vbtpro",
+      "kind": "engine",
+      "prefix": "VBT",
+      "title": "VectorBT PRO documentation",
+      "vendor": "vectorbt.pro",
+      "license": "proprietary",
+      "path": "knowledge/vbtpro",
+      "sources": {
+        "manifest": "llms.txt",
+        "docs": "llms-docs.txt",
+        "api": "llms-full.txt"
+      },
+      "authoritative_on": [
+        "tooling",
+        "backtesting"
+      ],
+      "caveats": [
+        "Licensed material. Raw files are gitignored by default; see README before committing them to a public remote.",
+        "Docs describe the engine's capabilities, not sound method. Method rules come from the book packs."
+      ]
+    }
+  ]
+}
