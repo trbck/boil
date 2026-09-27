@@ -121,8 +121,10 @@ veto: –
 
 ### Hook points
 
-- `boil-loop.py escalate` calls `decide`/`record` for `ESCALATE-STALL` before it writes
-  `escalation.md`.
+- `boil-loop.py escalate` is a script and cannot judge. For `ESCALATE-STALL` it marks the converted
+  ticket `human_action.kind: decision` and prints `advisable: boil advise decide --question … --ticket T`;
+  the agent then runs `decide`/`record`. An accepted `record --ticket T` sets the ticket back to
+  `status: todo`, `required: false`, `advised: D-NNNN`; a swept veto reverses it.
 - `SKILL.md` gets one line: "Before filing a `kind: decision` human-action ticket, run
   `boil advise decide`; file the ticket only if `record` exits 3."
 
