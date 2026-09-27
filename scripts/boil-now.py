@@ -117,7 +117,9 @@ def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
     tickets = open_tickets(root)
     actionable = by_status(tickets, "open", "in-progress")
     blocked = by_status(tickets, "blocked")
-    human = [t for t in tickets if str(t.get("type", "")).strip() == "human-action"]
+    # Only the ones still waiting: a done or wontfix human-action ticket is history, not a blocker.
+    human = [t for t in tickets if str(t.get("type", "")).strip() == "human-action"
+             and str(t.get("status", "")).strip() not in ("done", "wontfix")]
 
     L = [f"# NOW — {charter.get('project', root.name)}", ""]
     L.append(f"**Project:** {status} · stage {charter.get('stage', '?')} · "
