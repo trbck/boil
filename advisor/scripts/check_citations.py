@@ -106,6 +106,8 @@ def main():
     idents = find_citations(text, prefixes, strict=args.strict)
     resolved, fabricated = classify(idents, rules, chapters, sections)
 
+    live_retired = K.load_retired()
+    retired = [i for i, _ in resolved if i.upper() in live_retired]
     total = len(idents)
     rate = (len(fabricated) / total) if total else 0.0
     summary = {
@@ -114,6 +116,7 @@ def main():
         "fabricated": len(fabricated),
         "fabrication_rate": round(rate, 3),
         "fabricated_ids": [i for i, _ in fabricated],
+        "retired": retired,
     }
 
     if args.as_json:
@@ -124,13 +127,15 @@ def main():
                 print("  ok  %-12s %s" % (kind, ident))
             for ident, _ in fabricated:
                 print("  ✗   %-12s %s — does not resolve" % ("unknown", ident))
+            for ident in retired:
+                print("  RETIRED      %s — %s" % (ident, live_retired[ident.upper()].get("reason", "")))
             print()
         if total == 0:
             print("no citations found — an ungrounded answer is its own finding")
         else:
             print("%d cited · %d resolved · %d fabricated (%.0f%%)"
                   % (total, len(resolved), len(fabricated), rate * 100))
-    if fabricated:
+    if fabricated or (args.strict and retired):
         return 1
     return 1 if (args.require_citations and total == 0) else 0
 

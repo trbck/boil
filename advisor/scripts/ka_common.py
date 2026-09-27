@@ -37,6 +37,26 @@ def load_domains(domain_id=None):
     return out
 
 
+def load_retired(domain_id=None):
+    """Rule IDs a human retired: hidden from retrieval, still resolvable, never citable as live."""
+    out = {}
+    for dom in load_domains(domain_id):
+        path = os.path.join(dom["root"], "retired.json")
+        if os.path.exists(path):
+            for rid, meta in load_json(path).items():
+                out[rid.upper()] = dict(meta, domain=dom["id"])
+    return out
+
+
+def save_retired(domain_id, data):
+    """Atomic write of domains/<d>/retired.json (temp file + os.replace)."""
+    path = os.path.join(DOMAINS_DIR, domain_id, "retired.json")
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, sort_keys=True)
+        f.write("\n")
+    os.replace(tmp, path)
+
 def domain_path(domain, key, default):
     return os.path.join(domain["root"], domain.get(key, default))
 

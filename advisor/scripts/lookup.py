@@ -134,7 +134,7 @@ def bm25_score(tokens, query_terms, df, avgdl, n_docs, k1=BM25_K1, b=BM25_B):
     return total
 
 
-def load_indexes(domain_id=None):
+def load_indexes(domain_id=None, include_retired=False):
     """Merge every domain's index, tagging records with their domain."""
     domains = K.load_domains(domain_id)
     if not domains:
@@ -162,6 +162,10 @@ def load_indexes(domain_id=None):
     if missing:
         sys.exit("no index for domain(s) %s — run: python3 scripts/build_index.py"
                  % ", ".join(missing))
+    retired = K.load_retired(domain_id)
+    if not include_retired:
+        merged["rules"] = [r for r in merged["rules"] if r["id"].upper() not in retired]
+    merged["retired"] = retired
     return merged
 
 
@@ -280,6 +284,8 @@ def cmd_rule(idx, rule_ids):
         print("- pack     : %s" % rule["pack"])
         print("- topics   : %s" % ", ".join(rule["topics"]))
         print("- authority: %s" % rule.get("authority", "primary"))
+        if rule["id"].upper() in idx["retired"]:
+            print("- RETIRED  : %s" % idx["retired"][rule["id"].upper()].get("reason", ""))
         if len(hits) > 1:
             print()
     if missing:
@@ -554,6 +560,8 @@ def main():
                          "no argument lists every entry")
     ap.add_argument("--list", dest="list_what",
                     choices=["domains", "packs", "chapters", "topics", "notes"])
+    ap.add_argument("--include-retired", action="store_true",
+                    help="search retired rules too (--rule always resolves them)")
     args = ap.parse_args()
 
     if args.engine:
@@ -563,7 +571,7 @@ def main():
     if args.conflicts is not None:
         return cmd_conflicts(args.conflicts, args.domain)
 
-    idx = load_indexes(args.domain)
+    idx = load_indexes(args.domain, include_retired=args.include_retired or bool(args.rule))
     if args.list_what:
         return cmd_list(idx, args.list_what)
     if args.rule:
