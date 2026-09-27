@@ -601,8 +601,6 @@ class LintBindingTest(unittest.TestCase):
         self.assertNotIn("goal-milestone-unbound", codes)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class GuardExecutionTest(unittest.TestCase):
@@ -633,3 +631,10 @@ class GuardExecutionTest(unittest.TestCase):
                     "python3 -c 'print(1)'", "pytest scratch/test_mine.py", "ls tests"):
             r = hook(self.root, "Bash", {"command": cmd})
             self.assertEqual(r.returncode, 0, f"{cmd!r} was blocked: {r.stderr}")
+
+
+# At the very bottom on purpose, and checked there by TestFileHygieneTest in test_docs.py.
+# Run as `python tests/<file>.py`, execution stops here, so any class defined below this
+# guard is never created and the suite reports OK having silently skipped it.
+if __name__ == "__main__":
+    unittest.main()

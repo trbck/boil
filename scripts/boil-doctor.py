@@ -165,6 +165,40 @@ def write_handoff(root: Path, reasons: list[str], unevidenced: list[str]) -> Pat
     return out
 
 
+def _reviewer_pair_check(root: Path, skill_root: Path) -> dict[str, str | bool]:
+    """Is the review agent paired with a model it can actually run?
+
+    roborev keeps `review_agent` and `review_model` as two independent settings, so they
+    can drift apart: on 2026-09-04 the agent said `codex` while the model still held the
+    Ollama tag `glm-5.3:cloud`, and six milestone reviews 400'd in a row without anyone
+    noticing, because a failed review is silent — it just means no second opinion arrives.
+    The doctor is where that becomes visible again."""
+    reviewer = skill_root / "scripts" / "boil-reviewer.py"
+    if not reviewer.is_file():
+        return _check(reviewer, True, "reviewer-pair", "optional: boil-reviewer.py absent")
+    code, out = _run([sys.executable, str(reviewer), "status", "--root", str(root)], cwd=root)
+    warning = next((ln for ln in out.splitlines() if ln.startswith("warning")), "")
+    active = next((ln for ln in out.splitlines() if ln.startswith("reviewer")), "")
+    if warning:
+        return _check(reviewer, False, "reviewer-pair", warning.strip())
+    # `status` answers 0 on the primary and 1 on the backup — a state, not a fault. Any
+    # other code, or no reviewer line at all, means the resolver itself is broken, and a
+    # broken resolver must not read as a healthy reviewer.
+    if code not in (0, 1) or not active:
+        detail = (out.strip().splitlines() or ["no output"])[-1][:200]
+        return _check(reviewer, False, "reviewer-pair",
+                      f"boil-reviewer.py status failed (exit {code}): {detail}")
+    # A `note` is advisory: the project pins a reviewer the machine no longer routes to.
+    # That is allowed — reviewing with a different family from the implementer is boil's
+    # own advice — so it passes, but it is said, because a pin whose meaning drifted
+    # underneath it looks identical to a healthy one.
+    note = next((ln for ln in out.splitlines() if ln.startswith("note")), "")
+    if note:
+        return _check(reviewer, True, "reviewer-pair",
+                      f"{active.strip()}  [{note.split(None, 1)[1].strip()}]")
+    return _check(reviewer, True, "reviewer-pair", active.strip())
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=".", help="project root")
@@ -228,6 +262,8 @@ def main(argv: list[str]) -> int:
     bridge = skill_root / ".susi-human-blockers" / "add_blocker.py"
     bridge_msg = "local Susi blocker bridge exists" if bridge.exists() else "optional local Susi blocker bridge absent"
     checks.append(_check(bridge, True, "bridge-present", bridge_msg))
+
+    checks.append(_reviewer_pair_check(root, skill_root))
 
     linter = skill_root / "scripts" / "ticket-lint.py"
     if (boil / "tickets").is_dir():

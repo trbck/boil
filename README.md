@@ -336,6 +336,7 @@ boil/
 │   ├── boil-now.py              the one session-start read (.boil/NOW.md)
 │   ├── boil-helm-log.py         status.jsonl / STATUS.md + the helm dashboard bridge
 │   ├── boil-assert-db.py        a SQL query + assertion as a check command (the data sensor)
+│   ├── boil-iris-setup.sh       installs iris (screenshot CLI + MCP capture tool) — the visual sensor
 │   ├── boil-commit-guard.py     no AI attribution in commits; --install-hook
 │   ├── ticket-lint.py           goal size, {#id} binding, frozen-checks lint
 │   └── …                        legacy ticket-loop machinery (boil-loop.py, story-run.py,

@@ -46,8 +46,18 @@ The user opens a URL and sees the change. Visual proof beats code proof.
 
 **Steps:**
 1. Start the dev server (background process via Bash `run_in_background: true`). Note the port.
-2. **Take a screenshot** via the browser/screenshot tool available in the current client (Chrome MCP, Playwright, Puppeteer, or local browser automation). Save to `iterations/iter-NNN/artifacts/screenshot.png`.
-3. If no browser tool is available, fall back to: a curl of the page HTML showing the new element, or a Playwright/Puppeteer one-shot if the project has one set up.
+2. **Take a screenshot with `iris`** — one command, one image, tightly framed on the element
+   that changed (`scripts/boil-iris-setup.sh` installs it and registers its MCP `capture` tool):
+   ```bash
+   iris http://localhost:3000/admin/metrics --selector '#filter-bar' --padding 16 \
+        -o iterations/iter-NNN/artifacts/filter-bar.png --json
+   ```
+   `--full` for the whole page, `--size iphone` for a phone viewport, `--dark` for dark mode.
+   Exit 1 means the selector never appeared — that is a finding, not a demo. When the MCP
+   `capture` tool is connected, call it instead and LOOK at the returned image before writing
+   the demo: the screenshot is evidence only if you read it.
+3. If `iris` is absent, use the browser tool the client offers (Chrome MCP, Playwright,
+   Puppeteer); with none, fall back to a curl of the page HTML showing the new element.
 4. Provide the localhost URL the user can open themselves.
 
 **Demo content:**
@@ -332,7 +342,7 @@ The user's environment determines which demo formats land. At Phase 0 (or first 
 
 | Format | Requires | Fallback if unavailable |
 |--------|----------|-------------------------|
-| Browser screenshot | Chrome MCP connected | Save HTML, link the path; describe what user sees |
+| Browser screenshot | `iris` on PATH or its MCP `capture` tool (else Chrome MCP / Playwright) | Save HTML, link the path; describe what user sees |
 | Localhost URL | User on same machine | Save curl response; describe state |
 | Terminal output | Always works | — |
 | Diff | Always works | — |

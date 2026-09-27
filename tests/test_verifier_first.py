@@ -252,8 +252,6 @@ class StatusTest(unittest.TestCase):
             ws.close()
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 BRAKES = ROOT / "scripts" / "boil-brakes.py"
@@ -559,3 +557,10 @@ class CounterexampleTest(unittest.TestCase):
         self.assertEqual(bc.counterexample(out), "AssertionError: COUNTEREXAMPLE: got ['b:3'], want ['b 3']")
         self.assertEqual(bc.counterexample("E   assert 1 == 2\nFAILED tests/t.py::test_x - assert 1 == 2\n"),
                          "E   assert 1 == 2")
+
+
+# At the very bottom on purpose, and checked there by TestFileHygieneTest in test_docs.py.
+# Run as `python tests/<file>.py`, execution stops here, so any class defined below this
+# guard is never created and the suite reports OK having silently skipped it.
+if __name__ == "__main__":
+    unittest.main()

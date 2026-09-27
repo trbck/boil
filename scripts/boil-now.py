@@ -132,10 +132,11 @@ def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
     tickets = open_tickets(root)
     actionable = by_status(tickets, "open", "in-progress")
     blocked = by_status(tickets, "blocked")
-    # A human-action ticket the advisor answered (`boil advise record`) is open work again, not a
-    # question for the user — until a veto reopens it. parse_frontmatter is flat: nested
-    # `human_action.advised` / `.required` surface as top-level keys.
+    # Only the ones still waiting: a done or wontfix human-action ticket is history, not a blocker,
+    # and one the advisor answered (`boil advise record`) is open work again until a veto reopens
+    # it. parse_frontmatter is flat: nested `human_action.advised` / `.required` surface top-level.
     human = [t for t in tickets if str(t.get("type", "")).strip() == "human-action"
+             and str(t.get("status", "")).strip() not in ("done", "wontfix")
              and not (str(t.get("advised") or "").strip() and str(t.get("required")).strip() == "false")]
 
     L = [f"# NOW — {charter.get('project', root.name)}", ""]

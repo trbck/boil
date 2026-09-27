@@ -120,8 +120,8 @@ the box, or the box already carries `{#id}`) — compile stamps the tag, and fro
 only the controller ticks that box. On brownfield milestones pair a new-behaviour assertion
 with an `already_green` regression guard. One rejection freezes nothing (fix the spec,
 compile again); a recompile carries unchanged checks forward. A drafted-but-unfrozen spec
-is a lint error.
-Milestone schema: `references/state-files.md`.
+is a lint error; milestone schema in `references/state-files.md`. A box about a page gets a
+**visual check**: `iris <url> --selector '<css>' --json -o <artifact>.png` exits 1 until it renders.
 
 Set `budget.json` `goal_usd` to arm the budget brake. A goal with no budget has
 no cost ceiling, and that is how 65-iteration runs happen.
@@ -189,6 +189,7 @@ explained away.
 One user-visible artifact per passed milestone. **Never skip it.** The demo is a real
 invocation of the built thing — the command and its captured output, the curl and its
 response, the screenshot — not a description. Recipes: `references/demo-formats.md`.
+A page is photographed with `iris` (or MCP `capture`) and read before the demo is written.
 
 ### 2d — The status line is the report
 
@@ -306,6 +307,8 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `boil-now.py` | the session-start read; writes `NOW.md` |
 | `boil-brakes.py` | `tick` per iteration; `check` the brakes, including the controller's and the reviewer's last verdict |
 | `boil-review.py` | milestone-wise roborev: `review` (decide by risk score, one round, route findings), `close` (one re-review) |
+| `boil-reviewer.py` | who reviews: keeps roborev's `--agent` and `--model` together, falls back from a rate-limited codex to Ollama Cloud, probes codex and switches back when it answers (`resolve`, `apply`, `probe`, `status`, `reset`) |
+| `boil-roborev-hook.sh` | the Stop hook: resolves the reviewer, then fires roborev only on a declared milestone (`touch ~/.claude/.roborev-milestone`) |
 | `boil-doctor.py` | state validation; `--final` is the termination gate |
 | `boil-portfolio.py` | regenerate `PORTFOLIO.md`; `--check` exits 1 on violations |
 | `boil-migrate.py` | fold `.gate/` into `.boil/`; bootstrap the new files |
@@ -313,6 +316,7 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `boil-loop.py` | the T3 adversarial protocol — blast-radius milestones only |
 | `boil-commit-guard.py` | no AI attribution in commits; run before any push |
 | `boil-assert-db.py` | a data check as a command: `--db --query --assert`; exit 0/1/2 is the verdict |
+| `boil-iris-setup.sh` | the camera: installs `iris`, a Chrome launcher, and its MCP `capture` tool for claude + codex; `iris <url> --selector … --json` is a visual check |
 | `boil-guard.py` | PreToolUse hook: the worker never edits tests/, `protect` paths, or the frozen ruler; `--settings-json` wires it |
 | `boil-run-iteration.sh` | with frozen checks: doctor + lint + verify + brakes + NOW; otherwise the legacy iteration gates |
 | `bench/run.py` | the convergence bench: every controller verdict on real code (`--implementer scripted`, CI) and the effectiveness numbers (`--implementer llm`) |
