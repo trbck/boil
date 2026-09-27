@@ -13,6 +13,7 @@ Usage:
 """
 
 import hashlib
+import json
 import os
 import re
 import sys
@@ -557,12 +558,22 @@ def splice_description(skill_path, indexes, quiet=False):
         return []
     text = K.read_text(skill_path)
     m = re.search(r"^description: (.*)$", text, re.M)
-    if not m or DESC_MARKER not in m.group(1):
+    raw = m.group(1) if m else ""
+    try:
+        # A double-quoted scalar: the phrases carry `: `, which a plain YAML scalar cannot.
+        # JSON string escapes are a subset of YAML's double-quoted ones.
+        current = json.loads(raw) if raw.startswith('"') else raw
+    except ValueError:
+        current = ""
+    if DESC_MARKER not in current:
         log("! SKILL.md description has no advisor marker — left untouched", quiet)
         return []
-    head = m.group(1).split(DESC_MARKER)[0]
+    head = current.split(DESC_MARKER)[0]
     tail, dropped = advisor_tail(indexes, head)
-    K.write_text(skill_path, text[:m.start()] + "description: " + head + DESC_MARKER + tail + text[m.end():])
+    new = "description: " + json.dumps(head + DESC_MARKER + tail, ensure_ascii=False)
+    tmp = skill_path + ".tmp"
+    K.write_text(tmp, text[:m.start()] + new + text[m.end():])
+    os.replace(tmp, skill_path)
     return dropped
 
 

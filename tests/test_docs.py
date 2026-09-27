@@ -3,6 +3,7 @@ controller that exists (prepare → one implementer → score), not the ticket l
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 import unittest
@@ -65,7 +66,15 @@ class AdvisorRoutingTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.skill = (ROOT / "SKILL.md").read_text()
-        self.desc = re.search(r"^description: (.*)$", self.skill, re.M).group(1)
+        raw = re.search(r"^description: (.*)$", self.skill, re.M).group(1)
+        self.desc = json.loads(raw) if raw.startswith('"') else raw
+
+    def test_frontmatter_is_valid_yaml(self) -> None:
+        import yaml
+        fm = yaml.safe_load(self.skill.split("---")[1])
+        self.assertEqual(fm["name"], "boil")
+        self.assertIn(self.MARKER, fm["description"])
+        self.assertEqual(fm["description"], self.desc)
 
     def test_skill_md_line_budget(self) -> None:
         self.assertLessEqual(len(self.skill.splitlines()), 350)

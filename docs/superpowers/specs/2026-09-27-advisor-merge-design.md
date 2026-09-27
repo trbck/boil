@@ -96,7 +96,8 @@ boil advise record --question "<q>" --verdict "<that line>" [--ticket T] [--proj
 - a cited ID is retired
 - two cited IDs appear together in their domain's `conflicts.md`
 - the answer is empty or hedged (`depends`, `either`, `unclear`, as a whole word)
-- this question and rule were vetoed before (see Veto)
+- this question, or this ticket, was vetoed before (see Veto) — whatever rules are cited
+- `--ticket` names a ticket that is missing, or is not `type: human-action` with `human_action.kind: decision`
 
 ### `.boil/decisions.md`
 
@@ -116,7 +117,7 @@ veto: –
 - The user sets `veto: <reason>` in the file, or uses the helm button (see D).
 - On its next run, `boil advise sweep` (called from `boil-now.py`) reopens each vetoed entry's
   ticket as a normal human-action ticket.
-- It then adds a `(question-hash, rule-ids)` entry to `.boil/advisor-vetoes.json`, and `record`
+- It then adds a `(question-hash, rule-ids, ticket)` entry to `.boil/advisor-vetoes.json`, and `record`
   rejects that pair from then on.
 
 ### Hook points

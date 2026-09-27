@@ -37,6 +37,9 @@ HEDGE = re.compile(r"\b(depends|either|unclear)\b", re.I)
 HEADER = re.compile(r"^## (D-\d{4}) · (\S+) · ticket (\S*)\s*$")
 FIELDS = ("question", "answer", "rules", "why", "veto")
 NO_VETO = ("–", "-", "")
+TICKET_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+# Every character str.splitlines() breaks on: each is escaped so one field stays one line.
+BREAKS = "\n\r\x0b\x0c\x1c\x1d\x1e\x85\u2028\u2029"
 
 
 def _k():
@@ -104,18 +107,22 @@ def _qhash(q: str) -> str:
 
 
 def _esc(s: str) -> str:
-    return s.replace("\\", "\\\\").replace("\n", "\\n")
+    s = s.replace("\\", "\\\\")
+    return "".join("\\n" if c == "\n" else f"\\u{ord(c):04x}" if c in BREAKS else c for c in s)
 
 
 def _unesc(s: str) -> str:
-    return re.sub(r"\\(\\|n)", lambda m: "\n" if m.group(1) == "n" else "\\", s)
+    def one(m):
+        tok = m.group(1)
+        return "\n" if tok == "n" else "\\" if tok == "\\" else chr(int(tok[1:], 16))
+    return re.sub(r"\\(\\|n|u[0-9a-f]{4})", one, s)
 
 
 def _parse(text: str) -> tuple[list[dict], list[str]]:
     """(entries, ids of unparseable entries). Any `## ` line opens an entry; one that is not a
     well-formed header, or lacks a field, is reported and left alone — never guessed at."""
     raw, cur = [], None
-    for line in text.splitlines():
+    for n, line in enumerate(text.split("\n")):
         if line.startswith("## "):
             m = HEADER.match(line)
             cur = ({"id": m.group(1), "ts": m.group(2), "ticket": m.group(3) or ""} if m
@@ -125,6 +132,8 @@ def _parse(text: str) -> tuple[list[dict], list[str]]:
             key, val = line.split(":", 1)
             if key in FIELDS:
                 cur[key] = val.strip()
+                if key == "veto":
+                    cur["_veto_line"] = n
     good, bad = [], []
     for e in raw:
         if e.get("_bad") or not all(k in e for k in FIELDS):
@@ -176,7 +185,8 @@ def cmd_decide(args) -> int:
     print("\n## Reply with exactly one line\n")
     print("ANSWER: <choice> | RULES: <ID>[, <ID>…] | WHY: <one line tying the rule to the goal>")
     print("ASK-HUMAN: <reason>          (no rule fits, or the rules disagree)")
-    print('\nThen: boil advise record --question "…" --verdict "<that line>" [--ticket T]')
+    ticket = f" --ticket {args.ticket}" if args.ticket else " [--ticket T]"
+    print(f'\nThen: boil advise record --question "…" --verdict "<that line>"{ticket}')
     print("A verdict is accepted only if every cited rule exists, is not retired, and no two of")
     print("them sit on opposite sides of a conflicts.md entry; otherwise escalate as usual.")
     return EXIT_OK
@@ -228,9 +238,21 @@ def cmd_record(args) -> int:
     if not m:
         return _reject("malformed", "expected `ANSWER: … | RULES: … | WHY: …`")
     answer, why = m.group("answer").strip(), m.group("why").strip()
-    ids = [x for x in (s.strip().upper() for s in m.group("rules").split(",")) if RULE_ID.match(x)]
-    if not ids:
-        return _reject("no-rule", "cite at least one rule ID (chapters and sections do not count)")
+    ids = [s.strip().upper() for s in m.group("rules").split(",") if s.strip()]
+    if not ids or any(not RULE_ID.match(x) for x in ids):
+        bad = ", ".join(x for x in ids if not RULE_ID.match(x)) or "none"
+        return _reject("no-rule", f"cite rule IDs only (chapters and sections do not count): {bad}")
+    boil = _boil(args.project)
+    tpath = None
+    if args.ticket:
+        if not TICKET_ID.match(args.ticket):
+            return _reject("malformed", f"bad ticket id {args.ticket!r}")
+        tpath = _ticket_file(boil, args.ticket)
+        if not tpath:
+            return _reject("not-advisable", f"no ticket {args.ticket}")
+        why_not = _advisable(tpath)
+        if why_not:
+            return _reject("not-advisable", f"{args.ticket}: {why_not}")
     if not _available():
         return _reject("unavailable", "advisor unavailable")
     K = _k()
@@ -247,10 +269,10 @@ def cmd_record(args) -> int:
         return _reject("conflict", f"{pair[0]} vs {pair[1]} (see conflicts.md)")
     if not answer or HEDGE.search(answer):
         return _reject("hedged", "the answer must be a choice")
-    if {"q": _qhash(args.question), "rules": sorted(ids)} in _vetoes(args.project):
-        return _reject("vetoed", "this question with these rules was vetoed before")
+    qh = _qhash(args.question)
+    if any(v.get("q") == qh or (args.ticket and v.get("ticket") == args.ticket) for v in _vetoes(args.project)):
+        return _reject("vetoed", "the user vetoed an advisor answer to this question or ticket before")
 
-    boil = _boil(args.project)
     dpath = boil / "decisions.md"
     prior = dpath.read_text(encoding="utf-8") if dpath.exists() else ""
     n = len(re.findall(r"^## D-\d{4}", prior, re.M)) + 1
@@ -258,34 +280,78 @@ def cmd_record(args) -> int:
     ts = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
     entry = (f"## {did} · {ts} · ticket {args.ticket}\nquestion: {_esc(args.question)}\n"
              f"answer: {_esc(answer)}\nrules: {', '.join(ids)}\nwhy: {_esc(why)}\nveto: –\n\n")
+    if [e["id"] for e in _parse(entry)[0]] != [did]:
+        return _reject("malformed", "the entry would not read back; nothing written")
     with open(dpath, "a", encoding="utf-8") as f:
         f.write(entry)
-    if args.ticket:
-        _set_ticket(boil, args.ticket, advised=did)
+    if tpath:
+        _set_ticket(tpath, advised=did)
     _emit(args.project, args.no_log, "boil.advised", f"{did}: {answer[:80]} [{', '.join(ids)}]")
     print(f"{did} recorded: {answer}")
     return EXIT_OK
 
 
 def _ticket_file(boil: Path, ticket: str) -> Path | None:
+    """The ticket's file: exactly `<id>.md` or `<id>-<slug>.md`, never a longer id sharing a prefix."""
     tdir = boil / "tickets"
-    hits = sorted(tdir.glob(f"{ticket}*.md")) if tdir.is_dir() and ticket else []
+    if not tdir.is_dir() or not TICKET_ID.match(ticket or ""):
+        return None
+    hits = sorted([*tdir.glob(f"{ticket}.md"), *tdir.glob(f"{ticket}-*.md")])
     return hits[0] if hits else None
 
 
-def _set_ticket(boil: Path, ticket: str, *, advised: str = "", reopen: bool = False) -> bool:
-    """Flip a human-action ticket: advised → open and not required; reopened → blocked and required."""
-    path = _ticket_file(boil, ticket)
-    if not path:
+def _split(text: str) -> tuple[list[str], list[str]] | None:
+    """(frontmatter lines, rest) — None when the file has no `---` frontmatter."""
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != "---":
+        return None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return lines[:i + 1], lines[i + 1:]
+    return None
+
+
+def _ha_block(fm: list[str]) -> tuple[int, int] | None:
+    """[start, end) of the `human_action:` block in the frontmatter, start being the key line."""
+    for i, line in enumerate(fm):
+        if line.rstrip() == "human_action:":
+            j = i + 1
+            while j < len(fm) - 1 and fm[j].startswith((" ", "\t")):
+                j += 1
+            return i, j
+    return None
+
+
+def _advisable(path: Path) -> str:
+    """Empty when the ticket is a human-action ticket marked `kind: decision`; else why not."""
+    parts = _split(path.read_text(encoding="utf-8"))
+    if not parts:
+        return "no frontmatter"
+    fm = parts[0]
+    if not any(re.match(r"^type:\s*human-action\s*$", ln) for ln in fm):
+        return "not a human-action ticket"
+    blk = _ha_block(fm)
+    if not blk or not any(re.match(r"^\s+kind:\s*decision\s*$", ln) for ln in fm[blk[0] + 1:blk[1]]):
+        return "not `kind: decision` — brakes, credentials and access stay with the user"
+    return ""
+
+
+def _set_ticket(path: Path, *, advised: str = "", reopen: bool = False) -> bool:
+    """Flip a human-action ticket: advised → open and not required; reopened → blocked and required.
+    Only the frontmatter's top-level `status:` and the `human_action:` block are touched."""
+    text = path.read_text(encoding="utf-8")
+    parts = _split(text)
+    blk = _ha_block(parts[0]) if parts else None
+    if not blk:
         return False
-    t = path.read_text(encoding="utf-8")
+    fm, rest = parts
     status, required = ("blocked", "true") if reopen else ("open", "false")
-    t = re.sub(r"^status: .*$", f"status: {status}", t, count=1, flags=re.M)
-    t = re.sub(r"^  required: .*$", f"  required: {required}", t, count=1, flags=re.M)
+    fm = [f"status: {status}" if re.match(r"^status:", ln) else ln for ln in fm]
+    head, block, tail = fm[:blk[0] + 1], fm[blk[0] + 1:blk[1]], fm[blk[1]:]
+    block = [f"  required: {required}" if re.match(r"^\s+required:", ln) else ln for ln in block]
     if advised:
-        t = re.sub(r"^  advised: .*\n", "", t, flags=re.M)
-        t = re.sub(r"^human_action:\n", f"human_action:\n  advised: {advised}\n", t, count=1, flags=re.M)
-    path.write_text(t, encoding="utf-8")
+        block = [f"  advised: {advised}"] + [ln for ln in block if not re.match(r"^\s+advised:", ln)]
+    path.write_text("\n".join(head + block + tail + rest), encoding="utf-8")
     return True
 
 
@@ -316,14 +382,16 @@ def cmd_sweep(args) -> int:
         print("0 reopened")
         return EXIT_OK
     vetoes, reopened = _vetoes(args.project), 0
+    lines = text.split("\n")
     for e in todo:
-        if e["ticket"] and _set_ticket(boil, e["ticket"], reopen=True):
+        tpath = _ticket_file(boil, e["ticket"]) if e["ticket"] else None
+        if tpath and _set_ticket(tpath, reopen=True):
             reopened += 1
-        key = {"q": _qhash(e["question"]), "rules": sorted(e["rules"])}
+        key = {"q": _qhash(e["question"]), "rules": sorted(e["rules"]), "ticket": e["ticket"]}
         if key not in vetoes:
             vetoes.append(key)
-        text = re.sub(rf"(^## {e['id']} · .*?^veto: )([^\n]*)", lambda m: m.group(1) + m.group(2) + " (swept)",
-                      text, count=1, flags=re.M | re.S)
+        lines[e["_veto_line"]] = f"veto: {e['veto']} (swept)"
+    text = "\n".join(lines)
     _atomic(boil / "advisor-vetoes.json", json.dumps(vetoes, indent=2) + "\n")
     _atomic(dpath, text)
     print(f"{reopened} reopened")
@@ -353,6 +421,7 @@ def main(argv: list[str]) -> int:
     p.set_defaults(fn=cmd_unretire)
     p = sub.add_parser("decide", help="print a decision packet")
     p.add_argument("--question", required=True)
+    p.add_argument("--ticket", default="", help="echoed into the record command")
     p.add_argument("--project", default=".")
     p.add_argument("--limit", type=int, default=8)
     p.set_defaults(fn=cmd_decide)
