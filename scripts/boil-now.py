@@ -70,6 +70,8 @@ def _goal_headline(root: Path) -> str:
         return "(no goal.md — run Phase 0)"
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         s = line.strip()
+        if s.startswith("advisor_domains:"):
+            continue
         if s.startswith("**One-line:**"):
             return _clip(s.replace("**One-line:**", ""), 160)
         if s and not s.startswith("#"):
@@ -130,7 +132,11 @@ def render(root: Path, wip: int, stall: int) -> tuple[str, int]:
     tickets = open_tickets(root)
     actionable = by_status(tickets, "open", "in-progress")
     blocked = by_status(tickets, "blocked")
-    human = [t for t in tickets if str(t.get("type", "")).strip() == "human-action"]
+    # A human-action ticket the advisor answered (`boil advise record`) is open work again, not a
+    # question for the user — until a veto reopens it. parse_frontmatter is flat: nested
+    # `human_action.advised` / `.required` surface as top-level keys.
+    human = [t for t in tickets if str(t.get("type", "")).strip() == "human-action"
+             and not (str(t.get("advised") or "").strip() and str(t.get("required")).strip() == "false")]
 
     L = [f"# NOW — {charter.get('project', root.name)}", ""]
     L.append(f"**Project:** {status} · stage {charter.get('stage', '?')} · "

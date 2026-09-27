@@ -134,7 +134,7 @@ python3 <skill>/scripts/boil-advise.py decide --question "<the question>" --tick
 
 prints the goal excerpt and the candidate rules. Answer with exactly one line —
 `ANSWER: <choice> | RULES: <ID>, … | WHY: <rule → goal>` or `ASK-HUMAN: <reason>` — and pass it
-to `record`. Exit 0: logged to `.boil/decisions.md`, ticket back to `todo`. Exit 3 (no rule,
+to `record`. Exit 0: logged to `.boil/decisions.md`, ticket back to `open`. Exit 3 (no rule,
 unknown, retired, conflicting, hedged, or previously vetoed): escalate to the user as usual. The
 user vetoes by writing `veto: <reason>` on an entry (or in helm); `boil-now` reopens the ticket.
 

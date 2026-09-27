@@ -224,8 +224,9 @@ def lint_ticket(path: Path, verifier_first: bool = False) -> list[dict[str, str]
         if not isinstance(human, dict):
             issues.append(_issue(path, "error", "missing-human-action", "`human_action` mapping required"))
         else:
-            if human.get("required") is not True:
-                issues.append(_issue(path, "error", "human-required", "`human_action.required` must be true"))
+            if human.get("required") is not True and not str(human.get("advised") or "").strip():
+                issues.append(_issue(path, "error", "human-required",
+                                     "`human_action.required` must be true (false only once `advised: D-NNNN`)"))
             if not str(human.get("safe_summary") or "").strip():
                 issues.append(_issue(path, "error", "human-safe-summary", "`human_action.safe_summary` required"))
             for key in ("susi_sync_status", "pushover_status"):

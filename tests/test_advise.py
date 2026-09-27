@@ -237,7 +237,7 @@ class SweepTest(DecideRecordCase):
     def test_accept_unblocks_ticket_and_veto_reblocks(self):
         self.assertEqual(self.record(GOOD, Q, "--ticket", "T-0041").returncode, 0)
         t = self.tpath.read_text()
-        self.assertIn("status: todo", t)
+        self.assertIn("status: open", t)
         self.assertIn("  required: false", t)
         self.assertIn("  advised: D-0001", t)
         self.dpath.write_text(self.dpath.read_text().replace("veto: –", "veto: wrong domain"))
@@ -269,6 +269,24 @@ class SweepTest(DecideRecordCase):
                        capture_output=True, text=True, env=self.env)
         self.assertIn("status: blocked", self.tpath.read_text())
         self.assertIn("veto: no (swept)", self.dpath.read_text())
+
+    def now(self):
+        return subprocess.run([sys.executable, str(ROOT / "scripts" / "boil-now.py"), "--root", str(self.proj)],
+                              capture_output=True, text=True, env=self.env).stdout
+
+    def lint(self):
+        return subprocess.run([sys.executable, str(ROOT / "scripts" / "ticket-lint.py"), str(self.tpath)],
+                              capture_output=True, text=True)
+
+    def test_advised_ticket_is_not_blocked_on_you_and_lints(self):
+        self.assertIn("T-0041", self.now().split("## Blocked on you")[1] if "## Blocked on you" in self.now() else "")
+        self.record(GOOD, Q, "--ticket", "T-0041")
+        self.assertNotIn("## Blocked on you", self.now())
+        lint = self.lint()
+        self.assertNotIn("human-required", lint.stdout + lint.stderr)
+        self.dpath.write_text(self.dpath.read_text().replace("veto: –", "veto: no"))
+        self.assertIn("## Blocked on you", self.now())       # the sweep inside boil-now reopened it
+        self.assertNotIn("human-required", (lambda l: l.stdout + l.stderr)(self.lint()))
 
     def test_no_decisions_file(self):
         p = self.sweep()

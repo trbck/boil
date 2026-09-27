@@ -274,12 +274,12 @@ def _ticket_file(boil: Path, ticket: str) -> Path | None:
 
 
 def _set_ticket(boil: Path, ticket: str, *, advised: str = "", reopen: bool = False) -> bool:
-    """Flip a human-action ticket: advised → todo and not required; reopened → blocked and required."""
+    """Flip a human-action ticket: advised → open and not required; reopened → blocked and required."""
     path = _ticket_file(boil, ticket)
     if not path:
         return False
     t = path.read_text(encoding="utf-8")
-    status, required = ("blocked", "true") if reopen else ("todo", "false")
+    status, required = ("blocked", "true") if reopen else ("open", "false")
     t = re.sub(r"^status: .*$", f"status: {status}", t, count=1, flags=re.M)
     t = re.sub(r"^  required: .*$", f"  required: {required}", t, count=1, flags=re.M)
     if advised:
