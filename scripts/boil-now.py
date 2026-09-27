@@ -93,6 +93,19 @@ def _measured(root: Path) -> str:
     return re.sub(r"\s*\|\s*\d{4}-\d{2}-\d{2}T[0-9:]+Z\s*$", "", line)
 
 
+def _sweep_vetoes(root: Path) -> None:
+    """Apply vetoes written into .boil/decisions.md before rendering, so a vetoed advisor
+    decision shows up as the blocked ticket it now is. Best-effort: never fails NOW."""
+    if not (state_dir(root) / "decisions.md").is_file():
+        return
+    script = Path(__file__).resolve().parent / "boil-advise.py"
+    try:
+        subprocess.run([sys.executable, str(script), "sweep", "--project", str(root)],
+                       text=True, capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def _next_milestone(root: Path) -> dict | None:
     """`boil-check.py prepare --dry-run` when the goal has frozen checks: the controller
     knows the next milestone; NOW.md must not guess."""
@@ -202,6 +215,7 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
 
     root = Path(args.root).resolve()
+    _sweep_vetoes(root)
     text, code = render(root, args.wip, args.stall)
     if args.write:
         out = state_dir(root) / "NOW.md"

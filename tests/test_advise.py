@@ -84,5 +84,203 @@ class RetireTest(CorpusCase):
         self.assertNotEqual(run("retire", "ATLB-01-R9", env=self.env).returncode, 0)
 
 
+
+GOAL = """# Goal: tune the entry filter
+
+advisor_domains: decisions
+
+- [ ] Pick an entry filter within 20 variants
+"""
+Q = "Stop tuning or keep searching?"
+GOOD = "ANSWER: Stop and commit to the current best | RULES: ATLB-01-R9 | WHY: goal caps search at 20 variants"
+
+
+def load_advise():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("boil_advise", ADVISE)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class DecideRecordCase(CorpusCase):
+    def setUp(self):
+        super().setUp()
+        self.proj = self.tmp / "proj"
+        (self.proj / ".boil").mkdir(parents=True)
+        (self.proj / ".boil" / "goal.md").write_text(GOAL)
+
+    def record(self, verdict, question=Q, *extra):
+        return run("record", "--project", str(self.proj), "--question", question,
+                   "--verdict", verdict, "--no-log", *extra, env=self.env)
+
+    def decisions(self):
+        p = self.proj / ".boil" / "decisions.md"
+        return p.read_text() if p.exists() else ""
+
+
+class DecideTest(DecideRecordCase):
+    def decide(self, question, env=None):
+        return run("decide", "--project", str(self.proj), "--question", question, env=env or self.env)
+
+    def test_packet_has_question_goal_rules_and_format(self):
+        p = self.decide("when to stop searching")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("when to stop searching", p.stdout)
+        self.assertIn("Pick an entry filter", p.stdout)
+        self.assertIn("ATLB-01-R", p.stdout)
+        self.assertIn("ANSWER:", p.stdout)
+        self.assertIn("ASK-HUMAN:", p.stdout)
+
+    def test_retired_rules_absent_from_packet(self):
+        run("retire", "ATLB-01-R9", "--reason", "x", env=self.env)
+        p = self.decide("never reconsider an option you passed on")
+        self.assertNotIn("ATLB-01-R9", p.stdout)
+
+    def test_unknown_domain_falls_back(self):
+        (self.proj / ".boil" / "goal.md").write_text(GOAL.replace("decisions", "astrology"))
+        p = self.decide("when to stop searching")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("astrology", p.stderr)
+        self.assertIn("ATLB-01-R", p.stdout)
+
+    def test_advisor_missing_exits_3(self):
+        p = self.decide("q", env=dict(self.env, BOIL_ADVISOR_ROOT=str(self.tmp / "nope")))
+        self.assertEqual(p.returncode, 3)
+
+
+class RecordTest(DecideRecordCase):
+    def assertRejected(self, verdict, prefix, question=Q):
+        p = self.record(verdict, question)
+        self.assertEqual(p.returncode, 3, p.stdout + p.stderr)
+        self.assertTrue(p.stderr.startswith(prefix), p.stderr)
+        self.assertEqual(self.decisions(), "")
+
+    def test_accepts_and_logs(self):
+        p = self.record(GOOD)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        text = self.decisions()
+        self.assertIn("## D-0001", text)
+        self.assertIn("rules: ATLB-01-R9", text)
+        self.assertIn("veto: –", text)
+        self.assertEqual(self.record(GOOD, "another question").returncode, 0)
+        self.assertIn("## D-0002", self.decisions())
+
+    def test_ask_human(self):
+        self.assertRejected("ASK-HUMAN: no rule fits", "ask-human:")
+
+    def test_malformed(self):
+        self.assertRejected("just do it", "malformed:")
+
+    def test_chapter_citation_rejected(self):
+        self.assertRejected("ANSWER: stop | RULES: ATLB-01 | WHY: w", "no-rule:")
+
+    def test_unknown_id(self):
+        self.assertRejected("ANSWER: stop | RULES: ATLB-01-R999 | WHY: w", "unknown:")
+
+    def test_retired_after_decide_rejected(self):
+        run("retire", "ATLB-01-R9", "--reason", "x", env=self.env)
+        self.assertRejected(GOOD, "retired:")
+
+    def test_conflict(self):
+        # conflicts.md T1: ATLB-01-R9 (Ch.1 row) vs ATLB-02-R13 (Ch.2 row)
+        self.assertRejected("ANSWER: stop | RULES: ATLB-01-R9, ATLB-02-R13 | WHY: w", "conflict:")
+
+    def test_same_row_is_not_conflict(self):
+        p = self.record("ANSWER: stop | RULES: ATLB-01-R3, ATLB-01-R9 | WHY: w")
+        self.assertEqual(p.returncode, 0, p.stderr)
+
+    def test_hedged(self):
+        self.assertRejected("ANSWER: it depends | RULES: ATLB-01-R9 | WHY: w", "hedged:")
+
+    def test_advisor_missing_rejects(self):
+        env = dict(self.env, BOIL_ADVISOR_ROOT=str(self.tmp / "nope"))
+        p = run("record", "--project", str(self.proj), "--question", Q, "--verdict", GOOD,
+                "--no-log", env=env)
+        self.assertEqual(p.returncode, 3)
+
+    def test_multiline_question_roundtrips(self):
+        q = "line one\nline two | with: colons"
+        self.assertEqual(self.record(GOOD, q).returncode, 0)
+        entries = load_advise().parse_decisions(self.decisions())
+        self.assertEqual(entries[0]["question"], q)
+        self.assertEqual(entries[0]["rules"], ["ATLB-01-R9"])
+
+
+TICKET = """---
+id: T-0041
+title: pick filter
+type: human-action
+status: blocked
+priority: P0
+human_action:
+  required: true
+  kind: decision
+  reason: "stall"
+  safe_summary: "Stop tuning or keep searching?"
+---
+body
+"""
+
+
+class SweepTest(DecideRecordCase):
+    def setUp(self):
+        super().setUp()
+        (self.proj / ".boil" / "tickets").mkdir()
+        self.tpath = self.proj / ".boil" / "tickets" / "T-0041-pick-filter.md"
+        self.tpath.write_text(TICKET)
+        self.dpath = self.proj / ".boil" / "decisions.md"
+
+    def sweep(self):
+        return run("sweep", "--project", str(self.proj), env=self.env)
+
+    def test_accept_unblocks_ticket_and_veto_reblocks(self):
+        self.assertEqual(self.record(GOOD, Q, "--ticket", "T-0041").returncode, 0)
+        t = self.tpath.read_text()
+        self.assertIn("status: todo", t)
+        self.assertIn("  required: false", t)
+        self.assertIn("  advised: D-0001", t)
+        self.dpath.write_text(self.dpath.read_text().replace("veto: –", "veto: wrong domain"))
+        p = self.sweep()
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("1 reopened", p.stdout)
+        t = self.tpath.read_text()
+        self.assertIn("status: blocked", t)
+        self.assertIn("  required: true", t)
+        self.assertIn("veto: wrong domain (swept)", self.dpath.read_text())
+        # the same question with the same rules can no longer auto-decide
+        p = self.record(GOOD, Q)
+        self.assertEqual(p.returncode, 3)
+        self.assertTrue(p.stderr.startswith("vetoed:"), p.stderr)
+
+    def test_sweep_idempotent(self):
+        self.record(GOOD, Q, "--ticket", "T-0041")
+        self.dpath.write_text(self.dpath.read_text().replace("veto: –", "veto: no"))
+        self.sweep()
+        before = (self.tpath.read_text(), self.dpath.read_text())
+        p = self.sweep()
+        self.assertIn("0 reopened", p.stdout)
+        self.assertEqual(before, (self.tpath.read_text(), self.dpath.read_text()))
+
+    def test_boil_now_runs_the_sweep(self):
+        self.record(GOOD, Q, "--ticket", "T-0041")
+        self.dpath.write_text(self.dpath.read_text().replace("veto: –", "veto: no"))
+        subprocess.run([sys.executable, str(ROOT / "scripts" / "boil-now.py"), "--root", str(self.proj)],
+                       capture_output=True, text=True, env=self.env)
+        self.assertIn("status: blocked", self.tpath.read_text())
+        self.assertIn("veto: no (swept)", self.dpath.read_text())
+
+    def test_no_decisions_file(self):
+        p = self.sweep()
+        self.assertEqual(p.returncode, 0)
+        self.assertIn("0 reopened", p.stdout)
+
+    def test_malformed_entry_skipped_not_rewritten(self):
+        self.dpath.write_text("## D-0001 · garbage\nnot a field\n")
+        p = self.sweep()
+        self.assertEqual(p.returncode, 0)
+        self.assertIn("skipped", p.stderr)
+        self.assertEqual(self.dpath.read_text(), "## D-0001 · garbage\nnot a field\n")
+
 if __name__ == "__main__":
     unittest.main()
