@@ -14,6 +14,7 @@ Usage:
 
 import hashlib
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -29,6 +30,11 @@ SCOPE_PER_DOMAIN = 10
 # every conversation whether or not the skill fires. The trigger phrases are the only
 # part that decides whether it fires, so they are the last thing trimmed.
 MAX_FRONTMATTER_CHARS = 1024
+# The advisor ships inside boil: its triggers are the generated tail of boil's own
+# description, after this marker, and its skill body renders to boil's references/.
+BOIL_ROOT = os.path.dirname(K.ROOT)
+DESC_MARKER = "Knowledge questions (route to `boil advise`): "
+SHORT_TAIL = "Also for what the books say, or reviewing work against them."
 ENGINE_DESC_CHARS = 90
 # Weight a rule inherits from its parent chapter's topics, in units where one
 # distinct keyword match is worth 3. Set near one match so subject matter wins
@@ -491,7 +497,7 @@ def join_and(items):
     return "%s and %s" % (", ".join(items[:-1]), items[-1])
 
 
-def compose_description(indexes):
+def compose_description(indexes, budget=None, tail=None, lead="Use when the user is working on "):
     """Compose the skill's frontmatter description from installed domains.
 
     Generated rather than hand-written because a multi-domain skill otherwise
@@ -513,8 +519,8 @@ def compose_description(indexes):
     # what the skill does, or how, becomes a shortcut the model follows instead of
     # reading the skill body -- and every character spent on it is a trigger that
     # no longer fits under the cap.
-    tail = ("Also use when they ask what the literature says, want work reviewed against it, "
-            "or are adding markdown to the corpus, even if they never mention books or this skill.")
+    tail = tail or ("Also use when they ask what the literature says, want work reviewed against it, "
+                    "or are adding markdown to the corpus, even if they never mention books or this skill.")
     # Domain titles are deliberately not in the description: the Installed-domains
     # table in the body names them, and the characters buy another trigger phrase.
     covers = ""
@@ -523,17 +529,41 @@ def compose_description(indexes):
         phrases = [p for g in groups for p in g]
         parts = []
         if phrases:
-            parts.append("Use when the user is working on " + "; ".join(phrases) + ".")
+            parts.append(lead + "; ".join(phrases) + ".")
         parts.append(tail)
         if covers:
             parts.append(covers)
         return " ".join(parts)
 
     # `name: advisor` plus `description: ` plus the YAML fences the caller adds.
-    budget = MAX_FRONTMATTER_CHARS - (len("description: ") + 40)
+    if budget is None:
+        budget = MAX_FRONTMATTER_CHARS - (len("description: ") + 40)
     while len(compose()) > budget and any(len(g) > 1 for g in groups):
         dropped.append(max(groups, key=len).pop())
     return compose(), dropped
+
+
+def advisor_tail(indexes, head):
+    """(tail, dropped): the part of boil's description after DESC_MARKER, sized to what the
+    hand-written head leaves under the frontmatter cap."""
+    budget = MAX_FRONTMATTER_CHARS - (len("description: ") + 40) - len(head) - len(DESC_MARKER)
+    return compose_description(indexes, budget=budget, tail=SHORT_TAIL, lead="")
+
+
+def splice_description(skill_path, indexes, quiet=False):
+    """Rewrite the generated tail of boil's SKILL.md description; the head stays hand-written."""
+    if not os.path.exists(skill_path):
+        log("! %s missing — description left untouched" % skill_path, quiet)
+        return []
+    text = K.read_text(skill_path)
+    m = re.search(r"^description: (.*)$", text, re.M)
+    if not m or DESC_MARKER not in m.group(1):
+        log("! SKILL.md description has no advisor marker — left untouched", quiet)
+        return []
+    head = m.group(1).split(DESC_MARKER)[0]
+    tail, dropped = advisor_tail(indexes, head)
+    K.write_text(skill_path, text[:m.start()] + "description: " + head + DESC_MARKER + tail + text[m.end():])
+    return dropped
 
 
 def render_description(indexes):
@@ -841,10 +871,19 @@ def render_engine_retrieval(indexes):
     return "\n".join(lines) + "\n"
 
 
+ADVISOR_PATHS = re.compile(r"(?<![\w/.-])(scripts/|generated/|domains/|inbox/|templates/|FORMAT\.md|"
+                           r"references/(?:workflows|compliance|maintaining)\.md)")
+
+
+def boil_paths(text):
+    """The reference is read in a user project: advisor-relative paths become `<skill>/advisor/…`."""
+    return ADVISOR_PATHS.sub(r"<skill>/advisor/\1", text)
+
+
 def render_skill(indexes, quiet=False):
-    tmpl_path = os.path.join(K.ROOT, "templates", "SKILL.md.tmpl")
+    tmpl_path = os.path.join(K.ROOT, "templates", "advisor-reference.md.tmpl")
     if not os.path.exists(tmpl_path):
-        log("! templates/SKILL.md.tmpl missing — SKILL.md left untouched", quiet)
+        log("! templates/advisor-reference.md.tmpl missing — reference left untouched", quiet)
         return
     text = K.read_text(tmpl_path)
     total = sum(len(ix.get("rules", [])) for ix in indexes)
@@ -853,9 +892,7 @@ def render_skill(indexes, quiet=False):
     for dom in domains:
         for mode in K.load_modes(dom):
             modes.setdefault(mode["id"], mode)
-    description, dropped = compose_description(indexes)
-    for key, val in (("DESCRIPTION", description),
-                     ("RULE_TOTAL", str(total)),
+    for key, val in (("RULE_TOTAL", str(total)),
                      ("DOMAINS", render_domains_table(indexes)),
                      ("ID_EXAMPLES", render_id_examples(indexes)),
                      ("CORPUS_TOKENS", render_corpus_tokens(indexes)),
@@ -867,16 +904,17 @@ def render_skill(indexes, quiet=False):
                      ("GATES", render_gates_summary(domains)),
                      ("CAVEATS", render_caveats(indexes))):
         text = text.replace("{{%s}}" % key, val)
-    K.write_text(os.path.join(K.ROOT, "SKILL.md"), text)
+    K.write_text(os.path.join(BOIL_ROOT, "references", "advisor.md"), boil_paths(text))
     stamp_readme_stats(indexes, quiet)
-    log("SKILL.md regenerated (%d domains, %d rules, description %d chars)"
-        % (len(indexes), total, len(description)), quiet)
+    dropped = splice_description(os.path.join(BOIL_ROOT, "SKILL.md"), indexes, quiet)
+    log("references/advisor.md regenerated (%d domains, %d rules); boil description spliced"
+        % (len(indexes), total), quiet)
     if dropped:
         log("  ! description at the %d-char frontmatter cap: %d trigger phrase(s) omitted, "
             "so the skill will not fire on them --" % (MAX_FRONTMATTER_CHARS, len(dropped)), quiet)
         for phrase in dropped:
             log("      - %s" % phrase, quiet)
-        log("    shorten the `scope` phrases in domain.json to fit more.", quiet)
+        log("    shorten the `scope` phrases in domain.json, or boil's description head, to fit more.", quiet)
 
 
 def main():

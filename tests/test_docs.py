@@ -4,6 +4,7 @@ controller that exists (prepare → one implementer → score), not the ticket l
 from __future__ import annotations
 
 import re
+import sys
 import unittest
 from pathlib import Path
 
@@ -54,3 +55,50 @@ class DocsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AdvisorRoutingTest(unittest.TestCase):
+    """The advisor is reached through boil: its triggers ride in boil's description, its
+    reference is generated, and SKILL.md stays inside its line budget."""
+
+    MARKER = "Knowledge questions (route to `boil advise`): "
+
+    def setUp(self) -> None:
+        self.skill = (ROOT / "SKILL.md").read_text()
+        self.desc = re.search(r"^description: (.*)$", self.skill, re.M).group(1)
+
+    def test_skill_md_line_budget(self) -> None:
+        self.assertLessEqual(len(self.skill.splitlines()), 350)
+
+    def test_description_under_cap_and_carries_advisor_triggers(self) -> None:
+        self.assertLessEqual(len(self.desc), 984)
+        self.assertIn(self.MARKER, self.desc)
+        self.assertIn("backtesting", self.desc)
+        self.assertIn("stop searching", self.desc)
+
+    def test_description_matches_generator(self) -> None:
+        """Computed in-process: running build_index.py here would rewrite the corpus."""
+        import importlib.util
+        import json
+        scripts = ROOT / "advisor" / "scripts"
+        sys.path.insert(0, str(scripts))
+        try:
+            spec = importlib.util.spec_from_file_location("build_index", scripts / "build_index.py")
+            bi = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(bi)
+            indexes = [json.loads(p.read_text()) for p in sorted((ROOT / "advisor" / "generated").glob("*/index.json"))]
+            head = self.desc.split(self.MARKER)[0]
+            self.assertEqual(self.desc, head + self.MARKER + bi.advisor_tail(indexes, head)[0],
+                             "SKILL.md description is stale — run advisor/scripts/build_index.py")
+        finally:
+            sys.path.remove(str(scripts))
+
+    def test_router_row_and_decision_line(self) -> None:
+        self.assertIn("| `references/advisor.md` |", self.skill)
+        self.assertIn("boil advise decide", self.skill)
+
+    def test_reference_is_generated_and_uses_boil_paths(self) -> None:
+        ref = (ROOT / "references" / "advisor.md").read_text()
+        self.assertIn("<skill>/advisor/scripts/lookup.py", ref)
+        self.assertNotIn("{{", ref)
+        self.assertNotRegex(ref, r"(?<!advisor/)scripts/lookup\.py")

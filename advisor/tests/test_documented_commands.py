@@ -19,7 +19,7 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-DOCS = ["templates/SKILL.md.tmpl", "README.md", "FORMAT.md", "inbox/README.md",
+DOCS = ["templates/advisor-reference.md.tmpl", "README.md", "FORMAT.md", "inbox/README.md",
         "references/workflows.md", "references/compliance.md",
         "references/maintaining.md"]
 

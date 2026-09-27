@@ -1,6 +1,6 @@
 ---
 name: boil
-description: Iterative dev loop to a verifiable goal, with project-level quality gates, a maturity ladder, and portfolio discipline. Use ANY time the user says "boil X till/until Y", or asks for sustained looped development toward a goal — "keep iterating until", "loop until done", "run a dev firm on this", "build X with full verification", "self-correct until X is true", "ralph this". ALSO use when the user asks to gate a project, audit a project, review the portfolio, decide what to work on, init project governance, or starts a coding session in any project containing a `.boil/` directory. Do not wait for the exact word "boil" — if the shape matches (a desired end-state + repeated try-test-fix cycles + wanting proof at each step), invoke this skill.
+description: Iterative dev loop to a verifiable goal, with quality gates, a maturity ladder, and portfolio discipline. Use when the user says "boil X until Y", "keep iterating until", "loop until done", "self-correct until X", "ralph this", or wants sustained try-test-fix toward a goal with proof at each step; when they gate or audit a project, review the portfolio, or decide what to work on; or in any project with a `.boil/` directory. Knowledge questions (route to `boil advise`): optimal stopping: when to stop searching and commit; explore/exploit trade-offs and bandits; scheduling, prioritising and ordering work; priors and prediction from sparse evidence; overfitting and when to think less; designing, coding or reviewing a trading strategy; backtesting, walk-forward and lookahead bias; position sizing, leverage and Kelly; regime detection and market state; portfolio construction, exposure and beta. Also for what the books say, or reviewing work against them.
 ---
 
 # boil — build one thing until it is proven, inside a project that is converging
@@ -49,7 +49,8 @@ If there is no `.boil/` yet, this is a new project: go to Phase 0.
 
 Read-only discovery first: README, manifests, structure, tests, prior `.boil/`
 state, the files the request names. Ask the user only what the workspace cannot
-answer.
+answer. Before filing a `kind: decision` human-action ticket, run `boil advise decide`
+(`references/advisor.md`); file it only if `record` exits 3.
 
 **A goal is ONE ladder criterion, not a project.** This is the highest-leverage
 rule in the skill. Measured across 15 projects on 2026-08-28: susi's 976-byte
@@ -270,16 +271,7 @@ owns it.
    `superpowers:verification-before-completion` before declaring done. The dispatch
    packet lists them; a return without a `Skills invoked:` line is not a done claim and
    is sent back once, unscored. Drafting checks in Phase 1 is TDD's RED step by another
-   name — `compile`'s falsifiability gate is the proof the test failed first. Phase 0
-   uses `superpowers:brainstorming`; T2+ dispatch uses `superpowers:dispatching-parallel-agents`
-   / `subagent-driven-development`.
-
-Baseline conduct is the Clanker Constitution — honor the request, act with
-judgment, finish the job, protect existing work, verify reality, communicate for
-humans, learn in the right place. It is a floor and never an excuse: "scale
-process to the task" does not authorize skipping the clarity gate, the demo, or
-a T3 ticket's answer key. Full text and mapping:
-`references/clanker-constitution.md`.
+   name — `compile`'s falsifiability gate is the proof the test failed first.
 
 Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 
@@ -304,6 +296,7 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
 | `references/helm-status.md` | this session is driven by a helm contract |
 | `references/lsdf-codebase-index.md` | dispatch context is the cost driver |
 | `references/plain-english-output.md` | wiring plain-English operator output |
+| `references/advisor.md` | a knowledge or what-do-the-books-say question, or `boil advise` runs |
 
 ## Scripts
 
@@ -338,14 +331,9 @@ Never write credentials, tokens, session cookies, or private IDs into `.boil/`.
   may never write one. Compile the ruler (`boil-check.py compile`) BEFORE wiring the guard: a
   guarded session can never write `.boil/milestones.json` or `.boil/checks/`; helm's
   goal-creation step owns draft → compile before the first Run.
-- **The controller reports to helm by itself:** `prepare` and `score` emit `boil.prepare` / `boil.score`
-  through `boil-helm-log.py`, which writes `.boil/status.jsonl` + `STATUS.md` locally and, when helm is
-  installed, the dashboard's session row (`runs/sessions/<project>.json`). Do not call `helm_status` per
-  iteration. **If the `helm_demo` / `helm_blocked` MCP tools are available**, call `helm_demo` when the
-  demo exists and `helm_blocked` when only the operator can unblock you; if they are absent, do nothing —
-  boil never depends on helm. Write `message` in plain English a non-programmer can follow (what you are
-  doing and why it matters — not internal event grammar); machine detail belongs after a `—`.
-  `references/helm-status.md` has the contract.
+- **The controller reports to helm by itself** (`prepare`/`score` emit through `boil-helm-log.py`);
+  never call `helm_status` per iteration. If the `helm_demo` / `helm_blocked` MCP tools exist, use
+  them in plain English; boil never depends on helm. Contract: `references/helm-status.md`.
 - `/loop` wraps boil for unattended runs; `/schedule` for recurring ones.
 - `hound` MCP over `WebFetch` for JS-heavy or bot-walled research fetches.
 
