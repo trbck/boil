@@ -1,5 +1,9 @@
 # boil
 
+> **Archived (2026-10-04).** This repository is frozen at its last public commit and is no longer updated.
+> Development of boil moved into a private repository. The code here still works as a standalone skill,
+> but it receives no fixes; issues and pull requests are not read.
+
 A Codex/Claude Code skill that builds one thing until it is proven — inside a project that is
 actually converging. It owns three scopes: the **portfolio** (should I be in this project at
 all?), the **ladder** (is this project converging?), and the **run loop** (is this one thing
